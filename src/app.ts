@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
 import { serve } from 'inngest/express';
 
 // Inngest
@@ -65,27 +64,19 @@ app.use((req, res, next) => {
 
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Logging (dev only) ───────────────────────────────────────────────────────────
-if (process.env.NODE_ENV !== 'test') {
+// ─── Logging ─────────────────────────────────────────────────────────────────────
+// 'combined' format on Lambda → structured lines in CloudWatch
+// 'dev' format locally for human-readable colourised output
+// Disabled entirely during tests
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('combined'));
+} else if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
 // ─── Rate limiting ────────────────────────────────────────────────────────────────
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
-  max:      200,
-  standardHeaders: true,
-  legacyHeaders:   false,
-});
-app.use('/api', apiLimiter);
-
-const publicLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 min
-  max:      30,
-  standardHeaders: true,
-  legacyHeaders:   false,
-});
-app.use('/public', publicLimiter);
+// In-memory stores don't work across Lambda instances — throttling is handled
+// by API Gateway (httpApi.throttle in serverless.yml). No per-process limiter.
 
 // ─── Health check ─────────────────────────────────────────────────────────────────
 app.get('/health', (_req: Request, res: Response) => {

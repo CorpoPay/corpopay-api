@@ -12,7 +12,10 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "migrate:prod": "prisma migrate deploy",
+    "predeploy": "npx prisma generate",
+    "deploy": "eval $(aws configure export-credentials --profile corpopay --format env-no-export 2>/dev/null) && unset AWS_PROFILE && doppler run --project corpopay --config prd -- serverless deploy --stage prod"
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.2.0",
@@ -23,7 +26,6 @@
     "crypto-js": "^4.2.0",
     "csv-stringify": "^6.4.6",
     "express": "^4.18.3",
-    "express-rate-limit": "^7.2.0",
     "helmet": "^7.1.0",
     "inngest": "^3.52.3",
     "jsonwebtoken": "^9.0.2",
@@ -42,8 +44,11 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.11.30",
     "@types/uuid": "^9.0.8",
+    "esbuild": "^0.20.2",
     "nodemon": "^3.1.0",
     "prisma": "^5.11.0",
+    "serverless": "^3.38.0",
+    "serverless-esbuild": "^1.52.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3"
   }

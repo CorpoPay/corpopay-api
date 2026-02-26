@@ -1,0 +1,25 @@
+# Source TypeScript (esbuild bundles these into .esbuild/ at deploy time)
+src/
+
+# Prisma migration history is not needed at Lambda runtime
+prisma/migrations/
+
+# Dev / local configs
+.env
+.env.*
+docker-compose.yml
+Dockerfile
+Dockerfile.dev
+.dockerignore
+
+# Dev tooling
+nodemon.json
+*.sh
+*.md
+
+# Tests
+**/*.test.ts
+**/__tests__/
+
+# Build artefacts (esbuild produces its own bundle)
+dist/

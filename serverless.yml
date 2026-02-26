@@ -1,0 +1,114 @@
+service: corpopay-api
+
+frameworkVersion: '3'
+
+# ─── Provider ──────────────────────────────────────────────────────────────────────
+provider:
+  name: aws
+  runtime: nodejs20.x
+  architecture: x86_64
+  region: eu-north-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512          # comfortable for Prisma + Express cold-start
+  timeout: 29              # API Gateway HTTP API max is 29 s
+
+  # CloudWatch log retention
+  logRetentionInDays: 30
+
+  # ── Environment variables ───────────────────────────────────────────────────────
+  # All values are injected at deploy time by Doppler (doppler run -- serverless deploy).
+  # Never hard-code secrets here.
+  environment:
+    NODE_ENV: production
+    DATABASE_URL: ${env:DATABASE_URL}
+    DIRECT_URL: ${env:DIRECT_URL}
+    JWT_SECRET: ${env:JWT_SECRET}
+    JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN}
+    ENCRYPTION_KEY: ${env:ENCRYPTION_KEY}
+    WEB_BASE_URL: ${env:WEB_BASE_URL}
+    API_BASE_URL: ${env:API_BASE_URL}
+    INNGEST_SIGNING_KEY: ${env:INNGEST_SIGNING_KEY}
+    INNGEST_EVENT_KEY: ${env:INNGEST_EVENT_KEY}
+    # INNGEST_BASE_URL intentionally omitted — SDK defaults to Inngest Cloud
+    API_PORT: "4000"       # unused on Lambda but keeps server.ts happy if it ever runs locally
+
+  # ── API Gateway HTTP API ────────────────────────────────────────────────────────
+  # HTTP API (v2) is ~70% cheaper than REST API and has lower latency.
+  # throttle acts as the global rate limit that replaced express-rate-limit.
+  httpApi:
+    cors:
+      allowedOrigins:
+        - ${env:WEB_BASE_URL}
+        - http://localhost:3000
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+        - X-Api-Key
+      allowCredentials: true
+    # NOTE: HTTP API throttling is managed via AWS console or CloudFormation
+    # override — serverless-framework v3 does not expose httpApi.throttle
+
+# ─── Functions ─────────────────────────────────────────────────────────────────────
+functions:
+  api:
+    handler: src/lambda.lambdaHandler
+    description: 'CorpoPay API — ${self:provider.stage}'
+    events:
+      # Catch-all: every path and every HTTP method routes through the Express app
+      - httpApi:
+          path: /{proxy+}
+          method: ANY
+      # Root path
+      - httpApi:
+          path: /
+          method: ANY
+
+# ─── Plugins ───────────────────────────────────────────────────────────────────────
+plugins:
+  - serverless-esbuild
+
+# ─── Custom config ─────────────────────────────────────────────────────────────────
+custom:
+  esbuild:
+    bundle: true
+    minify: false        # keep readable for CloudWatch stack traces
+    sourcemap: true
+    target: node20
+    platform: node
+    concurrency: 10
+
+    # Prisma cannot be bundled — the generated client has a native binary (.so/.node).
+    # We exclude it from the bundle and include it directly via package.patterns below.
+    external:
+      - '@prisma/client'
+      - '.prisma/client'
+
+    # prisma generate is run via the predeploy npm script (see package.json)
+    # before `serverless deploy` is invoked — packagerOptions.scripts runs
+    # in a temp dir where prisma/schema.prisma is not available.
+
+# ─── Packaging ─────────────────────────────────────────────────────────────────────
+package:
+  individually: false
+  patterns:
+    # Exclude everything by default, then re-include what Lambda needs
+    - '!src/**'
+    - '!prisma/migrations/**'
+    - '!*.sh'
+    - '!.env*'
+    - '!docker*'
+    - '!.dockerignore'
+    - '!*.md'
+    - '!*.test.ts'
+    # Prisma generated client + native query-engine binary
+    - 'node_modules/.prisma/**'
+    - 'node_modules/@prisma/client/**'
+    # Schema is needed at runtime for Prisma migrations from code
+    - 'prisma/schema.prisma'
