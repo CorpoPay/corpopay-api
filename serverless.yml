@@ -31,6 +31,10 @@ provider:
     INNGEST_EVENT_KEY: ${env:INNGEST_EVENT_KEY}
     # INNGEST_BASE_URL intentionally omitted — SDK defaults to Inngest Cloud
     API_PORT: "4000"       # unused on Lambda but keeps server.ts happy if it ever runs locally
+    # Webhook HMAC secrets — sandbox values until provider prod accounts are provisioned
+    # Swap via: doppler secrets set NAPS_WEBHOOK_SECRET=<prod> VPS_WEBHOOK_SECRET=<prod> --project corpopay --config prd && npm run deploy
+    NAPS_WEBHOOK_SECRET: ${env:NAPS_WEBHOOK_SECRET}
+    VPS_WEBHOOK_SECRET: ${env:VPS_WEBHOOK_SECRET}
 
   # ── API Gateway HTTP API ────────────────────────────────────────────────────────
   # HTTP API (v2) is ~70% cheaper than REST API and has lower latency.
