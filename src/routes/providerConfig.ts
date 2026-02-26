@@ -76,20 +76,22 @@ router.get(
   }),
 );
 
-// ─── PUT /provider-configs/:provider ─────────────────────────────────────────────
+// ─── POST /provider-configs ──────────────────────────────────────────────────────
+// Upsert: provider + environment + credentials all come from the request body.
 
-router.put(
-  '/:provider',
+router.post(
+  '/',
   requireAuth,
   requireOwner,
   asyncHandler(async (req, res) => {
-    const provider = ProviderParamSchema.parse(req.params.provider) as Provider;
+    const provider = ProviderParamSchema.parse(req.body.provider) as Provider;
 
+    const rawCredentials = req.body.credentials ?? req.body;
     let credentials: Record<string, unknown>;
     if (provider === Provider.NAPS) {
-      credentials = NapsCredentialsSchema.parse(req.body);
+      credentials = NapsCredentialsSchema.parse(rawCredentials);
     } else {
-      credentials = VpsCredentialsSchema.parse(req.body);
+      credentials = VpsCredentialsSchema.parse(rawCredentials);
     }
 
     const encrypted = encryptCredentials(credentials);
@@ -129,21 +131,19 @@ router.put(
   }),
 );
 
-// ─── POST /provider-configs/:provider/test ────────────────────────────────────────
+// ─── POST /provider-configs/:id/test ─────────────────────────────────────────────
 
 router.post(
-  '/:provider/test',
+  '/:id/test',
   requireAuth,
   requireOwner,
   asyncHandler(async (req, res) => {
-    const provider = ProviderParamSchema.parse(req.params.provider) as Provider;
-
     const config = await prisma.providerConfig.findFirst({
-      where: { tenantId: req.user!.tenantId, provider },
+      where: { id: req.params.id, tenantId: req.user!.tenantId },
     });
     if (!config) throw new AppError(404, 'CONFIG_NOT_FOUND', 'Provider config not found');
 
-    const adapter = getAdapter(provider, config.encryptedCredentials);
+    const adapter = getAdapter(config.provider, config.encryptedCredentials);
     const result = await adapter.testConnection();
 
     const newStatus = result.connected ? 'CONNECTED' : 'INVALID';
@@ -159,7 +159,7 @@ router.post(
         action:     AuditAction.PROVIDER_CONFIG_VALIDATED,
         entityType: 'ProviderConfig',
         entityId:   config.id,
-        metadata:   { provider, result } as any,
+        metadata:   { provider: config.provider, result } as any,
         ip:         req.ip,
       },
     });
@@ -168,17 +168,15 @@ router.post(
   }),
 );
 
-// ─── DELETE /provider-configs/:provider ──────────────────────────────────────────
+// ─── DELETE /provider-configs/:id ────────────────────────────────────────────────
 
 router.delete(
-  '/:provider',
+  '/:id',
   requireAuth,
   requireOwner,
   asyncHandler(async (req, res) => {
-    const provider = ProviderParamSchema.parse(req.params.provider) as Provider;
-
     const config = await prisma.providerConfig.findFirst({
-      where: { tenantId: req.user!.tenantId, provider },
+      where: { id: req.params.id, tenantId: req.user!.tenantId },
     });
     if (!config) throw new AppError(404, 'CONFIG_NOT_FOUND', 'Provider config not found');
 
@@ -191,7 +189,7 @@ router.delete(
         action:     AuditAction.PROVIDER_CONFIG_DELETED,
         entityType: 'ProviderConfig',
         entityId:   config.id,
-        metadata:   { provider },
+        metadata:   { provider: config.provider },
         ip:         req.ip,
       },
     });
