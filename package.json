@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
+    "db:seed:jabadoor": "ts-node prisma/seed-jabadoor.ts",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
