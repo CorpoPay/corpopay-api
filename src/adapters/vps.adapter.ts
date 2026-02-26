@@ -290,11 +290,17 @@ export class VpsAdapter implements ProviderAdapter {
   }
 
   // ── testConnection ────────────────────────────────────────────────────────────
+  //
+  // Payzone does not expose a dedicated health endpoint, so we probe the
+  // charges resource with a dummy id.  Expected outcomes:
+  //   404  → API reachable and credentials accepted (charge simply not found)
+  //   401/403 → API reachable but credentials rejected
+  //   anything else or network error → treat as unreachable
 
   async testConnection(): Promise<TestConnectionResult> {
     try {
       const c           = this.credentials;
-      const requestPath = '/api/v3/health';
+      const requestPath = '/api/v3/charges/connectivity-test-probe';
       const timestamp   = Math.floor(Date.now() / 1000);
       const signature   = generateCommandHmac(
         c.callerName,
@@ -316,7 +322,13 @@ export class VpsAdapter implements ProviderAdapter {
         signal: AbortSignal.timeout(10_000),
       });
 
-      if (response.ok) return { connected: true };
+      // 404 is the expected "happy path": endpoint exists, credentials valid,
+      // resource simply not found — treat as successful connectivity.
+      if (response.ok || response.status === 404) return { connected: true };
+
+      if (response.status === 401 || response.status === 403) {
+        return { connected: false, error: 'Invalid credentials (authentication rejected)' };
+      }
 
       const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       return {
