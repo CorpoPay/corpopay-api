@@ -28,7 +28,8 @@ export interface VpsCredentials {
   skin?: string;
   /** When true the paywall performs pre-authorisation only (doFundsAuthOnly) */
   doFundsAuthOnly?: boolean;
-  /** Payment mode: 'test' | 'live' */
+  /** Paywall deep-link mode — must be set to 'DEEP_LINK'. Required by Payzone's
+   *  /pwthree/api/initialize endpoint. Defaults to 'DEEP_LINK' in the adapter. */
   mode?: string;
   /** Default payment method string sent to paywall */
   paymentMethod?: string;

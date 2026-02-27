@@ -19,9 +19,23 @@ const NapsCredentialsSchema = z.object({
 });
 
 const VpsCredentialsSchema = z.object({
-  merchantCode: z.string().min(1),
-  apiKey:       z.string().min(1),
-  baseUrl:      z.string().url(),
+  // Paywall (front-end redirect)
+  merchantAccount:     z.string().min(1),
+  paywallSecretKey:    z.string().min(1),
+  paywallUrl:          z.string().url(),
+  skin:                z.string().optional(),
+  doFundsAuthOnly:     z.boolean().optional(),
+  /** Must be 'DEEP_LINK' — required by Payzone's /pwthree/api/initialize endpoint */
+  mode:                z.string().optional(),
+  paymentMethod:       z.string().optional(),
+  showPaymentProfiles: z.string().optional(),
+  // Server-to-server API
+  apiUrl:              z.string().url(),
+  callerName:          z.string().min(1),
+  callerPassword:      z.string().min(1),
+  // Webhook verification
+  notificationKey:     z.string().optional(),
+  callbackTestMode:    z.boolean().optional(),
 });
 
 const ProviderParamSchema = z.enum(['NAPS', 'VPS']);

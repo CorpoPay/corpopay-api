@@ -152,7 +152,7 @@ export class VpsAdapter implements ProviderAdapter {
       price:              (params.amount / 100).toFixed(2), // centimes → MAD
       currency:           params.currency,
       description:        params.description,
-      mode:               c.mode            ?? 'DEEP_LINK',
+      mode:               c.mode            || 'DEEP_LINK',
       ...(c.paymentMethod ? { paymentMethod: c.paymentMethod } : { paymentMethod: 'CREDIT_CARD' }),
       // savePaymentProfile: triggers the creation of a new stored payment profile on this charge
       // showPaymentProfiles: shows previously saved cards in the paywall UI
@@ -169,8 +169,11 @@ export class VpsAdapter implements ProviderAdapter {
     console.log('[VPS] createCheckoutSession payload:', JSON.stringify(payload, null, 2));
     console.log('[VPS] paywallUrl:', c.paywallUrl);
 
-    // The front-end reads providerData and POSTs { payload: JSON, signature }
+    // The front-end reads providerData and POSTs { payload: JSON, signature, mode }
     // to credentials.paywallUrl (Payzone hosted paywall).
+    // NOTE: `mode` must also be a top-level POST field (not only inside the JSON
+    // payload) because Payzone's paywall JS reads it directly from the form data
+    // when calling /pwthree/api/initialize?mode=DEEP_LINK&...
     return {
       redirectUrl:  c.paywallUrl,
       providerRef:  params.correlationId,
@@ -181,6 +184,7 @@ export class VpsAdapter implements ProviderAdapter {
         payload:    JSON.stringify(payload),
         signature,
         chargeId:   params.correlationId,
+        mode:       payload.mode as string,
       },
     };
   }
