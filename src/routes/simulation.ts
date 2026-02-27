@@ -927,4 +927,358 @@ router.delete(
   }),
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pre-Auth Simulation Routes  (AUTHORIZE → manual SETTLE or AUTH_REVERSAL)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PREAUTH_SIM_PREFIX = '__PREAUTH_SIM_';
+
+// ── POST /admin/simulation/preauth/prepare ────────────────────────────────────
+// Creates a PaymentIntent + PayWall payload in AUTHORIZE mode.
+// Returns a signed PayWall form — same as direct/prepare but doFundsAuthOnly=true
+// is the intended semantic (no auto-settle in the status poller).
+
+router.post(
+  '/preauth/prepare',
+  requireAuth,
+  requireSuperAdmin,
+  asyncHandler(async (req, res) => {
+    const { tenantId, amount = 1.00 } = z.object({
+      tenantId: z.string().min(1),
+      amount:   z.number().positive().default(1.00),
+    }).parse(req.body);
+
+    const config = await prisma.providerConfig.findFirst({
+      where: { tenantId, provider: 'VPS', status: 'CONNECTED' },
+    });
+    if (!config) throw new AppError(400, 'NO_VPS_CONFIG', 'Tenant has no connected VPS provider config');
+
+    const sessionTag     = `${PREAUTH_SIM_PREFIX}${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+    const amountCentimes = Math.round(amount * 100);
+
+    const link = await prisma.paymentLink.create({
+      data: {
+        tenantId,
+        slug:        sessionTag,
+        amount:      amountCentimes,
+        currency:    'MAD',
+        description: `Pre-Auth Test — ${amount.toFixed(2)} MAD`,
+        reference:   sessionTag,
+        provider:    'VPS',
+        status:      'ACTIVE',
+        maxAttempts: 1,
+      },
+    });
+
+    const correlationId = randomUUID().replace(/-/g, '');
+    const intent = await prisma.paymentIntent.create({
+      data: {
+        tenantId,
+        paymentLinkId:  link.id,
+        status:         'CREATED',
+        provider:       'VPS',
+        correlationId,
+        metadata:       { preauthSim: true },
+      },
+    });
+
+    const adapter = getAdapter('VPS', config.encryptedCredentials) as VpsAdapter;
+    const apiBase = process.env.API_BASE_URL ?? 'http://localhost:4000';
+    const webBase = process.env.WEB_BASE_URL ?? 'http://localhost:3000';
+
+    const checkoutResult = await adapter.createCheckoutSession({
+      amount:              amountCentimes,
+      currency:            'MAD',
+      reference:           sessionTag,
+      description:         `Pre-Auth Test — ${amount.toFixed(2)} MAD`,
+      returnUrl:           `${webBase}/checkout/success`,
+      successUrl:          `${webBase}/checkout/success`,
+      failureUrl:          `${webBase}/checkout/failure`,
+      webhookUrl:          `${apiBase}/webhooks/vps`,
+      correlationId,
+      isPreauth:           true,   // AUTHORIZE mode — funds held, no capture
+      storePaymentProfile: false,
+    });
+
+    await prisma.paymentIntent.update({
+      where: { id: intent.id },
+      data:  { status: 'REQUIRES_ACTION', providerRef: checkoutResult.providerRef },
+    });
+
+    const pd = checkoutResult.providerData ?? {};
+
+    return res.status(201).json({
+      intentId:         intent.id,
+      linkId:           link.id,
+      sessionTag,
+      paywallUrl:       pd['paywallUrl'] as string,
+      paywallPayload:   pd['payload']    as string,
+      paywallSignature: pd['signature']  as string,
+      amount,
+    });
+  }),
+);
+
+// ── GET /admin/simulation/preauth/status/:intentId ────────────────────────────
+// Like direct/status but does NOT auto-settle when AUTHORISED.
+// Returns { authorized: true } so the UI can show manual Capture / Release buttons.
+
+router.get(
+  '/preauth/status/:intentId',
+  requireAuth,
+  requireSuperAdmin,
+  asyncHandler(async (req, res) => {
+    const intent = await prisma.paymentIntent.findUnique({
+      where:   { id: req.params.intentId },
+      include: { paymentLink: { select: { amount: true, currency: true } } },
+    });
+    if (!intent) throw new AppError(404, 'NOT_FOUND', 'Intent not found');
+
+    const TERMINAL = ['SUCCEEDED', 'FAILED', 'CANCELED'];
+
+    if (TERMINAL.includes(intent.status)) {
+      return res.json({
+        intentId:   intent.id,
+        status:     intent.status,
+        providerRef: intent.providerRef,
+        terminal:   true,
+        authorized: false,
+      });
+    }
+
+    if (!intent.providerRef) {
+      return res.json({
+        intentId:   intent.id,
+        status:     intent.status,
+        providerRef: null,
+        terminal:   false,
+        authorized: false,
+      });
+    }
+
+    const config = await prisma.providerConfig.findFirst({
+      where: { tenantId: intent.tenantId, provider: 'VPS', status: 'CONNECTED' },
+    });
+    if (!config) {
+      return res.json({
+        intentId:   intent.id,
+        status:     intent.status,
+        providerRef: intent.providerRef,
+        terminal:   false,
+        authorized: false,
+      });
+    }
+
+    try {
+      const adapter      = getAdapter('VPS', config.encryptedCredentials) as VpsAdapter;
+      const queryResult  = await adapter.queryTransactionStatus(intent.providerRef);
+      const raw          = queryResult.rawResponse as Record<string, unknown>;
+      const chargeData   = (raw['charge'] as Record<string, unknown> | undefined) ?? raw;
+      const rawVpsStatus = ((chargeData['status'] as string) ?? '').toUpperCase();
+
+      console.log(`[sim/preauth] VPS status for ${intent.providerRef}: ${rawVpsStatus}`);
+
+      // 3DS redirect — return paymentServiceUrl so iframe can navigate there
+      const IS_3DS = [
+        'REDIRECTED', 'AUTHORIZE_PENDING', 'AUTHORIZATION_PENDING',
+        'CHALLENGE_REQUIRED', 'CHALLENGED', 'PENDING_3DS', 'THREE_DS_PENDING',
+      ].includes(rawVpsStatus);
+
+      if (IS_3DS) {
+        const paymentOption = raw['paymentOption'] as Record<string, unknown> | undefined;
+        const paymentServiceUrl =
+          (paymentOption?.['paymentServiceURL'] as string | undefined) ??
+          (paymentOption?.['paymentServiceUrl'] as string | undefined) ??
+          null;
+
+        await prisma.paymentIntent.update({
+          where: { id: intent.id },
+          data:  { status: 'REQUIRES_ACTION' },
+        });
+
+        return res.json({
+          intentId:          intent.id,
+          status:            'REQUIRES_ACTION',
+          providerRef:       intent.providerRef,
+          terminal:          false,
+          authorized:        false,
+          paymentServiceUrl,
+          rawVpsStatus,
+        });
+      }
+
+      // AUTHORISED — funds held.
+      // KEY DIFFERENCE from direct/status: we do NOT auto-settle here.
+      // Return authorized:true so the UI shows manual Capture / Release buttons.
+      const IS_AUTHORISED = [
+        'AUTHORISED', 'AUTHORIZED', 'AUTHORIZATION', 'PREAUTHORIZED', 'PRE_AUTHORIZED',
+      ].includes(rawVpsStatus);
+
+      if (IS_AUTHORISED) {
+        await prisma.paymentIntent.update({
+          where: { id: intent.id },
+          data:  { status: 'REQUIRES_ACTION' },
+        });
+
+        return res.json({
+          intentId:    intent.id,
+          status:      'REQUIRES_ACTION',
+          providerRef: intent.providerRef,
+          terminal:    false,
+          authorized:  true,
+          rawVpsStatus,
+        });
+      }
+
+      // Terminal / other in-flight states
+      const liveStatus = queryResult.status;
+      if (liveStatus !== intent.status) {
+        await prisma.paymentIntent.update({
+          where: { id: intent.id },
+          data:  { status: liveStatus },
+        });
+      }
+
+      return res.json({
+        intentId:    intent.id,
+        status:      liveStatus,
+        providerRef: intent.providerRef,
+        terminal:    TERMINAL.includes(liveStatus),
+        authorized:  false,
+        rawVpsStatus,
+      });
+    } catch (queryErr) {
+      const msg   = (queryErr as Error).message;
+      const is404 = msg.includes('HTTP 404') || msg.includes('entity_not_found');
+      if (!is404) {
+        console.error(`[sim/preauth] VPS queryTransactionStatus failed for ${intent.providerRef}:`, msg);
+      }
+      return res.json({
+        intentId:    intent.id,
+        status:      intent.status,
+        providerRef: intent.providerRef,
+        terminal:    false,
+        authorized:  false,
+        ...(is404 ? {} : { queryError: msg }),
+      });
+    }
+  }),
+);
+
+// ── POST /admin/simulation/preauth/capture/:intentId ─────────────────────────
+// Manually SETTLE a pre-authorised charge (convert hold to capture).
+
+router.post(
+  '/preauth/capture/:intentId',
+  requireAuth,
+  requireSuperAdmin,
+  asyncHandler(async (req, res) => {
+    const intent = await prisma.paymentIntent.findUnique({
+      where:   { id: req.params.intentId },
+      include: { paymentLink: { select: { amount: true, currency: true } } },
+    });
+    if (!intent) throw new AppError(404, 'NOT_FOUND', 'Intent not found');
+    if (intent.status !== 'REQUIRES_ACTION') {
+      throw new AppError(400, 'WRONG_STATE', `Intent is ${intent.status}, expected REQUIRES_ACTION`);
+    }
+    if (!intent.providerRef) {
+      throw new AppError(400, 'NO_PROVIDER_REF', 'No providerRef — PayWall has not been completed');
+    }
+
+    const config = await prisma.providerConfig.findFirst({
+      where: { tenantId: intent.tenantId, provider: 'VPS', status: 'CONNECTED' },
+    });
+    if (!config) throw new AppError(400, 'NO_VPS_CONFIG', 'VPS config not found');
+
+    const amountCentimes = intent.paymentLink?.amount
+      ? Math.round(Number(intent.paymentLink.amount))
+      : 100;
+    const currency = intent.paymentLink?.currency ?? 'MAD';
+
+    const adapter = getAdapter('VPS', config.encryptedCredentials) as VpsAdapter;
+    await adapter.capturePayment(intent.providerRef, amountCentimes, currency);
+
+    await prisma.paymentIntent.update({
+      where: { id: intent.id },
+      data:  { status: 'SUCCEEDED' },
+    });
+
+    await inngest.send({
+      name: 'payment/captured',
+      data: { intentId: intent.id, tenantId: intent.tenantId },
+    });
+
+    return res.json({ intentId: intent.id, status: 'SUCCEEDED' });
+  }),
+);
+
+// ── POST /admin/simulation/preauth/cancel/:intentId ───────────────────────────
+// AUTH_REVERSAL — release the held funds back to the customer.
+
+router.post(
+  '/preauth/cancel/:intentId',
+  requireAuth,
+  requireSuperAdmin,
+  asyncHandler(async (req, res) => {
+    const intent = await prisma.paymentIntent.findUnique({
+      where:   { id: req.params.intentId },
+      include: { paymentLink: { select: { amount: true, currency: true } } },
+    });
+    if (!intent) throw new AppError(404, 'NOT_FOUND', 'Intent not found');
+    if (intent.status !== 'REQUIRES_ACTION') {
+      throw new AppError(400, 'WRONG_STATE', `Intent is ${intent.status}, expected REQUIRES_ACTION`);
+    }
+    if (!intent.providerRef) {
+      throw new AppError(400, 'NO_PROVIDER_REF', 'No providerRef — PayWall has not been completed');
+    }
+
+    const config = await prisma.providerConfig.findFirst({
+      where: { tenantId: intent.tenantId, provider: 'VPS', status: 'CONNECTED' },
+    });
+    if (!config) throw new AppError(400, 'NO_VPS_CONFIG', 'VPS config not found');
+
+    const amountCentimes = intent.paymentLink?.amount
+      ? Math.round(Number(intent.paymentLink.amount))
+      : 100;
+    const currency = intent.paymentLink?.currency ?? 'MAD';
+
+    const adapter = getAdapter('VPS', config.encryptedCredentials) as VpsAdapter;
+    await adapter.cancelPayment(intent.providerRef, amountCentimes, currency);
+
+    await prisma.paymentIntent.update({
+      where: { id: intent.id },
+      data:  { status: 'CANCELED' },
+    });
+
+    await inngest.send({
+      name: 'payment/canceled',
+      data: { intentId: intent.id, tenantId: intent.tenantId },
+    });
+
+    return res.json({ intentId: intent.id, status: 'CANCELED' });
+  }),
+);
+
+// ── DELETE /admin/simulation/preauth/cleanup/:intentId ────────────────────────
+
+router.delete(
+  '/preauth/cleanup/:intentId',
+  requireAuth,
+  requireSuperAdmin,
+  asyncHandler(async (req, res) => {
+    const intent = await prisma.paymentIntent.findUnique({
+      where:  { id: req.params.intentId },
+      select: { id: true, paymentLinkId: true },
+    });
+    if (!intent) return res.json({ deleted: { intents: 0, links: 0 } });
+
+    const intents = await prisma.paymentIntent.deleteMany({ where: { id: intent.id } });
+    const links   = intent.paymentLinkId
+      ? await prisma.paymentLink.deleteMany({ where: { id: intent.paymentLinkId } })
+      : { count: 0 };
+
+    return res.json({ deleted: { intents: intents.count, links: links.count } });
+  }),
+);
+
 export default router;
