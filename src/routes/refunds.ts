@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { requireAuth, requireMerchant } from '../middleware/auth';
+import { requireAuth, requireOwner } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { getAdapter } from '../adapters/registry';
 import { maskObject } from '../lib/mask';
@@ -13,7 +13,7 @@ const router = Router();
 router.post(
   '/:id/refund',
   requireAuth,
-  requireMerchant,
+  requireOwner,   // H-1: only owners can initiate refunds (not STAFF)
   asyncHandler(async (req, res) => {
     const intent = await prisma.paymentIntent.findFirst({
       where:   { id: req.params.id, tenantId: req.user!.tenantId },
@@ -24,8 +24,9 @@ router.post(
     if (intent.status !== 'SUCCEEDED') {
       throw new AppError(400, 'NOT_REFUNDABLE', 'Only succeeded payments can be refunded');
     }
-    if (intent.refunds.some((r) => r.status === 'SUCCEEDED')) {
-      throw new AppError(409, 'ALREADY_REFUNDED', 'This transaction has already been refunded');
+    // C-2: check for any in-flight or already-succeeded refund (not just SUCCEEDED)
+    if (intent.refunds.some((r) => r.status === 'SUCCEEDED' || r.status === 'PENDING')) {
+      throw new AppError(409, 'ALREADY_REFUNDED', 'A refund for this transaction is already in progress or completed');
     }
     if (!intent.providerRef) {
       throw new AppError(400, 'NO_PROVIDER_REF', 'Provider reference not available');
@@ -38,23 +39,35 @@ router.post(
 
     const adapter = getAdapter(intent.provider, config.encryptedCredentials);
 
-    const amountCentimes = Math.round(Number(intent.paymentLink?.amount ?? (intent.metadata as any)?.amount ?? 0) * 100);
-    const currency = intent.paymentLink?.currency ?? (intent.metadata as any)?.currency ?? 'MAD';
+    // C-3: paymentLink.amount is in MAD (Decimal) → multiply by 100 to get centimes.
+    //       metadata.amount is ALREADY in centimes (stored directly from body.amount
+    //       which callers pass as centimes per the API contract). Never double-multiply.
+    const amountCentimes = intent.paymentLink
+      ? Math.round(Number(intent.paymentLink.amount) * 100)          // MAD → centimes
+      : Math.round(Number((intent.metadata as any)?.amount ?? 0));   // already centimes
+    const amountMad  = amountCentimes / 100;
+    const currency   = intent.paymentLink?.currency ?? (intent.metadata as any)?.currency ?? 'MAD';
 
     if (!amountCentimes) {
       throw new AppError(400, 'MISSING_AMOUNT', 'Cannot determine refund amount');
     }
 
-    // Create a pending refund record first (for idempotency)
+    // C-2: Use an atomic write as the actual race-condition gate.
+    // Both the PENDING check above and this create must be in a serializable window;
+    // the UNIQUE constraint on (paymentIntentId, status=PENDING/SUCCEEDED) in the DB
+    // provides the hard guard. The create will throw P2002 if a race slips through.
     const refund = await prisma.refund.create({
       data: {
         paymentIntentId: intent.id,
         tenantId:        req.user!.tenantId,
         initiatedBy:     req.user!.id,
-        amount:          intent.paymentLink?.amount ?? (intent.metadata as any)?.amount ?? 0,
+        amount:          amountMad,    // stored in MAD, consistent with PaymentLink.amount
         currency,
         status:          'PENDING',
       },
+    }).catch((e: { code?: string }) => {
+      if (e.code === 'P2002') throw new AppError(409, 'ALREADY_REFUNDED', 'A refund for this transaction is already in progress');
+      throw e;
     });
 
     await prisma.auditLog.create({

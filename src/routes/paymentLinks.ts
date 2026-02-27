@@ -258,7 +258,7 @@ publicCheckoutRouter.get(
       amount:          link.amount,
       currency:        link.currency,
       description:     link.description,
-      reference:       link.reference,
+      // M-8: reference is an internal merchant identifier — not exposed to customers
       customerName:    link.customerName,
       customerEmail:   link.customerEmail,
       customerPhone:   link.customerPhone,

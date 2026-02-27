@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 import { serve } from 'inngest/express';
 
 // Inngest
@@ -86,8 +87,35 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ─── Rate limiting ────────────────────────────────────────────────────────────────
-// In-memory stores don't work across Lambda instances — throttling is handled
-// by API Gateway (httpApi.throttle in serverless.yml). No per-process limiter.
+// H-5: Applied in all deployment modes (VPS/Docker + Lambda).
+// On Lambda, API Gateway throttling is the outer defence; these limits are the
+// inner, per-process defence (important during scale-down / cold starts).
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,   // 15 minutes
+  max: 20,                      // 20 login/register attempts per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests', code: 'RATE_LIMITED' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+const checkoutLimiter = rateLimit({
+  windowMs: 60 * 1000,         // 1 minute
+  max: 10,                      // 10 checkout initiations per IP per minute (carding guard)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests', code: 'RATE_LIMITED' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,         // 1 minute
+  max: 120,                     // 120 authenticated API requests per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests', code: 'RATE_LIMITED' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
 
 // ─── Health check ─────────────────────────────────────────────────────────────────
 app.get('/health', (_req: Request, res: Response) => {
@@ -95,34 +123,34 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // ─── Public routes (no auth) ──────────────────────────────────────────────────────
-app.use('/public/checkout', publicCheckoutRouter);                   // GET  /public/checkout/:slug
-app.use('/public/checkout', publicPayRouter);                        // POST /public/checkout/:slug/pay
+app.use('/public/checkout', checkoutLimiter, publicCheckoutRouter);                   // GET  /public/checkout/:slug
+app.use('/public/checkout', checkoutLimiter, publicPayRouter);                        // POST /public/checkout/:slug/pay
 app.use('/public/installment-plans', publicInstallmentPlansRouter);  // GET  /public/installment-plans/:slug
-app.use('/public/pay', publicRelayRouter);                           // GET  /public/pay/:correlationId  (relay)
+app.use('/public/pay', checkoutLimiter, publicRelayRouter);                           // GET  /public/pay/:correlationId  (relay)
 
 // ─── Webhook routes ───────────────────────────────────────────────────────────────
 app.use('/webhooks', webhooksRouter);
 
 // ─── Merchant API routes ──────────────────────────────────────────────────────────
-app.use('/auth',             authRouter);
-app.use('/tenant',           tenantRouter);
-app.use('/users',            usersRouter);
-app.use('/provider-configs', providerConfigRouter);
-app.use('/payment-links',    paymentLinksRouter);
-app.use('/payment-intents',  paymentIntentsRouter);
-app.use('/transactions',     transactionsRouter);
-app.use('/transactions',     refundsRouter);          // POST /transactions/:id/refund
-app.use('/exports',          exportsRouter);
-app.use('/api-keys',         apiKeysRouter);
-app.use('/subscriptions',          subscriptionsRouter);
-app.use('/installment-plans',      installmentPlansRouter);
-app.use('/installment-agreements', installmentAgreementsRouter);
+app.use('/auth',             authLimiter, authRouter);
+app.use('/tenant',           apiLimiter, tenantRouter);
+app.use('/users',            apiLimiter, usersRouter);
+app.use('/provider-configs', apiLimiter, providerConfigRouter);
+app.use('/payment-links',    apiLimiter, paymentLinksRouter);
+app.use('/payment-intents',  apiLimiter, paymentIntentsRouter);
+app.use('/transactions',     apiLimiter, transactionsRouter);
+app.use('/transactions',     apiLimiter, refundsRouter);          // POST /transactions/:id/refund
+app.use('/exports',          apiLimiter, exportsRouter);
+app.use('/api-keys',         apiLimiter, apiKeysRouter);
+app.use('/subscriptions',          apiLimiter, subscriptionsRouter);
+app.use('/installment-plans',      apiLimiter, installmentPlansRouter);
+app.use('/installment-agreements', apiLimiter, installmentAgreementsRouter);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────────
-app.use('/admin/tenants',                            adminTenantRouter);
-app.use('/admin/tenants/:id/provider-configs',       adminProviderConfigRouter);
-app.use('/admin/simulation',                         simulationRouter);
-app.use('/admin',                                    adminRouter);
+app.use('/admin/tenants',                            apiLimiter, adminTenantRouter);
+app.use('/admin/tenants/:id/provider-configs',       apiLimiter, adminProviderConfigRouter);
+app.use('/admin/simulation',                         apiLimiter, simulationRouter);
+app.use('/admin',                                    apiLimiter, adminRouter);
 // ─── Inngest job handler ─────────────────────────────────────────────────────
 // Receives events from Inngest Cloud (or the local Dev Server on port 8288).
 // Endpoint: POST /api/inngest

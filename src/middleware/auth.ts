@@ -20,6 +20,23 @@ function getSecret(): string {
   return secret;
 }
 
+// C-8: Short-lived in-memory cache so we don't hit the DB on every authenticated
+// request just to re-check tenant status.  TTL = 60 s — acceptable lag between
+// an admin disabling a tenant and that tenant's sessions being blocked.
+const tenantStatusCache = new Map<string, { status: string; expiresAt: number }>();
+const TENANT_CACHE_TTL_MS = 60_000;
+
+async function checkTenantActive(tenantId: string): Promise<boolean> {
+  const cached = tenantStatusCache.get(tenantId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.status === 'ACTIVE';
+  }
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { status: true } });
+  const status = tenant?.status ?? 'DISABLED';
+  tenantStatusCache.set(tenantId, { status, expiresAt: Date.now() + TENANT_CACHE_TTL_MS });
+  return status === 'ACTIVE';
+}
+
 /**
  * Verifies the Bearer token — accepts both JWTs (dashboard/browser sessions)
  * and API keys (cp_live_... / cp_test_... — for B2B integrations).
@@ -113,6 +130,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   // ── JWT path (dashboard sessions) ────────────────────────────────────────────
   try {
     const payload = jwt.verify(token, getSecret()) as JwtPayload;
+    // C-8: Verify tenant is still ACTIVE on every JWT-authenticated request.
+    // A disabled tenant's users must not retain access for the remaining JWT lifetime.
+    const tenantActive = await checkTenantActive(payload.tenantId);
+    if (!tenantActive) {
+      res.status(403).json({ error: 'Tenant is disabled', code: 'TENANT_DISABLED' });
+      return;
+    }
     req.user = {
       id:       payload.sub,
       tenantId: payload.tenantId,

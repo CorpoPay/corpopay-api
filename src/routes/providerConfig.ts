@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { Provider } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { requireAuth, requireOwner, requireAdmin } from '../middleware/auth';
+import { requireAuth, requireOwner, requireAdmin, requireSuperAdmin } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { encryptCredentials, decryptCredentials } from '../lib/encryption';
 import { getAdapter } from '../adapters/registry';
@@ -41,9 +41,15 @@ const VpsCredentialsSchema = z.object({
 const ProviderParamSchema = z.enum(['NAPS', 'VPS']);
 
 function maskCredentials(creds: Record<string, unknown>): Record<string, unknown> {
+  // H-4: Expanded mask list — covers all VPS/NAPS secret fields.
+  // Any change here should be reflected in the VpsCredentials/NapsCredentials interfaces.
+  const SENSITIVE = new Set([
+    'secretKey', 'apiKey', 'password', 'token',
+    'paywallSecretKey', 'callerPassword', 'notificationKey',  // VPS
+  ]);
   const masked: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(creds)) {
-    if (['secretKey', 'apiKey', 'password', 'token'].includes(k)) {
+    if (SENSITIVE.has(k)) {
       masked[k] = typeof v === 'string' && v.length > 4
         ? `${(v as string).slice(0, 4)}${'*'.repeat(Math.max((v as string).length - 4, 4))}`
         : '****';
@@ -108,32 +114,47 @@ router.post(
       credentials = VpsCredentialsSchema.parse(rawCredentials);
     }
 
-    const encrypted = encryptCredentials(credentials);
     const environment = req.body.environment ?? 'SANDBOX';
 
-    const existing = await prisma.providerConfig.findFirst({
-      where: { tenantId: req.user!.tenantId, provider },
-    });
+    // C-7: Reject callbackTestMode:true in production — it bypasses all webhook
+    // signature verification, meaning any HTTP POST becomes a valid payment event.
+    if (
+      environment === 'PRODUCTION' &&
+      provider === Provider.VPS &&
+      (credentials as any).callbackTestMode === true
+    ) {
+      throw new AppError(
+        400,
+        'UNSAFE_TEST_CONFIG',
+        'callbackTestMode must not be enabled in production — it disables webhook signature verification',
+      );
+    }
 
-    const config = existing
-      ? await prisma.providerConfig.update({
-          where: { id: existing.id },
-          data:  { encryptedCredentials: encrypted, environment, status: 'MISSING' },
-        })
-      : await prisma.providerConfig.create({
-          data: {
-            tenantId: req.user!.tenantId,
-            provider,
-            encryptedCredentials: encrypted,
-            environment,
-          },
-        });
+    const encrypted = encryptCredentials(credentials);
+
+    // H-8: Use upsert to avoid the race condition where two concurrent POSTs
+    // both see no existing config and both try to INSERT, causing P2002.
+    const config = await prisma.providerConfig.upsert({
+      where:  { tenantId_provider: { tenantId: req.user!.tenantId, provider } },
+      create: {
+        tenantId:             req.user!.tenantId,
+        provider,
+        encryptedCredentials: encrypted,
+        environment,
+      },
+      update: {
+        encryptedCredentials: encrypted,
+        environment,
+        status: 'MISSING',  // requires re-test after credential change
+      },
+    });
+    const isNew = config.createdAt.getTime() === config.updatedAt.getTime();
 
     await prisma.auditLog.create({
       data: {
         tenantId:   req.user!.tenantId,
         userId:     req.user!.id,
-        action:     existing ? AuditAction.PROVIDER_CONFIG_UPDATED : AuditAction.PROVIDER_CONFIG_CREATED,
+        action:     isNew ? AuditAction.PROVIDER_CONFIG_CREATED : AuditAction.PROVIDER_CONFIG_UPDATED,
         entityType: 'ProviderConfig',
         entityId:   config.id,
         metadata:   { provider },
@@ -141,7 +162,13 @@ router.post(
       },
     });
 
-    res.json({ id: config.id, provider: config.provider, status: config.status });
+    // M-9: Warn when notificationKey is absent — webhooks will be silently rejected
+    const warnings: string[] = [];
+    if (provider === Provider.VPS && !(credentials as any).notificationKey) {
+      warnings.push('notificationKey is not set: inbound Payzone webhooks will be rejected. Set it to enable payment confirmation callbacks.');
+    }
+
+    res.json({ id: config.id, provider: config.provider, status: config.status, warnings });
   }),
 );
 
@@ -219,7 +246,7 @@ export const adminProviderConfigRouter = Router({ mergeParams: true });
 adminProviderConfigRouter.get(
   '/',
   requireAuth,
-  requireAdmin,
+  requireSuperAdmin,   // M-10: only SUPER_ADMIN may view credentials, not SUPPORT_ADMIN
   asyncHandler(async (req, res) => {
     const configs = await prisma.providerConfig.findMany({
       where:  { tenantId: req.params.id },

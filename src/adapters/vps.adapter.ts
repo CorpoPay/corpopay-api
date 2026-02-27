@@ -166,9 +166,6 @@ export class VpsAdapter implements ProviderAdapter {
 
     const signature = generatePaywallSignature(payload, c.paywallSecretKey);
 
-    console.log('[VPS] createCheckoutSession payload:', JSON.stringify(payload, null, 2));
-    console.log('[VPS] paywallUrl:', c.paywallUrl);
-
     // The front-end reads providerData and POSTs { payload: JSON, signature, mode }
     // to credentials.paywallUrl (Payzone hosted paywall).
     // NOTE: `mode` must also be a top-level POST field (not only inside the JSON
@@ -482,7 +479,18 @@ export class VpsAdapter implements ProviderAdapter {
       signal: AbortSignal.timeout(30_000),
     });
 
-    return (await response.json()) as PayzoneCommandResponse;
+    const raw = (await response.json()) as PayzoneCommandResponse;
+
+    // M-2: Surface HTTP-level errors — provider may return non-2xx with a JSON body
+    if (!response.ok) {
+      throw new Error(
+        `VPS command ${command} HTTP ${response.status}: ${
+          raw.message ?? JSON.stringify(raw)
+        }`,
+      );
+    }
+
+    return raw;
   }
 }
 

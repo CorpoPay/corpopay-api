@@ -26,17 +26,29 @@ const router = Router();
 // Intended for B2B tenants (e.g. jabadoor) that initiate payments from their
 // backend via API key, without a hosted Payment Link page.
 
+// H-6: Reject URLs pointing at private/loopback/metadata ranges to prevent SSRF.
+const PRIVATE_HOSTNAME = /^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.0\.0\.0|::1|169\.254\.)/i;
+function safeUrl(val: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(val);
+    if (protocol !== 'https:') return false;   // HTTPS only
+    if (PRIVATE_HOSTNAME.test(hostname)) return false;
+    return true;
+  } catch { return false; }
+}
+const SafeUrl = z.string().url().refine(safeUrl, { message: 'URL must be HTTPS and not a private/loopback address' });
+
 const CreateIntentSchema = z.object({
   provider:        z.nativeEnum(Provider),
   amount:          z.number().int().positive(),        // in centimes
   currency:        z.string().default('MAD'),
-  reference:       z.string().min(1),
-  description:     z.string().min(1),
-  returnUrl:       z.string().url(),
-  successUrl:      z.string().url().optional(),
-  cancelUrl:       z.string().url().optional(),
-  failureUrl:      z.string().url().optional(),
-  webhookUrl:      z.string().url().optional(),        // overrides default callback URL
+  reference:       z.string().min(1).max(100),         // M-1: cap length
+  description:     z.string().min(1).max(500),         // M-1: cap length
+  returnUrl:       SafeUrl,                            // H-6: SSRF guard
+  successUrl:      SafeUrl.optional(),
+  cancelUrl:       SafeUrl.optional(),
+  failureUrl:      SafeUrl.optional(),
+  webhookUrl:      SafeUrl.optional(),                 // overrides default callback URL
   customerEmail:   z.string().email().optional(),
   customerName:    z.string().optional(),
   customerPhone:   z.string().optional(),
@@ -215,16 +227,28 @@ router.post(
   requireAuth,
   requireMerchant,
   asyncHandler(async (req, res) => {
+    // C-1: Atomic status transition REQUIRES_ACTION → PROCESSING is the race-condition gate.
+    // If two capture requests arrive simultaneously, only one updateMany returns count=1.
+    const locked = await prisma.paymentIntent.updateMany({
+      where: { id: req.params.id, tenantId: req.user!.tenantId, status: 'REQUIRES_ACTION' },
+      data:  { status: 'PROCESSING' },
+    });
+    if (locked.count === 0) {
+      // Either not found, wrong tenant, or already being processed / in terminal state
+      const intent = await prisma.paymentIntent.findFirst({ where: { id: req.params.id, tenantId: req.user!.tenantId } });
+      if (!intent) throw new AppError(404, 'INTENT_NOT_FOUND', 'Payment intent not found');
+      throw new AppError(409, 'INVALID_STATE', `Cannot capture intent in ${intent.status} state — may already be processing`);
+    }
+
     const intent = await prisma.paymentIntent.findFirst({
       where:   { id: req.params.id, tenantId: req.user!.tenantId },
       include: { paymentLink: true },
     });
     if (!intent) throw new AppError(404, 'INTENT_NOT_FOUND', 'Payment intent not found');
 
-    if (intent.status !== 'REQUIRES_ACTION') {
-      throw new AppError(400, 'INVALID_STATE', `Cannot capture intent in ${intent.status} state`);
-    }
     if (!intent.providerRef) {
+      // Revert the lock on unexpected bad state
+      await prisma.paymentIntent.updateMany({ where: { id: intent.id }, data: { status: 'REQUIRES_ACTION' } });
       throw new AppError(400, 'MISSING_PROVIDER_REF', 'Intent has no provider reference to capture');
     }
 
@@ -235,13 +259,14 @@ router.post(
 
     const adapter = getAdapter(intent.provider, config.encryptedCredentials);
 
-    // Resolve amount: from PaymentLink if linked, else from metadata
+    // Resolve amount: from PaymentLink if linked, else from metadata (already centimes)
     const amount   = intent.paymentLink
-      ? Number(intent.paymentLink.amount) * 100   // stored as MAD, convert to centimes
-      : ((intent.metadata as any)?.amount as number | undefined);
+      ? Math.round(Number(intent.paymentLink.amount) * 100)  // stored as MAD, convert to centimes
+      : ((intent.metadata as any)?.amount as number | undefined);  // already centimes
     const currency = intent.paymentLink?.currency ?? ((intent.metadata as any)?.currency as string | undefined) ?? 'MAD';
 
     if (!amount) {
+      await prisma.paymentIntent.updateMany({ where: { id: intent.id }, data: { status: 'REQUIRES_ACTION' } });
       throw new AppError(400, 'MISSING_AMOUNT', 'Cannot determine amount to capture');
     }
 
@@ -256,6 +281,7 @@ router.post(
         data: {
           paymentIntentId: intent.id,
           provider:        intent.provider,
+          rawRequest:      maskObject(result.rawRequest ?? {}) as any,
           rawResponse:     maskObject(result.rawResponse) as any,
         },
       }),
@@ -280,16 +306,25 @@ router.post(
   requireAuth,
   requireMerchant,
   asyncHandler(async (req, res) => {
+    // C-1: Atomic status transition REQUIRES_ACTION → PROCESSING is the race-condition gate.
+    const locked = await prisma.paymentIntent.updateMany({
+      where: { id: req.params.id, tenantId: req.user!.tenantId, status: 'REQUIRES_ACTION' },
+      data:  { status: 'PROCESSING' },
+    });
+    if (locked.count === 0) {
+      const intent = await prisma.paymentIntent.findFirst({ where: { id: req.params.id, tenantId: req.user!.tenantId } });
+      if (!intent) throw new AppError(404, 'INTENT_NOT_FOUND', 'Payment intent not found');
+      throw new AppError(409, 'INVALID_STATE', `Cannot cancel intent in ${intent.status} state — may already be processing`);
+    }
+
     const intent = await prisma.paymentIntent.findFirst({
       where:   { id: req.params.id, tenantId: req.user!.tenantId },
       include: { paymentLink: true },
     });
     if (!intent) throw new AppError(404, 'INTENT_NOT_FOUND', 'Payment intent not found');
 
-    if (intent.status !== 'REQUIRES_ACTION') {
-      throw new AppError(400, 'INVALID_STATE', `Cannot cancel intent in ${intent.status} state`);
-    }
     if (!intent.providerRef) {
+      await prisma.paymentIntent.updateMany({ where: { id: intent.id }, data: { status: 'REQUIRES_ACTION' } });
       throw new AppError(400, 'MISSING_PROVIDER_REF', 'Intent has no provider reference to cancel');
     }
 
@@ -299,9 +334,10 @@ router.post(
     if (!config) throw new AppError(400, 'PROVIDER_NOT_CONFIGURED', 'Provider config missing');
 
     const adapter  = getAdapter(intent.provider, config.encryptedCredentials);
+    // Resolve amount (already centimes from metadata, or MAD from PaymentLink → convert)
     const amount   = intent.paymentLink
-      ? Number(intent.paymentLink.amount) * 100
-      : ((intent.metadata as any)?.amount as number | undefined) ?? 0;
+      ? Math.round(Number(intent.paymentLink.amount) * 100)  // MAD → centimes
+      : ((intent.metadata as any)?.amount as number | undefined) ?? 0;  // already centimes
     const currency = intent.paymentLink?.currency ?? ((intent.metadata as any)?.currency as string | undefined) ?? 'MAD';
 
     const result = await adapter.cancelPayment(intent.providerRef, amount, currency);
@@ -315,6 +351,7 @@ router.post(
         data: {
           paymentIntentId: intent.id,
           provider:        intent.provider,
+          rawRequest:      maskObject(result.rawRequest ?? {}) as any,
           rawResponse:     maskObject(result.rawResponse) as any,
         },
       }),
@@ -361,7 +398,23 @@ publicRelayRouter.get(
       return res.json({ status: intent.status, providerData: null });
     }
 
-    return res.json({ status: intent.status, providerData: intent.providerData });
+    // H-10: Strip customer PII from the public relay response. The relay page only
+    // needs paywallUrl/payload/signature/mode to submit the Payzone form.
+    // Customer name, email, phone are already embedded inside the signed payload
+    // blob and must not be exposed separately as queryable plain fields.
+    let safeProviderData: Record<string, unknown> | null = null;
+    if (intent.providerData && typeof intent.providerData === 'object') {
+      const pd = intent.providerData as Record<string, unknown>;
+      safeProviderData = {
+        paywallUrl: pd.paywallUrl,
+        payload:    pd.payload,
+        signature:  pd.signature,
+        mode:       pd.mode,
+        chargeId:   pd.chargeId,
+      };
+    }
+
+    return res.json({ status: intent.status, providerData: safeProviderData });
   }),
 );
 
@@ -390,7 +443,13 @@ publicPayRouter.post(
     if (link.tenant.status === 'DISABLED') throw new AppError(403, 'TENANT_DISABLED', 'Merchant not accepting payments');
     if (link.status !== 'ACTIVE') throw new AppError(410, 'LINK_INACTIVE', 'This payment link is no longer active');
     if (link.expiresAt && link.expiresAt < new Date()) throw new AppError(410, 'LINK_EXPIRED', 'Payment link expired');
-    if (link.attemptCount >= link.maxAttempts) throw new AppError(429, 'MAX_ATTEMPTS', 'Maximum payment attempts reached');
+    // H-2: Atomic increment + guard — prevents concurrent requests from bypassing maxAttempts.
+    // updateMany returns count=0 if attemptCount already reached the limit.
+    const bumped = await prisma.paymentLink.updateMany({
+      where: { id: link.id, attemptCount: { lt: link.maxAttempts } },
+      data:  { attemptCount: { increment: 1 } },
+    });
+    if (bumped.count === 0) throw new AppError(429, 'MAX_ATTEMPTS', 'Maximum payment attempts reached');
 
     const { customerIp, customerEmail, customerName, installmentPlanId, downPaymentAmount } =
       PaySchema.parse(req.body);
@@ -408,6 +467,11 @@ publicPayRouter.post(
     // ── BNPL / Installment path ──────────────────────────────────────────────
     let installmentAgreementId: string | undefined;
     let chargeCentimes = Math.round(Number(link.amount) * 100); // default: full amount
+
+    // M-5: if the link requires installments, a plan must always be provided
+    if (link.isInstallment && !installmentPlanId) {
+      throw new AppError(400, 'PLAN_REQUIRED', 'An installment plan must be selected for this payment link');
+    }
 
     if (installmentPlanId) {
       if (!link.isInstallment) {
@@ -431,14 +495,13 @@ publicPayRouter.post(
         throw new AppError(400, 'AMOUNT_ABOVE_MAX', `Maximum amount for this plan is ${plan.maxAmount}`);
       }
 
-      // Standard amortization: full n months on the principal
       const standardInstallment = computeInstallmentAmount(principal, apr, n);
 
-      // Down payment: caller-supplied or default to one installment; cannot go below one installment
+      // H-7: Cap down payment at the full principal — cannot overcharge the customer.
+      // Floor at one standard installment — cannot underpay.
       let downPayment = downPaymentAmount ?? standardInstallment;
-      if (downPayment < standardInstallment) {
-        downPayment = standardInstallment;
-      }
+      if (downPayment < standardInstallment) downPayment = standardInstallment;
+      if (downPayment > principal)          downPayment = principal;  // H-7 cap
       downPayment = Math.round(downPayment * 100) / 100; // round to 2dp
 
       // Remaining installments after down payment
@@ -482,9 +545,7 @@ publicPayRouter.post(
         data:  { metadata: { bnpl: true, installmentAgreementId: agreement.id } },
       });
 
-      await prisma.paymentLink.update({ where: { id: link.id }, data: { attemptCount: { increment: 1 } } });
-
-      // Charge the down payment amount (in centimes)
+        // Charge the down payment amount (in centimes)
       chargeCentimes = Math.round(downPayment * 100);
       installmentAgreementId = agreement.id;
 
@@ -544,11 +605,6 @@ publicPayRouter.post(
         provider:     link.provider,
         customerIp:   customerIp ?? (req.ip ?? null),
       },
-    });
-
-    await prisma.paymentLink.update({
-      where: { id: link.id },
-      data:  { attemptCount: { increment: 1 } },
     });
 
     const result = await adapter.createCheckoutSession({

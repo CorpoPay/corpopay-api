@@ -150,9 +150,12 @@ router.post(
       throw new AppError(400, 'INVALID_STATE', `Cannot resume a subscription in ${sub.status} state`);
     }
 
-    const now      = new Date();
-    const dueDate  = sub.nextBillingDate ?? now;
-    const idemKey  = billingIdempotencyKey(sub.id, dueDate);
+    const now = new Date();
+    // M-7: If nextBillingDate is in the past (subscription was paused for a long
+    // time), use 'now' so the charge fires immediately with a fresh key rather
+    // than re-submitting a stale date that Inngest may have already seen.
+    const dueDate = new Date(Math.max((sub.nextBillingDate ?? now).getTime(), now.getTime()));
+    const idemKey = billingIdempotencyKey(sub.id, dueDate);
 
     await prisma.subscription.update({
       where: { id: sub.id },

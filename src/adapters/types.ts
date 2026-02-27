@@ -126,11 +126,13 @@ export interface RefundResult {
 
 export interface CaptureResult {
   success: boolean;
+  rawRequest?:  Record<string, unknown>;
   rawResponse: Record<string, unknown>;
 }
 
 export interface CancelResult {
   success: boolean;
+  rawRequest?:  Record<string, unknown>;
   rawResponse: Record<string, unknown>;
 }
 
