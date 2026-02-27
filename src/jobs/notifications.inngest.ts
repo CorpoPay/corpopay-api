@@ -69,13 +69,21 @@ export const notifications = inngest.createFunction(
     // ── Outbound webhook (always attempted if configured) ────────────────────
     if (tenant.notifyWebhookUrl) {
       results.outboundWebhook = await step.run('outbound-webhook', async () => {
+        // For Payment Link intents, reference / amount / currency come from the link.
+        // For direct (B2B) intents, these fields live in the intent's own metadata
+        // (set by the merchant at creation time, e.g. jabadoor_bookingRequestId).
+        const intentMeta = (intent.metadata ?? {}) as Record<string, unknown>;
+
         const body = JSON.stringify({
           event:       'payment.updated',
           status,
           intentId,
-          reference:   intent.paymentLink?.reference,
-          amount:      intent.paymentLink ? Number(intent.paymentLink.amount) : null,
-          currency:    intent.paymentLink?.currency,
+          reference:   intent.paymentLink?.reference ?? null,
+          amount:      intent.paymentLink ? Number(intent.paymentLink.amount) : (intentMeta['amount'] as number | undefined) ?? null,
+          currency:    intent.paymentLink?.currency ?? (intentMeta['currency'] as string | undefined) ?? null,
+          // Direct-intent metadata forwarded as-is so recipients can extract
+          // fields like jabadoor_bookingRequestId without a secondary lookup.
+          metadata:    intent.paymentLink ? undefined : intentMeta,
           occurredAt:  new Date().toISOString(),
         });
 

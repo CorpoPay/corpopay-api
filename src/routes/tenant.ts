@@ -7,6 +7,19 @@ import { AuditAction } from '@prisma/client';
 
 const router = Router();
 
+// SSRF guard — reuse same logic as paymentIntents.ts
+function safeUrl(val: string): boolean {
+  try {
+    const u = new URL(val);
+    if (u.protocol !== 'https:') return false;
+    const h = u.hostname;
+    if (h === 'localhost' || h === '127.0.0.1' || h === '::1') return false;
+    if (/^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false;
+    return true;
+  } catch { return false; }
+}
+const SafeUrl = z.string().url().refine(safeUrl, { message: 'URL must be HTTPS and not a private/loopback address' });
+
 // ─── GET /tenant ─ own tenant profile ────────────────────────────────────────────
 
 router.get(
@@ -16,7 +29,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const tenant = await prisma.tenant.findUnique({
       where:  { id: req.user!.tenantId },
-      select: { id: true, name: true, slug: true, status: true, environment: true, createdAt: true },
+      select: { id: true, name: true, slug: true, status: true, environment: true, createdAt: true, notifyWebhookUrl: true, notifyEmail: true },
     });
     if (!tenant) throw new AppError(404, 'TENANT_NOT_FOUND', 'Tenant not found');
     res.json(tenant);
@@ -26,7 +39,9 @@ router.get(
 // ─── PATCH /tenant ──────────────────────────────────────────────────────────────
 
 const UpdateTenantSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
+  name:             z.string().min(2).max(100).optional(),
+  notifyWebhookUrl: SafeUrl.nullable().optional(),   // outbound webhook URL for payment events
+  notifyEmail:      z.string().email().nullable().optional(),
 });
 
 router.patch(
@@ -39,7 +54,13 @@ router.patch(
       where: { id: req.user!.tenantId },
       data,
     });
-    res.json({ id: tenant.id, name: tenant.name, slug: tenant.slug });
+    res.json({
+      id:               tenant.id,
+      name:             tenant.name,
+      slug:             tenant.slug,
+      notifyWebhookUrl: tenant.notifyWebhookUrl,
+      notifyEmail:      tenant.notifyEmail,
+    });
   }),
 );
 

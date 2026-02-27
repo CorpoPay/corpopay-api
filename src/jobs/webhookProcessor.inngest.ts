@@ -186,14 +186,24 @@ export const webhookProcessor = inngest.createFunction(
       });
     });
 
-    // ── Step 5: Fire notification job when a terminal state is reached ───────
-    if (processed && (mappedStatus === 'SUCCEEDED' || mappedStatus === 'REFUNDED')) {
+    // ── Step 5: Fire notification webhook for all significant status transitions ──
+    // Covers terminal states (SUCCEEDED, FAILED, CANCELLED, REFUNDED) as well as
+    // AUTHORIZED (pre-auth confirmed — required for Jabadoor request-booking flow).
+    const notifiableStatuses = new Set([
+      'AUTHORIZED',  // Pre-auth confirmed → host approval needed (request booking)
+      'SUCCEEDED',   // Full capture       → instant booking complete
+      'FAILED',      // Payment declined
+      'CANCELLED',   // Void / auth-reversal
+      'REFUNDED',    // Post-capture refund
+    ]);
+
+    if (processed && mappedStatus && notifiableStatuses.has(mappedStatus) && tenantId) {
       await step.sendEvent('send-payment-notification', {
         name: 'payment/notify',
         data: {
-          intentId:      intent!.id,
-          tenantId:      tenantId!,
-          status:        mappedStatus,
+          intentId:       intent!.id,
+          tenantId:       tenantId!,
+          status:         mappedStatus,
           webhookEventId: webhookEvent.id,
         },
       });
