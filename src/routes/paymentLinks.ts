@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { Provider } from '@prisma/client';
+import { BillingInterval, Provider } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { requireAuth, requireMerchant } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
@@ -21,7 +21,26 @@ const CreatePaymentLinkSchema = z.object({
   customerPhone: z.string().max(20).optional(),
   expiresAt:     z.string().datetime().optional(),
   maxAttempts:   z.number().int().min(1).max(10).default(1),
-});
+  // ── Recurring billing ──────────────────────────────────────────────────────
+  isRecurring:     z.boolean().default(false),
+  billingInterval: z.nativeEnum(BillingInterval).optional(),
+  intervalValue:   z.number().int().min(1).max(365).default(1),
+  maxRetries:      z.number().int().min(1).max(10).default(3),
+  // ── BNPL / Installments ─────────────────────────────────────────
+  isInstallment:   z.boolean().default(false),
+}).refine(
+  (d) => !d.isRecurring || d.billingInterval != null,
+  { message: 'billingInterval is required when isRecurring is true', path: ['billingInterval'] },
+).refine(
+  (d) => !d.isRecurring || d.provider === 'VPS',
+  { message: 'Recurring billing is only supported with the VPS provider', path: ['provider'] },
+).refine(
+  (d) => !d.isInstallment || d.provider === 'VPS',
+  { message: 'Installment billing is only supported with the VPS provider', path: ['provider'] },
+).refine(
+  (d) => !(d.isInstallment && d.isRecurring),
+  { message: 'A payment link cannot be both installment and recurring', path: ['isInstallment'] },
+);
 
 // ─── POST /payment-links ──────────────────────────────────────────────────────────
 
@@ -61,6 +80,11 @@ router.post(
         customerPhone: data.customerPhone,
         expiresAt:     data.expiresAt ? new Date(data.expiresAt) : undefined,
         maxAttempts:   data.maxAttempts,
+        isRecurring:     data.isRecurring,
+        billingInterval: data.billingInterval ?? null,
+        intervalValue:   data.intervalValue,
+        maxRetries:      data.maxRetries,
+        isInstallment:   data.isInstallment,
       },
     });
 
@@ -68,15 +92,18 @@ router.post(
     const checkoutUrl = `${webBase}/checkout/${link.slug}`;
 
     res.status(201).json({
-      id:         link.id,
-      slug:       link.slug,
-      url:        checkoutUrl,
-      amount:     link.amount,
-      currency:   link.currency,
-      description: link.description,
-      reference:  link.reference,
-      status:     link.status,
-      createdAt:  link.createdAt,
+      id:              link.id,
+      slug:            link.slug,
+      url:             checkoutUrl,
+      amount:          link.amount,
+      currency:        link.currency,
+      description:     link.description,
+      reference:       link.reference,
+      status:          link.status,
+      isRecurring:     link.isRecurring,
+      billingInterval: link.billingInterval,
+      intervalValue:   link.intervalValue,
+      createdAt:       link.createdAt,
     });
   }),
 );
@@ -119,19 +146,22 @@ router.get(
 
     res.json({
       data: links.map((l) => ({
-        id:           l.id,
-        slug:         l.slug,
-        url:          `${webBase}/checkout/${l.slug}`,
-        amount:       l.amount,
-        currency:     l.currency,
-        description:  l.description,
-        reference:    l.reference,
-        provider:     l.provider,
-        status:       l.status,
-        attemptCount: l.attemptCount,
-        maxAttempts:  l.maxAttempts,
-        expiresAt:    l.expiresAt,
-        createdAt:    l.createdAt,
+        id:              l.id,
+        slug:            l.slug,
+        url:             `${webBase}/checkout/${l.slug}`,
+        amount:          l.amount,
+        currency:        l.currency,
+        description:     l.description,
+        reference:       l.reference,
+        provider:        l.provider,
+        status:          l.status,
+        attemptCount:    l.attemptCount,
+        maxAttempts:     l.maxAttempts,
+        expiresAt:       l.expiresAt,
+        isRecurring:     l.isRecurring,
+        billingInterval: l.billingInterval,
+        intervalValue:   l.intervalValue,
+        createdAt:       l.createdAt,
       })),
       total,
       page:  parseInt(page),
@@ -223,16 +253,19 @@ publicCheckoutRouter.get(
     }
 
     res.json({
-      slug:          link.slug,
-      merchantName:  link.tenant.name,
-      amount:        link.amount,
-      currency:      link.currency,
-      description:   link.description,
-      reference:     link.reference,
-      customerName:  link.customerName,
-      customerEmail: link.customerEmail,
-      customerPhone: link.customerPhone,
-      provider:      link.provider,
+      slug:            link.slug,
+      merchantName:    link.tenant.name,
+      amount:          link.amount,
+      currency:        link.currency,
+      description:     link.description,
+      reference:       link.reference,
+      customerName:    link.customerName,
+      customerEmail:   link.customerEmail,
+      customerPhone:   link.customerPhone,
+      provider:        link.provider,
+      isRecurring:     link.isRecurring,
+      billingInterval: link.billingInterval,
+      intervalValue:   link.intervalValue,
     });
   }),
 );

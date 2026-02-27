@@ -15,6 +15,7 @@ import { requireAuth, requireMerchant } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { getAdapter } from '../adapters/registry';
 import { maskObject } from '../lib/mask';
+import { computeInstallmentAmount } from '../lib/billing';
 
 // ─── Merchant router ─────────────────────────────────────────────────────────────
 
@@ -318,7 +319,12 @@ export default router;
 // ─── Public router ────────────────────────────────────────────────────────────────
 
 const PaySchema = z.object({
-  customerIp: z.string().optional(),
+  customerIp:         z.string().optional(),
+  customerEmail:      z.string().email().optional().or(z.literal('')),
+  customerName:       z.string().optional(),
+  // BNPL
+  installmentPlanId:  z.string().optional(),
+  downPaymentAmount:  z.number().positive().optional(), // MAD, must >= one installment
 });
 
 export const publicPayRouter = Router();
@@ -337,7 +343,8 @@ publicPayRouter.post(
     if (link.expiresAt && link.expiresAt < new Date()) throw new AppError(410, 'LINK_EXPIRED', 'Payment link expired');
     if (link.attemptCount >= link.maxAttempts) throw new AppError(429, 'MAX_ATTEMPTS', 'Maximum payment attempts reached');
 
-    const { customerIp } = PaySchema.parse(req.body);
+    const { customerIp, customerEmail, customerName, installmentPlanId, downPaymentAmount } =
+      PaySchema.parse(req.body);
 
     const config = await prisma.providerConfig.findFirst({
       where: { tenantId: link.tenantId, provider: link.provider, status: 'CONNECTED' },
@@ -349,7 +356,138 @@ publicPayRouter.post(
     const apiBase = process.env.API_BASE_URL ?? 'http://localhost:4000';
     const webBase = process.env.WEB_BASE_URL ?? 'http://localhost:3000';
 
-    // Pre-create the intent (we need the correlationId before calling provider)
+    // ── BNPL / Installment path ──────────────────────────────────────────────
+    let installmentAgreementId: string | undefined;
+    let chargeCentimes = Math.round(Number(link.amount) * 100); // default: full amount
+
+    if (installmentPlanId) {
+      if (!link.isInstallment) {
+        throw new AppError(400, 'NOT_INSTALLMENT_LINK', 'This payment link does not support installments');
+      }
+
+      const plan = await prisma.installmentPlan.findFirst({
+        where: { id: installmentPlanId, tenantId: link.tenantId, isActive: true },
+      });
+      if (!plan) throw new AppError(404, 'PLAN_NOT_FOUND', 'Installment plan not found or not active');
+
+      const principal = Number(link.amount);
+      const apr       = Number(plan.annualInterestRate);
+      const n         = plan.durationMonths;
+
+      // Validate amount constraints
+      if (plan.minAmount && principal < Number(plan.minAmount)) {
+        throw new AppError(400, 'AMOUNT_BELOW_MIN', `Minimum amount for this plan is ${plan.minAmount}`);
+      }
+      if (plan.maxAmount && principal > Number(plan.maxAmount)) {
+        throw new AppError(400, 'AMOUNT_ABOVE_MAX', `Maximum amount for this plan is ${plan.maxAmount}`);
+      }
+
+      // Standard amortization: full n months on the principal
+      const standardInstallment = computeInstallmentAmount(principal, apr, n);
+
+      // Down payment: caller-supplied or default to one installment; cannot go below one installment
+      let downPayment = downPaymentAmount ?? standardInstallment;
+      if (downPayment < standardInstallment) {
+        downPayment = standardInstallment;
+      }
+      downPayment = Math.round(downPayment * 100) / 100; // round to 2dp
+
+      // Remaining installments after down payment
+      const remainingPrincipal   = Math.max(0, Math.round((principal - downPayment) * 100) / 100);
+      const remainingInstallments = n - 1;
+      const remainingMonthlyAmt  = remainingInstallments > 0
+        ? computeInstallmentAmount(remainingPrincipal, apr, remainingInstallments)
+        : 0;
+      const totalInstallments    = 1 + (remainingInstallments > 0 ? remainingInstallments : 0);
+
+      // Pre-create intent to get correlationId for the customerId
+      const draftIntent = await prisma.paymentIntent.create({
+        data: {
+          tenantId:      link.tenantId,
+          paymentLinkId: link.id,
+          provider:      link.provider,
+          customerIp:    customerIp ?? (req.ip ?? null),
+          metadata:      { bnpl: true }, // will be updated with agreementId below
+        },
+      });
+
+      // Create InstallmentAgreement (PENDING_CHECKOUT)
+      const agreement = await prisma.installmentAgreement.create({
+        data: {
+          tenantId:               link.tenantId,
+          customerId:             draftIntent.correlationId,
+          planId:                 plan.id,
+          paymentLinkId:          link.id,
+          initialPaymentIntentId: draftIntent.id,
+          principalAmount:        principal,
+          downPayment,
+          installmentAmount:      remainingMonthlyAmt > 0 ? remainingMonthlyAmt : downPayment,
+          totalInstallments,
+          currency:               link.currency,
+        },
+      });
+
+      // Tag the intent with the agreement ID so the webhook processor can find it
+      await prisma.paymentIntent.update({
+        where: { id: draftIntent.id },
+        data:  { metadata: { bnpl: true, installmentAgreementId: agreement.id } },
+      });
+
+      await prisma.paymentLink.update({ where: { id: link.id }, data: { attemptCount: { increment: 1 } } });
+
+      // Charge the down payment amount (in centimes)
+      chargeCentimes = Math.round(downPayment * 100);
+      installmentAgreementId = agreement.id;
+
+      const result = await adapter.createCheckoutSession({
+        amount:              chargeCentimes,
+        currency:            link.currency,
+        reference:           link.reference,
+        description:         `${link.description} — Installment Plan (${n} months)`,
+        returnUrl:           `${webBase}/checkout/${link.slug}/result?intentId=${draftIntent.id}`,
+        webhookUrl:          `${apiBase}/webhooks/${link.provider.toLowerCase()}`,
+        customerEmail:       customerEmail ?? link.customerEmail ?? undefined,
+        customerName:        customerName  ?? link.customerName  ?? undefined,
+        customerPhone:       link.customerPhone ?? undefined,
+        correlationId:       draftIntent.correlationId,
+        storePaymentProfile: true,
+      });
+
+      await prisma.$transaction([
+        prisma.paymentIntent.update({
+          where: { id: draftIntent.id },
+          data:  { status: 'REQUIRES_ACTION', providerRef: result.providerRef },
+        }),
+        prisma.providerTransaction.create({
+          data: {
+            paymentIntentId: draftIntent.id,
+            provider:        link.provider,
+            rawRequest:      maskObject(result.rawRequest) as any,
+            rawResponse:     maskObject(result.rawResponse) as any,
+          },
+        }),
+      ]);
+
+      await inngest.send({
+        name: 'payment/poll-status',
+        data: {
+          intentId:    draftIntent.id,
+          provider:    link.provider,
+          tenantId:    link.tenantId,
+          providerRef: result.providerRef,
+        },
+      });
+
+      return res.json({
+        intentId:   draftIntent.id,
+        agreementId: agreement.id,
+        redirectUrl: result.redirectUrl,
+        providerData: result.providerData ?? null,
+      });
+    }
+
+    // ── Standard (non-installment) path ─────────────────────────────────────
+
     const intent = await prisma.paymentIntent.create({
       data: {
         tenantId:     link.tenantId,
@@ -359,23 +497,23 @@ publicPayRouter.post(
       },
     });
 
-    // Increment attempt count
     await prisma.paymentLink.update({
       where: { id: link.id },
       data:  { attemptCount: { increment: 1 } },
     });
 
     const result = await adapter.createCheckoutSession({
-      amount:        Number(link.amount) * 100, // convert back to centimes
+      amount:        chargeCentimes,
       currency:      link.currency,
       reference:     link.reference,
       description:   link.description,
       returnUrl:     `${webBase}/checkout/${link.slug}/result?intentId=${intent.id}`,
       webhookUrl:    `${apiBase}/webhooks/${link.provider.toLowerCase()}`,
-      customerEmail: link.customerEmail ?? undefined,
-      customerName:  link.customerName ?? undefined,
+      customerEmail: customerEmail ?? link.customerEmail ?? undefined,
+      customerName:  customerName  ?? link.customerName  ?? undefined,
       customerPhone: link.customerPhone ?? undefined,
       correlationId: intent.correlationId,
+      storePaymentProfile: link.isRecurring === true,
     });
 
     await prisma.$transaction([
@@ -393,17 +531,16 @@ publicPayRouter.post(
       }),
     ]);
 
-    // Kick off the background status poller in case the provider webhook never arrives.
     await inngest.send({
       name: 'payment/poll-status',
       data: {
-        intentId:  intent.id,
-        provider:  link.provider,
-        tenantId:  link.tenantId,
+        intentId:    intent.id,
+        provider:    link.provider,
+        tenantId:    link.tenantId,
         providerRef: result.providerRef,
       },
     });
 
-    res.json({ intentId: intent.id, redirectUrl: result.redirectUrl });
+    return res.json({ intentId: intent.id, redirectUrl: result.redirectUrl, providerData: result.providerData ?? null });
   }),
 );

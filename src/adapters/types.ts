@@ -82,6 +82,20 @@ export interface CreateCheckoutParams {
   correlationId: string;
   /** When true, initiate pre-authorisation only (capture separately) */
   isPreauth?: boolean;
+  /**
+   * When true, instruct the provider to store the payment profile for future
+   * server-initiated recurring charges (VPS: showPaymentProfiles = 'true').
+   */
+  storePaymentProfile?: boolean;
+}
+
+export interface ChargeRenewalResult {
+  success: boolean;
+  /** Provider-returned storedPaymentProfileId (if echoed back) */
+  storedPaymentProfileId?: string;
+  providerTransactionId?: string;
+  rawRequest: Record<string, unknown>;
+  rawResponse: Record<string, unknown>;
 }
 
 export interface CreateCheckoutResult {

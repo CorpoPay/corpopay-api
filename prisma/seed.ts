@@ -22,8 +22,8 @@ const JABADOOR_VPS_CREDENTIALS = {
   skin:                'vps-1-vue',
   doFundsAuthOnly:     true,
   paymentMethod:       'CREDIT_CARD',
-  showPaymentProfiles: 'false',
-  mode:                'test',
+  showPaymentProfiles: 'true',
+  mode:                'DEEP_LINK',
   apiUrl:              'https://payment-sandbox.payzone.ma',
   callerName:          '$apicaller',
   callerPassword:      '!hRhEge9B$U!9znc',
@@ -129,6 +129,32 @@ async function main() {
     },
   });
   console.log('✅ Jabadoor VPS/Payzone config upserted.');
+
+  // ─── Jabadoor installment plans (3 / 6 / 12 months) ─────────────────────────────
+  const jabadoorPlans = [
+    { name: 'Pay in 3',  durationMonths: 3,  annualInterestRate: 8.99  },
+    { name: 'Pay in 6',  durationMonths: 6,  annualInterestRate: 12.99 },
+    { name: 'Pay in 12', durationMonths: 12, annualInterestRate: 18.99 },
+  ];
+
+  for (const p of jabadoorPlans) {
+    const existing = await prisma.installmentPlan.findFirst({
+      where: { tenantId: jabadoor.id, durationMonths: p.durationMonths },
+    });
+    if (!existing) {
+      await prisma.installmentPlan.create({
+        data: { tenantId: jabadoor.id, isActive: true, ...p },
+      });
+      console.log(`✅ Created plan: ${p.name} (${p.annualInterestRate}% APR)`);
+    } else {
+      await prisma.installmentPlan.update({
+        where: { id: existing.id },
+        data:  { name: p.name, annualInterestRate: p.annualInterestRate, isActive: true },
+      });
+      console.log(`⏭  Plan "${p.name}" updated to ${p.annualInterestRate}% APR.`);
+    }
+  }
+  console.log('✅ Jabadoor installment plans seeded.');
 
   // ─── Provider health defaults ────────────────────────────────────────────────────
   for (const provider of ['NAPS', 'VPS'] as const) {

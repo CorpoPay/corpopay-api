@@ -92,6 +92,40 @@ enum AuditAction {
   USER_ROLE_CHANGED
   USER_REMOVED
   PAYMENT_LINK_CANCELED
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_PAUSED
+  SUBSCRIPTION_RESUMED
+  SUBSCRIPTION_CANCELED
+  INSTALLMENT_PLAN_CREATED
+  INSTALLMENT_PLAN_UPDATED
+  INSTALLMENT_PLAN_DELETED
+  INSTALLMENT_AGREEMENT_CANCELLED
+}
+
+enum InstallmentAgreementStatus {
+  PENDING_CHECKOUT
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  CANCELLED
+  PAST_DUE
+  EXPIRED
+}
+
+enum BillingInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  CUSTOM
 }
 
 // ─── Models ─────────────────────────────────────────────────────────────────────
@@ -107,14 +141,17 @@ model Tenant {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  users           User[]
-  providerConfigs ProviderConfig[]
-  paymentLinks    PaymentLink[]
-  paymentIntents  PaymentIntent[]
-  refunds         Refund[]
-  apiKeys         ApiKey[]
-  auditLogs       AuditLog[]
-  webhookEvents   WebhookEvent[]
+  users                 User[]
+  providerConfigs       ProviderConfig[]
+  paymentLinks          PaymentLink[]
+  paymentIntents        PaymentIntent[]
+  refunds               Refund[]
+  apiKeys               ApiKey[]
+  auditLogs             AuditLog[]
+  webhookEvents         WebhookEvent[]
+  subscriptions         Subscription[]
+  installmentPlans      InstallmentPlan[]
+  installmentAgreements InstallmentAgreement[]
 
   @@map("tenants")
 }
@@ -168,11 +205,20 @@ model PaymentLink {
   maxAttempts   Int               @default(1)
   attemptCount  Int               @default(0)
   expiresAt     DateTime?
+  // ── Recurring billing ──────────────────────────────────────────
+  isRecurring     Boolean          @default(false)
+  billingInterval BillingInterval?
+  intervalValue   Int?             @default(1)
+  maxRetries      Int              @default(3)
+  // ── BNPL / Installments ─────────────────────────────────────────
+  isInstallment   Boolean          @default(false)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  paymentIntents PaymentIntent[]
+  tenant                Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  paymentIntents        PaymentIntent[]
+  subscriptions         Subscription[]
+  installmentAgreements InstallmentAgreement[]
 
   @@index([tenantId])
   @@index([slug])
@@ -192,11 +238,13 @@ model PaymentIntent {
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
-  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  paymentLink       PaymentLink?        @relation(fields: [paymentLinkId], references: [id])
-  providerTxs       ProviderTransaction[]
-  refunds           Refund[]
-  webhookEvents     WebhookEvent[]
+  tenant                Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  paymentLink           PaymentLink?          @relation(fields: [paymentLinkId], references: [id])
+  providerTxs           ProviderTransaction[]
+  refunds               Refund[]
+  webhookEvents         WebhookEvent[]
+  subscription          Subscription?         // set when the intent initiated a recurring subscription
+  installmentAgreement  InstallmentAgreement? // set when the intent initiated a BNPL agreement
 
   @@index([tenantId])
   @@index([providerRef])
@@ -303,4 +351,135 @@ model ProviderHealth {
   updatedAt DateTime             @updatedAt
 
   @@map("provider_health")
+}
+
+// ─── Recurring Billing ───────────────────────────────────────────────────────────
+
+model Subscription {
+  id                         String             @id @default(cuid())
+  tenantId                   String
+  customerId                 String             // merchant's customer identifier
+  encryptedStoredProfileId   String             // AES-256 encrypted storedPaymentProfileId
+  initialPaymentIntentId     String             @unique
+  paymentLinkId              String?            // the recurring payment link that created this
+  inngestRunId               String?            // active Inngest run ID (for cancellation)
+  status                     SubscriptionStatus @default(PENDING)
+  amount                     Decimal            @db.Decimal(12, 2)
+  currency                   String             @default("MAD")
+  intervalType               BillingInterval
+  intervalValue              Int                @default(1)
+  nextBillingDate            DateTime?
+  currentPeriodStart         DateTime?
+  currentPeriodEnd           DateTime?
+  trialEndDate               DateTime?
+  retryCount                 Int                @default(0)
+  maxRetries                 Int                @default(3)
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+
+  tenant              Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  initialPaymentIntent PaymentIntent @relation(fields: [initialPaymentIntentId], references: [id])
+  paymentLink         PaymentLink?   @relation(fields: [paymentLinkId], references: [id])
+  billingEvents       BillingEvent[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([nextBillingDate])
+  @@map("subscriptions")
+}
+
+model BillingEvent {
+  id                 String   @id @default(cuid())
+  subscriptionId     String
+  chargeId           String
+  vpsTransactionId   String?
+  inngestRunId       String?
+  amount             Decimal  @db.Decimal(12, 2)
+  currency           String   @default("MAD")
+  status             String   // CHARGED, DECLINED, ERROR, PENDING, etc.
+  attemptNumber      Int      @default(1)
+  billingPeriodStart DateTime?
+  billingPeriodEnd   DateTime?
+  processedAt        DateTime?
+  errorMessage       String?
+  createdAt          DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("billing_events")
+}
+
+// ─── BNPL / Installment Billing ─────────────────────────────────────────────────
+
+model InstallmentPlan {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  name                String
+  durationMonths      Int      // 3, 6, 12, etc.
+  annualInterestRate  Decimal  @db.Decimal(6, 4)  // e.g. 12.0000 = 12% APR
+  minAmount           Decimal? @db.Decimal(12, 2)
+  maxAmount           Decimal? @db.Decimal(12, 2)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant    Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agreements InstallmentAgreement[]
+
+  @@index([tenantId])
+  @@map("installment_plans")
+}
+
+model InstallmentAgreement {
+  id                         String                     @id @default(cuid())
+  tenantId                   String
+  customerId                 String
+  planId                     String
+  paymentLinkId              String?
+  initialPaymentIntentId     String                     @unique
+  encryptedStoredProfileId   String                     @default("")
+  status                     InstallmentAgreementStatus @default(PENDING_CHECKOUT)
+  principalAmount            Decimal                    @db.Decimal(12, 2)
+  downPayment                Decimal                    @db.Decimal(12, 2)
+  installmentAmount          Decimal                    @db.Decimal(12, 2)  // per remaining charge
+  totalInstallments          Int                        // total number of charges including down payment
+  paidCount                  Int                        @default(0)
+  currency                   String                     @default("MAD")
+  nextChargeDate             DateTime?
+  inngestRunId               String?
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                 InstallmentPlan      @relation(fields: [planId], references: [id])
+  paymentLink          PaymentLink?         @relation(fields: [paymentLinkId], references: [id])
+  initialPaymentIntent PaymentIntent        @relation(fields: [initialPaymentIntentId], references: [id])
+  installmentCharges   InstallmentCharge[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([paymentLinkId])
+  @@map("installment_agreements")
+}
+
+model InstallmentCharge {
+  id                String   @id @default(cuid())
+  agreementId       String
+  installmentNumber Int
+  dueDate           DateTime
+  amount            Decimal  @db.Decimal(12, 2)
+  currency          String   @default("MAD")
+  status            String   // PENDING, CHARGED, DECLINED, ERROR
+  chargeId          String
+  vpsTransactionId  String?
+  attemptNumber     Int      @default(1)
+  processedAt       DateTime?
+  errorMessage      String?
+  createdAt         DateTime @default(now())
+
+  agreement InstallmentAgreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+
+  @@index([agreementId])
+  @@map("installment_charges")
 }

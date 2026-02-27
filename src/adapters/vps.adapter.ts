@@ -26,29 +26,51 @@ import {
   CancelResult,
   QueryStatusResult,
   RefundResult,
+  ChargeRenewalResult,
   TestConnectionResult,
 } from './types';
 
 // ─── Status mapping ───────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, PaymentIntentStatus> = {
-  AUTHORISED:    'REQUIRES_ACTION', // pre-auth granted — awaiting capture
-  AUTHORIZED:    'REQUIRES_ACTION',
-  CHARGED:       'SUCCEEDED',       // direct charge or settled pre-auth
-  CAPTURED:      'SUCCEEDED',
-  PAID:          'SUCCEEDED',
-  SETTLED:       'SUCCEEDED',
-  REFUSED:       'FAILED',
-  DECLINED:      'FAILED',
-  FAILED:        'FAILED',
-  ERROR:         'FAILED',
-  CANCELLED:     'CANCELED',
-  CANCELED:      'CANCELED',
-  AUTH_REVERSED: 'CANCELED',
-  PENDING:       'PROCESSING',
-  IN_PROGRESS:   'PROCESSING',
-  REDIRECTED:    'REQUIRES_ACTION',
-  REFUNDED:      'REFUNDED',
+  // Pre-auth / authorized — awaiting SETTLE
+  AUTHORISED:             'REQUIRES_ACTION',
+  AUTHORIZED:             'REQUIRES_ACTION',
+  AUTHORIZATION:          'REQUIRES_ACTION',
+  PREAUTHORIZED:          'REQUIRES_ACTION',
+  PRE_AUTHORIZED:         'REQUIRES_ACTION',
+  // 3DS intermediate — redirect customer
+  REDIRECTED:             'REQUIRES_ACTION',
+  AUTHORIZE_PENDING:      'REQUIRES_ACTION',
+  AUTHORIZATION_PENDING:  'REQUIRES_ACTION',
+  CHALLENGE_REQUIRED:     'REQUIRES_ACTION',
+  CHALLENGED:             'REQUIRES_ACTION',
+  PENDING_3DS:            'REQUIRES_ACTION',
+  THREE_DS_PENDING:       'REQUIRES_ACTION',
+  // Terminal success
+  CHARGED:                'SUCCEEDED',
+  CAPTURED:               'SUCCEEDED',
+  PAID:                   'SUCCEEDED',
+  SETTLED:                'SUCCEEDED',
+  SETTLEMENT:             'SUCCEEDED',
+  COMPLETED:              'SUCCEEDED',
+  // Terminal failure
+  REFUSED:                'FAILED',
+  DECLINED:               'FAILED',
+  FAILED:                 'FAILED',
+  ERROR:                  'FAILED',
+  // Canceled
+  CANCELLED:              'CANCELED',
+  CANCELED:               'CANCELED',
+  AUTH_REVERSED:          'CANCELED',
+  VOIDED:                 'CANCELED',
+  // In-flight
+  PENDING:                'PROCESSING',
+  IN_PROGRESS:            'PROCESSING',
+  PROCESSING:             'PROCESSING',
+  SETTLEMENT_PROCESSING:  'PROCESSING',
+  // Refunded
+  REFUNDED:               'REFUNDED',
 };
 
 // ─── Payzone command response shape ──────────────────────────────────────────────
@@ -130,9 +152,12 @@ export class VpsAdapter implements ProviderAdapter {
       price:              (params.amount / 100).toFixed(2), // centimes → MAD
       currency:           params.currency,
       description:        params.description,
-      mode:               c.mode            ?? 'test',
-      paymentMethod:      c.paymentMethod   ?? '',
-      showPaymentProfiles: c.showPaymentProfiles ?? 'false',
+      mode:               c.mode            ?? 'DEEP_LINK',
+      ...(c.paymentMethod ? { paymentMethod: c.paymentMethod } : { paymentMethod: 'CREDIT_CARD' }),
+      // savePaymentProfile: triggers the creation of a new stored payment profile on this charge
+      // showPaymentProfiles: shows previously saved cards in the paywall UI
+      savePaymentProfile:  params.storePaymentProfile ? 'true' : 'false',
+      showPaymentProfiles: params.storePaymentProfile ? 'true' : (c.showPaymentProfiles ?? 'false'),
       callbackUrl:        params.webhookUrl,
       successUrl:         params.successUrl  ?? params.returnUrl,
       failureUrl:         params.failureUrl  ?? params.returnUrl,
@@ -140,6 +165,9 @@ export class VpsAdapter implements ProviderAdapter {
     };
 
     const signature = generatePaywallSignature(payload, c.paywallSecretKey);
+
+    console.log('[VPS] createCheckoutSession payload:', JSON.stringify(payload, null, 2));
+    console.log('[VPS] paywallUrl:', c.paywallUrl);
 
     // The front-end reads providerData and POSTs { payload: JSON, signature }
     // to credentials.paywallUrl (Payzone hosted paywall).
@@ -157,6 +185,70 @@ export class VpsAdapter implements ProviderAdapter {
     };
   }
 
+  // ── chargeRenewal ──────────────────────────────────────────────────────────────
+  //
+  // Server-initiated recurring charge using a stored payment profile.
+  // No customer interaction required — billed silently against the stored card.
+  //
+  // VPS docs: POST /api/v3/charges/{chargeId}
+  //   body: { command: 'CHARGE', paymentProfileId, amount, currency, idempotencyId }
+  //
+  // NOTE: Payzone sends "storedPaymentProfileId" in its CALLBACK payloads (outbound)
+  // but expects "paymentProfileId" in the CHARGE command body (inbound).
+
+  async chargeRenewal(
+    storedPaymentProfileId: string,
+    amount: number,              // in centimes
+    currency: string,
+    chargeId: string,            // merchant-chosen unique charge ID for this renewal
+    idempotencyId: string,       // e.g. "{subscriptionId}-{YYYY-MM-DD}"
+  ): Promise<ChargeRenewalResult> {
+    const c = this.credentials;
+
+    const requestPath    = `/api/v3/charges/${encodeURIComponent(chargeId)}`;
+    const requestBody    = {
+      command:          'CHARGE',
+      paymentProfileId: storedPaymentProfileId,
+      amount:           parseFloat((amount / 100).toFixed(2)), // number, not string
+      currency,
+      idempotencyId,
+    };
+    const requestBodyStr = JSON.stringify(requestBody);
+    const timestamp      = Math.floor(Date.now() / 1000);
+
+    const signature = generateCommandHmac(
+      c.callerName,
+      c.merchantAccount,
+      timestamp,
+      requestPath,
+      requestBodyStr,
+      c.callerPassword,
+    );
+
+    const response = await fetch(`${c.apiUrl.replace(/\/$/, '')}${requestPath}`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'X-MerchantAccount': c.merchantAccount,
+        'X-CallerName':      c.callerName,
+        'X-HMAC-Timestamp':  String(timestamp),
+        'X-HMAC-Signature':  signature,
+      },
+      body: requestBodyStr,
+      signal: AbortSignal.timeout(30_000),
+    });
+
+    const raw = (await response.json()) as Record<string, unknown>;
+    const status = ((raw['status'] as string) ?? 'ERROR').toUpperCase();
+
+    return {
+      success:               status === 'CHARGED',
+      providerTransactionId: raw['id'] as string | undefined,
+      rawRequest:            requestBody as Record<string, unknown>,
+      rawResponse:           raw,
+    };
+  }
+
   // ── capturePayment (SETTLE) ───────────────────────────────────────────────────
 
   async capturePayment(
@@ -166,7 +258,10 @@ export class VpsAdapter implements ProviderAdapter {
   ): Promise<CaptureResult> {
     const raw = await this.runCommand(providerRef, amount, 'SETTLE');
 
-    if (raw.status !== 'CHARGED') {
+    // Accept any terminal-success status from VPS for a SETTLE command.
+    // The canonical response is CHARGED but sandbox may return CAPTURED/PAID/SETTLED.
+    const SETTLE_SUCCESS = ['CHARGED', 'CAPTURED', 'PAID', 'SETTLED', 'SETTLEMENT', 'COMPLETED'];
+    if (!SETTLE_SUCCESS.includes((raw.status ?? '').toUpperCase())) {
       throw new Error(
         `VPS capture failed: provider returned status "${raw.status}" — ${raw.message ?? ''}`,
       );
@@ -238,12 +333,19 @@ export class VpsAdapter implements ProviderAdapter {
       },
     });
 
-    const raw = (await response.json()) as Record<string, unknown>;
-    const providerStatus = ((raw['status'] as string) ?? 'UNKNOWN').toUpperCase();
+    const raw = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+
+    if (!response.ok) {
+      throw new Error(`VPS GET HTTP ${response.status}: ${JSON.stringify(raw)}`);
+    }
+
+    // Support both flat { status } and wrapped { charge: { status } } responses
+    const chargeData = (raw['charge'] as Record<string, unknown> | undefined) ?? raw;
+    const providerStatus = ((chargeData['status'] as string) ?? 'UNKNOWN').toUpperCase();
 
     return {
       status:                this.mapStatusToInternal(providerStatus),
-      providerTransactionId: raw['transactionId'] as string | undefined,
+      providerTransactionId: (chargeData['id'] as string | undefined) ?? (chargeData['transactionId'] as string | undefined),
       rawResponse:           raw,
     };
   }
@@ -350,7 +452,7 @@ export class VpsAdapter implements ProviderAdapter {
     const c = this.credentials;
 
     const requestPath    = `/api/v3/charges/${encodeURIComponent(chargeId)}`;
-    const requestBody    = { command, amount: (amount / 100).toFixed(2) };
+    const requestBody    = { command, amount: parseFloat((amount / 100).toFixed(2)) }; // number, not string
     const requestBodyStr = JSON.stringify(requestBody);
     const timestamp      = Math.floor(Date.now() / 1000);
 

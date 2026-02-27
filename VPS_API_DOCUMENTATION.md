@@ -333,6 +333,20 @@ CHARGED Status:
 - `amount` (POST/GET)
 - `orderId` (optional, POST/GET)
 
+### Recurring Charge (Server-initiated)
+POST `/api/v3/charges/{new-chargeId}`
+```json
+{
+  "command": "CHARGE",
+  "paymentProfileId": "{storedPaymentProfileId-from-callback}",
+  "amount": 1500.00,
+  "currency": "MAD",
+  "idempotencyId": "{subscriptionId}-{YYYY-MM-DD}"
+}
+```
+> ⚠️ Payzone sends `storedPaymentProfileId` in CALLBACK payloads (outbound),
+> but expects `paymentProfileId` in the CHARGE command body (inbound).
+
 ### Launch Paywall
 All fields in payload (see Payload Structure above)
 

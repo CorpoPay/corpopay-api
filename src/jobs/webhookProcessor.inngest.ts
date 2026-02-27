@@ -10,6 +10,7 @@
  * 200 and never time-out waiting for us.
  */
 import { Provider } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { inngest }   from '../lib/inngest';
 import { prisma }    from '../lib/prisma';
 import { getAdapter } from '../adapters/registry';
@@ -43,18 +44,47 @@ export const webhookProcessor = inngest.createFunction(
 
     // ── Step 1: Resolve correlating PaymentIntent ────────────────────────────
     const intent = await step.run('find-intent', async () => {
-      const providerRef =
+      // VPS callback body shape (from VPS_API_DOCUMENTATION.md):
+      //   orderId    → merchant-supplied orderId   (= PaymentLink.slug / sessionTag)
+      //   customerId → merchant-supplied customerId (= PaymentIntent.correlationId)
+      //   id         → Payzone's own transaction id
+      //
+      // We store providerRef = correlationId (the VPS `chargeId` field), so we
+      // CANNOT look up by orderId alone — they differ.  Try both:
+      //   1. providerRef match (orderId / OrderID / paymentId) — legacy / NAPS path
+      //   2. correlationId match (VPS customerId field) — covers all VPS PayWall flows
+
+      const orderId =
         (payload['orderId']    as string | undefined) ??
         (payload['OrderID']    as string | undefined) ??
         (payload['paymentId']  as string | undefined) ??
         null;
 
-      if (!providerRef) return null;
+      const correlationId =
+        (payload['customerId'] as string | undefined) ??
+        null;
 
-      return prisma.paymentIntent.findFirst({
-        where:   { providerRef, provider },
-        include: { paymentLink: { select: { tenantId: true } } },
-      });
+      // Try providerRef lookup first (works for NAPS and any provider that echoes
+      // back their chargeId directly as orderId).
+      if (orderId) {
+        const byRef = await prisma.paymentIntent.findFirst({
+          where:   { providerRef: orderId, provider },
+          include: { paymentLink: { select: { tenantId: true } } },
+        });
+        if (byRef) return byRef;
+      }
+
+      // Fallback: VPS sends our correlationId back as `customerId`. This is the
+      // reliable match for all VPS PayWall flows (checkout, BNPL, direct sim).
+      if (correlationId) {
+        const byCorrelation = await prisma.paymentIntent.findFirst({
+          where:   { correlationId, provider },
+          include: { paymentLink: { select: { tenantId: true } } },
+        });
+        if (byCorrelation) return byCorrelation;
+      }
+
+      return null;
     });
 
     const tenantId = intent?.tenantId ?? null;
@@ -96,6 +126,8 @@ export const webhookProcessor = inngest.createFunction(
           const providerTransactionId =
             (payload['transactionId']  as string | undefined) ??
             (payload['TransactionID']  as string | undefined) ??
+            (payload['id']             as string | undefined) ??   // VPS sends 'id' as transaction ID
+            (payload['internalId']     as string | undefined) ??
             null;
 
           const terminal = ['SUCCEEDED', 'FAILED', 'CANCELED', 'REFUNDED'];
@@ -164,6 +196,166 @@ export const webhookProcessor = inngest.createFunction(
           status:        mappedStatus,
           webhookEventId: webhookEvent.id,
         },
+      });
+    }
+
+    // ── Step 6: Bootstrap recurring subscription if applicable ───────────────
+    // When a VPS payment succeeds on a recurring Payment Link, Payzone includes
+    // a storedPaymentProfileId in the callback.  We create a Subscription record
+    // and fire the activation workflow.
+    if (
+      provider === 'VPS' &&
+      processed &&
+      mappedStatus === 'SUCCEEDED' &&
+      intent?.paymentLinkId
+    ) {
+      await step.run('bootstrap-subscription', async () => {
+        const link = await prisma.paymentLink.findUnique({
+          where: { id: intent.paymentLinkId! },
+        });
+
+        if (!link || !link.isRecurring) return null;
+
+        // Payzone sends storedPaymentProfileId in the callback body
+        const storedProfileId =
+          (payload['storedPaymentProfileId'] as string | undefined) ??
+          (payload['paymentProfileId']        as string | undefined) ??
+          (payload['profileId']               as string | undefined) ??
+          null;
+
+        if (!storedProfileId) {
+          console.warn('[webhook] Recurring link but no storedPaymentProfileId in payload', { intentId: intent.id });
+          return null;
+        }
+
+        // Idempotency: check if a subscription already exists for this intent
+        const existing = await prisma.subscription.findUnique({
+          where: { initialPaymentIntentId: intent.id },
+        });
+        if (existing) return existing;
+
+        const subscription = await prisma.subscription.create({
+          data: {
+            tenantId:                  intent.tenantId,
+            customerId:                (payload['customerId'] as string | undefined) ?? intent.correlationId,
+            encryptedStoredProfileId:  storedProfileId, // will be encrypted in onSubscriptionCreated step
+            initialPaymentIntentId:    intent.id,
+            paymentLinkId:             link.id,
+            status:                    'PENDING',
+            amount:                    link.amount,
+            currency:                  link.currency,
+            intervalType:              link.billingInterval!,
+            intervalValue:             link.intervalValue ?? 1,
+            maxRetries:                link.maxRetries,
+          },
+        });
+
+        await inngest.send({
+          id:   `sub-activated-${subscription.id}`,
+          name: 'billing/subscription.activated',
+          data: {
+            subscriptionId:         subscription.id,
+            storedPaymentProfileId: storedProfileId,
+            tenantId:               intent.tenantId,
+            customerId:             subscription.customerId,
+            amount:                 Number(link.amount) * 100, // centimes
+            currency:               link.currency,
+            intervalType:           link.billingInterval,
+            intervalValue:          link.intervalValue ?? 1,
+          },
+        });
+
+        return subscription;
+      });
+    }
+
+    // ── Step 7: Bootstrap BNPL installment agreement if applicable ───────────
+    // When a VPS payment succeeds on an installment link (or intent tagged with
+    // an installmentAgreementId), activate the agreement with the real profileId.
+    const installmentAgreementId =
+      (intent?.metadata as Record<string, unknown> | null)?.['installmentAgreementId'] as string | undefined;
+
+    if (
+      provider === 'VPS' &&
+      processed &&
+      mappedStatus === 'SUCCEEDED' &&
+      installmentAgreementId
+    ) {
+      await step.run('bootstrap-installment-agreement', async () => {
+        const storedProfileId =
+          (payload['storedPaymentProfileId'] as string | undefined) ??
+          (payload['paymentProfileId']        as string | undefined) ??
+          (payload['profileId']               as string | undefined) ??
+          null;
+
+        if (!storedProfileId) {
+          console.warn('[webhook] BNPL but no storedPaymentProfileId in payload', { installmentAgreementId });
+          return null;
+        }
+
+        // Idempotency: check if already activated
+        const agreement = await prisma.installmentAgreement.findUnique({
+          where: { id: installmentAgreementId },
+        });
+        if (!agreement || agreement.status !== 'PENDING_CHECKOUT') return null;
+
+        // Encrypt the real profile ID
+        const { encrypt } = await import('../lib/encryption');
+        const encryptedProfileId = encrypt(storedProfileId);
+
+        // First installment charge row (the down payment)
+        const nextChargeDate = new Date();
+        nextChargeDate.setUTCMonth(nextChargeDate.getUTCMonth() + 1);
+
+        await prisma.$transaction([
+          prisma.installmentAgreement.update({
+            where: { id: installmentAgreementId },
+            data: {
+              encryptedStoredProfileId: encryptedProfileId,
+              status:          'ACTIVE',
+              paidCount:       1,
+              nextChargeDate,
+            },
+          }),
+          prisma.installmentCharge.create({
+            data: {
+              agreementId:      installmentAgreementId,
+              installmentNumber: 1,
+              dueDate:          new Date(),
+              amount:           agreement.downPayment,
+              currency:         agreement.currency,
+              status:           'CHARGED',
+              chargeId:         `down-${installmentAgreementId}`,
+              attemptNumber:    1,
+              processedAt:      new Date(),
+            },
+          }),
+        ]);
+
+        // Fire charge for installment #2 (scheduled for next month)
+        if (agreement.totalInstallments > 1) {
+          const nextChargeId  = `inst-${installmentAgreementId.slice(-8)}-2`;
+          const nextIdem      = `${installmentAgreementId}-inst-2`;
+          await inngest.send({
+            id:   nextIdem,
+            name: 'billing/installment.charge.due',
+            data: {
+              agreementId:       installmentAgreementId,
+              installmentNumber: 2,
+              tenantId:          agreement.tenantId,
+              chargeId:          nextChargeId,
+              idempotencyId:     nextIdem,
+            },
+          });
+        } else {
+          // Single-installment agreement — already complete
+          await prisma.installmentAgreement.update({
+            where: { id: installmentAgreementId },
+            data:  { status: 'COMPLETED', nextChargeDate: null },
+          });
+        }
+
+        return { activated: true, installmentAgreementId };
       });
     }
 

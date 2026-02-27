@@ -8,6 +8,9 @@ import { Provider } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { requireAuth, requireAdmin, requireSuperAdmin } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
+import { decryptCredentials } from '../lib/encryption';
+import { VpsAdapter } from '../adapters/vps.adapter';
+import type { VpsCredentials } from '../adapters/types';
 
 const router = Router();
 
@@ -160,6 +163,176 @@ router.put(
     });
 
     res.json(record);
+  }),
+);
+
+// ─── GET /admin/vps-tenants ─────────────────────────────────────────────────────
+// Returns the minimal list of tenants that have a CONNECTED VPS config so the
+// UI can populate a tenant picker before running the recurring billing test.
+
+router.get(
+  '/vps-tenants',
+  requireAuth,
+  requireSuperAdmin,
+  asyncHandler(async (_req, res) => {
+    const configs = await prisma.providerConfig.findMany({
+      where:   { provider: 'VPS', status: 'CONNECTED' },
+      include: { tenant: { select: { id: true, name: true } } },
+    });
+
+    const tenants = configs.map((c) => ({
+      id:   c.tenantId,
+      name: (c as any).tenant?.name ?? c.tenantId,
+    }));
+
+    return res.json(tenants);
+  }),
+);
+
+// ─── POST /admin/recurring-test ────────────────────────────────────────────────
+//
+// Sanity-checks every tenant's VPS recurring billing readiness WITHOUT
+// triggering any real charges:
+//   1. Decrypts VPS credentials and calls testConnection() (hits a dummy charge
+//      endpoint — Payzone returns 404 for an unknown charge, which confirms
+//      the API is reachable and the credentials are valid).
+//   2. Verifies showPaymentProfiles is not explicitly disabled.
+//   3. Reads live subscription stats per tenant (active / pastDue / pending /
+//      cancelled in last 30 days).
+//   4. Counts subscriptions due for billing in the next 24 h.
+//
+// Returns a single JSON report so the UI can show a per-tenant traffic light.
+
+router.post(
+  '/recurring-test',
+  requireAuth,
+  requireSuperAdmin,
+  asyncHandler(async (req, res) => {
+    const testedAt = new Date();
+
+    // Optional: scope test to a single tenant
+    const { tenantId: filterTenantId } = req.body as { tenantId?: string };
+
+    // 1. Load active VPS provider configs (optionally scoped to one tenant)
+    const configs = await prisma.providerConfig.findMany({
+      where: {
+        provider: 'VPS',
+        status:   'CONNECTED',
+        ...(filterTenantId ? { tenantId: filterTenantId } : {}),
+      },
+      include: { tenant: { select: { id: true, name: true } } },
+    });
+
+    // 2. For each config run the checks
+    const tenantResults = await Promise.all(
+      configs.map(async (cfg) => {
+        const tenantId   = cfg.tenantId;
+        const tenantName = (cfg as any).tenant?.name ?? tenantId;
+
+        // ── a. VPS connectivity + credential check (isolated try/catch) ──────────
+        let connected             = false;
+        let profileStorageEnabled = false;
+        let vpsError: string | undefined;
+        let latencyMs = 0;
+
+        try {
+          const creds   = decryptCredentials<VpsCredentials>(cfg.encryptedCredentials);
+          const adapter = new VpsAdapter(creds);
+          const t0      = Date.now();
+          const result  = await adapter.testConnection();
+          latencyMs     = Date.now() - t0;
+          connected     = result.connected;
+          vpsError      = result.error;
+          // showPaymentProfiles must not be 'false'; undefined/missing → default OK
+          profileStorageEnabled = (creds.showPaymentProfiles ?? 'true') !== 'false';
+        } catch (err: unknown) {
+          vpsError = (err as Error).message;
+        }
+
+        // ── b. Subscription stats (separate try/catch — table may not exist yet) ─
+        let subscriptionStats = {
+          active: 0, pastDue: 0, pending: 0, cancelledLast30d: 0, billingEventsTotal: 0,
+        };
+        let dueTodayCount   = 0;
+        let dbError: string | undefined;
+
+        try {
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          const now24h        = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+          const [active, pastDue, pending, cancelledLast30d, dueToday, billingEventsTotal] =
+            await Promise.all([
+              prisma.subscription.count({ where: { tenantId, status: 'ACTIVE' } }),
+              prisma.subscription.count({ where: { tenantId, status: 'PAST_DUE' } }),
+              prisma.subscription.count({ where: { tenantId, status: 'PENDING' } }),
+              prisma.subscription.count({
+                where: { tenantId, status: 'CANCELLED', updatedAt: { gte: thirtyDaysAgo } },
+              }),
+              prisma.subscription.count({
+                where: {
+                  tenantId,
+                  status: { in: ['ACTIVE', 'PAST_DUE'] },
+                  nextBillingDate: { lte: now24h },
+                },
+              }),
+              prisma.billingEvent.count({
+                where: { subscription: { tenantId } },
+              }),
+            ]);
+
+          subscriptionStats = { active, pastDue, pending, cancelledLast30d, billingEventsTotal };
+          dueTodayCount     = dueToday;
+        } catch (err: unknown) {
+          // Gracefully handle missing table (migration not yet applied on this instance)
+          const msg = (err as Error).message ?? '';
+          dbError = msg.includes('does not exist')
+            ? 'Subscriptions table not found — run `prisma migrate deploy` on this instance'
+            : msg;
+        }
+
+        return {
+          tenantId,
+          tenantName,
+          checks: {
+            connectivity:           connected,
+            profileStorage:         profileStorageEnabled,
+            hasActiveSubscriptions: subscriptionStats.active > 0,
+            migrationApplied:       !dbError,
+          },
+          latencyMs,
+          vpsError,
+          dbError,
+          subscriptionStats,
+          dueTodayCount,
+        };
+      }),
+    );
+
+    // 3. Derive overall status
+    // Use explicit === false checks so that any field being undefined (e.g.
+    // from a response cached before the field was added) doesn't count as a
+    // failure — only an explicit false value does.
+    const allConnected  = tenantResults.every((t) => t.checks.connectivity === true);
+    const anyError      = tenantResults.some(
+      (t) =>
+        t.checks.connectivity      === false ||
+        t.checks.profileStorage    === false ||
+        t.checks.migrationApplied  === false,
+    );
+    const overallStatus = configs.length === 0
+      ? 'NO_VPS_CONFIGS'
+      : !anyError
+        ? 'OK'
+        : allConnected
+          ? 'PARTIAL'
+          : 'FAILING';
+
+    return res.json({
+      testedAt,
+      overallStatus,
+      totalVpsConfigs: configs.length,
+      tenants: tenantResults,
+    });
   }),
 );
 

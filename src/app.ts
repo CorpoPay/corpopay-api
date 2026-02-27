@@ -9,6 +9,12 @@ import { inngest }           from './lib/inngest';
 import { webhookProcessor }  from './jobs/webhookProcessor.inngest';
 import { paymentPoller }     from './jobs/paymentPoller.inngest';
 import { notifications }     from './jobs/notifications.inngest';
+import { onSubscriptionCreated } from './jobs/subscriptionActivated.inngest';
+import { billingRenewal }    from './jobs/billingRenewal.inngest';
+import { billingDailySweep } from './jobs/billingDailySweep.inngest';
+import { billingSimulation } from './jobs/billingSimulation.inngest';
+import { installmentCharge }    from './jobs/installmentCharge.inngest';
+import { installmentSimulation } from './jobs/installmentSimulation.inngest';
 
 // Routers
 import authRouter from './routes/auth';
@@ -23,6 +29,10 @@ import exportsRouter from './routes/exports';
 import webhooksRouter from './routes/webhooks';
 import adminRouter from './routes/admin';
 import apiKeysRouter from './routes/apiKeys';
+import subscriptionsRouter from './routes/subscriptions';
+import simulationRouter from './routes/simulation';
+import installmentPlansRouter, { publicInstallmentPlansRouter } from './routes/installmentPlans';
+import installmentAgreementsRouter from './routes/installmentAgreements';
 
 import { errorHandler } from './middleware/errorHandler';
 
@@ -84,8 +94,9 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // ─── Public routes (no auth) ──────────────────────────────────────────────────────
-app.use('/public/checkout', publicCheckoutRouter);   // GET /public/checkout/:slug
-app.use('/public/checkout', publicPayRouter);         // POST /public/checkout/:slug/pay
+app.use('/public/checkout', publicCheckoutRouter);                // GET  /public/checkout/:slug
+app.use('/public/checkout', publicPayRouter);                     // POST /public/checkout/:slug/pay
+app.use('/public/installment-plans', publicInstallmentPlansRouter); // GET  /public/installment-plans/:slug
 
 // ─── Webhook routes ───────────────────────────────────────────────────────────────
 app.use('/webhooks', webhooksRouter);
@@ -101,10 +112,14 @@ app.use('/transactions',     transactionsRouter);
 app.use('/transactions',     refundsRouter);          // POST /transactions/:id/refund
 app.use('/exports',          exportsRouter);
 app.use('/api-keys',         apiKeysRouter);
+app.use('/subscriptions',          subscriptionsRouter);
+app.use('/installment-plans',      installmentPlansRouter);
+app.use('/installment-agreements', installmentAgreementsRouter);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────────
 app.use('/admin/tenants',                            adminTenantRouter);
 app.use('/admin/tenants/:id/provider-configs',       adminProviderConfigRouter);
+app.use('/admin/simulation',                         simulationRouter);
 app.use('/admin',                                    adminRouter);
 // ─── Inngest job handler ─────────────────────────────────────────────────────
 // Receives events from Inngest Cloud (or the local Dev Server on port 8288).
@@ -113,7 +128,7 @@ app.use(
   '/api/inngest',
   serve({
     client:    inngest,
-    functions: [webhookProcessor, paymentPoller, notifications],
+    functions: [webhookProcessor, paymentPoller, notifications, onSubscriptionCreated, billingRenewal, billingDailySweep, billingSimulation, installmentCharge, installmentSimulation],
   }),
 );
 // ─── 404 handler ─────────────────────────────────────────────────────────────────
