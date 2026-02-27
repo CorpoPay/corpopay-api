@@ -22,7 +22,7 @@ import tenantRouter, { adminTenantRouter } from './routes/tenant';
 import usersRouter from './routes/users';
 import providerConfigRouter, { adminProviderConfigRouter } from './routes/providerConfig';
 import paymentLinksRouter, { publicCheckoutRouter } from './routes/paymentLinks';
-import paymentIntentsRouter, { publicPayRouter } from './routes/paymentIntents';
+import paymentIntentsRouter, { publicPayRouter, publicRelayRouter } from './routes/paymentIntents';
 import transactionsRouter from './routes/transactions';
 import refundsRouter from './routes/refunds';
 import exportsRouter from './routes/exports';
@@ -35,6 +35,7 @@ import installmentPlansRouter, { publicInstallmentPlansRouter } from './routes/i
 import installmentAgreementsRouter from './routes/installmentAgreements';
 
 import { errorHandler } from './middleware/errorHandler';
+
 
 const app = express();
 
@@ -94,9 +95,10 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // ─── Public routes (no auth) ──────────────────────────────────────────────────────
-app.use('/public/checkout', publicCheckoutRouter);                // GET  /public/checkout/:slug
-app.use('/public/checkout', publicPayRouter);                     // POST /public/checkout/:slug/pay
-app.use('/public/installment-plans', publicInstallmentPlansRouter); // GET  /public/installment-plans/:slug
+app.use('/public/checkout', publicCheckoutRouter);                   // GET  /public/checkout/:slug
+app.use('/public/checkout', publicPayRouter);                        // POST /public/checkout/:slug/pay
+app.use('/public/installment-plans', publicInstallmentPlansRouter);  // GET  /public/installment-plans/:slug
+app.use('/public/pay', publicRelayRouter);                           // GET  /public/pay/:correlationId  (relay)
 
 // ─── Webhook routes ───────────────────────────────────────────────────────────────
 app.use('/webhooks', webhooksRouter);

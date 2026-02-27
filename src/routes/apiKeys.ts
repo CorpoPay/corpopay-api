@@ -34,16 +34,18 @@ router.post(
   asyncHandler(async (req, res) => {
     const { name } = z.object({ name: z.string().min(1).max(100) }).parse(req.body);
 
-    // Generate a raw key: cp_live_<32 random hex bytes>
-    const rawKey = `cp_live_${crypto.randomBytes(32).toString('hex')}`;
-    const keyPrefix = rawKey.slice(0, 16); // "cp_live_xxxxxxxx" ─ first 16 chars shown in UI
-    const keyHash = await bcrypt.hash(rawKey, 10);
+    // Generate a raw key: cp_live_<32 random hex bytes> = 76 chars total
+    const rawKey    = `cp_live_${crypto.randomBytes(32).toString('hex')}`;
+    const keyPrefix = rawKey.slice(0, 16); // "cp_live_xxxxxxxx" — first 16 chars shown in UI
+    const keyHash   = await bcrypt.hash(rawKey, 10);
+    const keySha256 = crypto.createHash('sha256').update(rawKey).digest('hex');
 
     const apiKey = await prisma.apiKey.create({
       data: {
         tenantId:  req.user!.tenantId,
         name,
         keyHash,
+        keySha256,
         keyPrefix,
       },
     });

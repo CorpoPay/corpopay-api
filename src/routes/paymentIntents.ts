@@ -93,10 +93,23 @@ router.post(
       correlationId:   intent.correlationId,
     });
 
+    const webBase = process.env.WEB_BASE_URL ?? 'http://localhost:3000';
+
     await prisma.$transaction([
       prisma.paymentIntent.update({
         where: { id: intent.id },
-        data:  { status: 'REQUIRES_ACTION', providerRef: result.providerRef },
+        data:  {
+          status:       'REQUIRES_ACTION',
+          providerRef:  result.providerRef,
+          providerData: result.providerData as any ?? null,
+          // Persist amount + currency in metadata so /capture and /cancel can resolve them
+          // without needing the caller to pass them again
+          metadata: {
+            ...(body.metadata ?? {}),
+            amount:   body.amount,
+            currency: body.currency,
+          },
+        },
       }),
       prisma.providerTransaction.create({
         data: {
@@ -121,7 +134,9 @@ router.post(
     res.status(201).json({
       intentId:      intent.id,
       correlationId: intent.correlationId,
-      redirectUrl:   result.redirectUrl,
+      // checkoutUrl is the hosted relay page — Jabadoor redirects their customer here.
+      // CorpoPay auto-submits the Payzone form on the customer's behalf.
+      checkoutUrl:  `${webBase}/pay/${intent.correlationId}`,
       providerData:  result.providerData ?? null,
     });
   }),
@@ -315,6 +330,40 @@ router.post(
 );
 
 export default router;
+
+// ─── Public relay router ─────────────────────────────────────────────────────────
+//
+// GET /public/pay/:correlationId
+//
+// Serves the persisted providerData for the hosted relay page at
+// app.corpopay.site/pay/:correlationId. The relay page auto-submits the Payzone
+// form on the customer's behalf — the API client only needs to redirect their
+// customer to checkoutUrl.
+//
+// Security: correlationId is a 25-char CUID (~125-bit entropy) — safe to expose
+// publicly. Terminal intents return status only (no providerData) so completed
+// Payzone sessions cannot be replayed.
+
+export const publicRelayRouter = Router();
+
+publicRelayRouter.get(
+  '/:correlationId',
+  asyncHandler(async (req, res) => {
+    const intent = await prisma.paymentIntent.findUnique({
+      where:  { correlationId: req.params.correlationId },
+      select: { status: true, providerData: true },
+    });
+
+    if (!intent) throw new AppError(404, 'INTENT_NOT_FOUND', 'Payment session not found');
+
+    const terminal = ['SUCCEEDED', 'FAILED', 'CANCELED', 'REFUNDED'];
+    if (terminal.includes(intent.status)) {
+      return res.json({ status: intent.status, providerData: null });
+    }
+
+    return res.json({ status: intent.status, providerData: intent.providerData });
+  }),
+);
 
 // ─── Public router ────────────────────────────────────────────────────────────────
 

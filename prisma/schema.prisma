@@ -233,6 +233,7 @@ model PaymentIntent {
   provider       Provider
   providerRef    String?
   correlationId  String              @unique @default(cuid())
+  providerData   Json?               // { paywallUrl, payload, signature, mode } — served by hosted relay page
   customerIp     String?
   metadata       Json?
   createdAt      DateTime            @default(now())
@@ -312,8 +313,9 @@ model ApiKey {
   id         String    @id @default(cuid())
   tenantId   String
   name       String
-  keyHash    String    @unique // bcrypt hash of the raw key
-  keyPrefix  String    // e.g. "cp_live_xxxx" first 12 chars for display
+  keyHash    String    @unique  // bcrypt hash — retained for legacy key fallback
+  keySha256  String?   @unique  // SHA-256 of raw key — O(1) per-request lookup
+  keyPrefix  String             // e.g. "cp_live_xxxx" first 16 chars for display
   lastUsedAt DateTime?
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
