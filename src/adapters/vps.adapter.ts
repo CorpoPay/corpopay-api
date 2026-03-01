@@ -153,7 +153,10 @@ export class VpsAdapter implements ProviderAdapter {
       currency:           params.currency,
       description:        params.description,
       mode:               c.mode            || 'DEEP_LINK',
-      ...(c.paymentMethod ? { paymentMethod: c.paymentMethod } : { paymentMethod: 'CREDIT_CARD' }),
+      // Only include paymentMethod if explicitly configured — in DEEP_LINK mode
+      // Payzone presents all available methods; hardcoding CREDIT_CARD causes
+      // "method is not available" 400 errors on the Payzone paywall.
+      ...(c.paymentMethod ? { paymentMethod: c.paymentMethod } : {}),
       // savePaymentProfile: triggers the creation of a new stored payment profile on this charge
       // showPaymentProfiles: shows previously saved cards in the paywall UI
       savePaymentProfile:  params.storePaymentProfile ? 'true' : 'false',
