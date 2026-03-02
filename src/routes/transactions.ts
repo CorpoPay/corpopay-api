@@ -15,13 +15,18 @@ router.get(
     const {
       page     = '1',
       limit    = '20',
+      offset,           // frontend paginates via offset; takes priority over page
       status,
       provider,
+      search,
       dateFrom,
       dateTo,
     } = req.query as Record<string, string>;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+    const skip = offset !== undefined
+      ? Math.max(0, parseInt(offset))
+      : (parseInt(page) - 1) * take;
 
     const where: Record<string, unknown> = { tenantId: req.user!.tenantId };
     if (status)   where['status']   = status;
@@ -32,15 +37,22 @@ router.get(
         ...(dateTo   ? { lte: new Date(dateTo)   } : {}),
       };
     }
+    if (search) {
+      where['OR'] = [
+        { correlationId: { contains: search, mode: 'insensitive' } },
+        { paymentLink:   { reference: { contains: search, mode: 'insensitive' } } },
+        { paymentLink:   { description: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
 
     const [intents, total] = await Promise.all([
       prisma.paymentIntent.findMany({
         where,
         skip,
-        take:    parseInt(limit),
+        take,
         orderBy: { createdAt: 'desc' },
         include: {
-          paymentLink:  { select: { reference: true, amount: true, currency: true, description: true } },
+          paymentLink:  { select: { slug: true, reference: true, amount: true, currency: true, description: true } },
           providerTxs:  { select: { providerTransactionId: true }, take: 1, orderBy: { createdAt: 'desc' } },
           refunds:      { select: { id: true, status: true, amount: true } },
         },
@@ -56,10 +68,15 @@ router.get(
         provider:              i.provider,
         providerRef:           i.providerRef,
         providerTransactionId: i.providerTxs[0]?.providerTransactionId ?? null,
-        amount:                i.paymentLink?.amount ?? null,
+        amount:                i.paymentLink?.amount   ?? null,
         currency:              i.paymentLink?.currency ?? null,
-        reference:             i.paymentLink?.reference ?? null,
-        description:           i.paymentLink?.description ?? null,
+        // nested shape the dashboard expects
+        paymentLink: i.paymentLink ? {
+          title: i.paymentLink.description ?? i.paymentLink.reference,
+          slug:  i.paymentLink.slug,
+        } : null,
+        reference:             i.paymentLink?.reference    ?? null,
+        description:           i.paymentLink?.description  ?? null,
         hasRefund:             i.refunds.length > 0,
         refundStatus:          i.refunds[0]?.status ?? null,
         createdAt:             i.createdAt,
@@ -67,7 +84,7 @@ router.get(
       })),
       total,
       page:  parseInt(page),
-      limit: parseInt(limit),
+      limit: take,
     });
   }),
 );
