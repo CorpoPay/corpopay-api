@@ -114,12 +114,14 @@ router.post(
           status:       'REQUIRES_ACTION',
           providerRef:  result.providerRef,
           providerData: result.providerData as any ?? null,
-          // Persist amount + currency in metadata so /capture and /cancel can resolve them
-          // without needing the caller to pass them again
+          // Persist amount + currency + reference + description in metadata so
+          // the transactions list can surface them without a paymentLink join.
           metadata: {
             ...(body.metadata ?? {}),
-            amount:   body.amount,
-            currency: body.currency,
+            amount:      body.amount,
+            currency:    body.currency,
+            reference:   body.reference,
+            description: body.description,
           },
         },
       }),

@@ -61,27 +61,34 @@ router.get(
     ]);
 
     res.json({
-      data: intents.map((i) => ({
-        id:                    i.id,
-        correlationId:         i.correlationId,
-        status:                i.status,
-        provider:              i.provider,
-        providerRef:           i.providerRef,
-        providerTransactionId: i.providerTxs[0]?.providerTransactionId ?? null,
-        amount:                i.paymentLink?.amount   ?? null,
-        currency:              i.paymentLink?.currency ?? null,
-        // nested shape the dashboard expects
-        paymentLink: i.paymentLink ? {
-          title: i.paymentLink.description ?? i.paymentLink.reference,
-          slug:  i.paymentLink.slug,
-        } : null,
-        reference:             i.paymentLink?.reference    ?? null,
-        description:           i.paymentLink?.description  ?? null,
-        hasRefund:             i.refunds.length > 0,
-        refundStatus:          i.refunds[0]?.status ?? null,
-        createdAt:             i.createdAt,
-        updatedAt:             i.updatedAt,
-      })),
+      data: intents.map((i) => {
+        const meta = (i.metadata ?? {}) as Record<string, unknown>;
+        // Direct intents (no paymentLink) store amount/currency/reference/description in metadata
+        const amount      = i.paymentLink?.amount      ?? (meta.amount      != null ? Number(meta.amount) / 100 : null);
+        const currency    = i.paymentLink?.currency    ?? (meta.currency    as string ?? null);
+        const reference   = i.paymentLink?.reference   ?? (meta.reference   as string ?? null);
+        const description = i.paymentLink?.description ?? (meta.description as string ?? null);
+        return {
+          id:                    i.id,
+          correlationId:         i.correlationId,
+          status:                i.status,
+          provider:              i.provider,
+          providerRef:           i.providerRef,
+          providerTransactionId: i.providerTxs[0]?.providerTransactionId ?? null,
+          amount,
+          currency,
+          paymentLink: i.paymentLink ? {
+            title: i.paymentLink.description ?? i.paymentLink.reference,
+            slug:  i.paymentLink.slug,
+          } : null,
+          reference,
+          description,
+          hasRefund:    i.refunds.length > 0,
+          refundStatus: i.refunds[0]?.status ?? null,
+          createdAt:    i.createdAt,
+          updatedAt:    i.updatedAt,
+        };
+      }),
       total,
       page:  parseInt(page),
       limit: take,
