@@ -72,6 +72,33 @@ router.post(
       throw new AppError(503, 'PROVIDER_UNAVAILABLE', `Provider ${body.provider} is not configured or not connected`);
     }
 
+    // ── Idempotency: deduplicate by reference within 24 h ────────────────────────
+    // Jabadoor (and other API clients) sometimes call this endpoint twice in quick
+    // succession for the same booking. If a non-terminal intent with the same
+    // reference already exists for this tenant, return it as-is instead of
+    // creating a duplicate.
+    const TERMINAL = ['SUCCEEDED', 'FAILED', 'CANCELED', 'REFUNDED'] as const;
+    const existing = await prisma.paymentIntent.findFirst({
+      where: {
+        tenantId: req.user!.tenantId,
+        status:   { notIn: TERMINAL as any },
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        metadata:  { path: ['reference'], equals: body.reference },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (existing) {
+      const webBase = process.env.WEB_BASE_URL ?? 'http://localhost:3000';
+      return res.status(200).json({
+        intentId:      existing.id,
+        correlationId: existing.correlationId,
+        checkoutUrl:   `${webBase}/pay/${existing.correlationId}`,
+        providerData:  (existing.providerData as any) ?? null,
+        idempotent:    true,
+      });
+    }
+
     const intent = await prisma.paymentIntent.create({
       data: {
         tenantId:  req.user!.tenantId,
