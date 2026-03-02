@@ -118,10 +118,13 @@ router.get(
     const {
       page = '1',
       limit = '20',
+      offset,
       status,
     } = req.query as Record<string, string>;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = offset !== undefined
+      ? Math.max(0, parseInt(offset))
+      : (parseInt(page) - 1) * parseInt(limit);
 
     const [links, total] = await Promise.all([
       prisma.paymentLink.findMany({

@@ -130,7 +130,13 @@ router.get(
     });
     timeline.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-    res.json({ ...intent, timeline });
+    res.json({
+      ...intent,
+      // Hoist amount/currency from paymentLink so the frontend can read them directly
+      amount:   intent.paymentLink?.amount   ?? null,
+      currency: intent.paymentLink?.currency ?? null,
+      timeline,
+    });
   }),
 );
 

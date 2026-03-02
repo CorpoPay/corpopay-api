@@ -204,7 +204,21 @@ router.get(
     if (!config) throw new AppError(400, 'PROVIDER_NOT_CONFIGURED', 'Provider config missing');
 
     const adapter = getAdapter(intent.provider, config.encryptedCredentials);
-    const result  = await adapter.queryTransactionStatus(intent.providerRef);
+
+    let result: Awaited<ReturnType<typeof adapter.queryTransactionStatus>>;
+    try {
+      result = await adapter.queryTransactionStatus(intent.providerRef);
+    } catch (err) {
+      // Provider query failed (e.g. charge not yet committed to the provider, or
+      // a transient upstream error). Return the last known DB status rather than
+      // crashing — polling clients will retry and the status will resolve once
+      // the customer completes the payment.
+      console.warn('[GET /:id/status] queryTransactionStatus failed — returning DB status', {
+        intentId: intent.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return res.json({ status: intent.status, providerRef: intent.providerRef });
+    }
 
     if (result.status !== intent.status) {
       await prisma.paymentIntent.update({
