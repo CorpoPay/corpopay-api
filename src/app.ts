@@ -40,6 +40,12 @@ import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 
+// ─── Trust proxy ──────────────────────────────────────────────────────────────────
+// Behind API Gateway (Lambda) and any reverse proxy the X-Forwarded-For header is
+// set by AWS. Express must be told to trust it so that express-rate-limit can
+// correctly identify client IPs (otherwise it throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR).
+app.set('trust proxy', 1);
+
 // ─── Security headers ─────────────────────────────────────────────────────────────
 app.use(helmet());
 
