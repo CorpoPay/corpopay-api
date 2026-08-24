@@ -3,7 +3,14 @@
   "bootstrap-sha": "d876cd1f3170170556d82e892811e3ed7209b006",
   "packages": {
     ".": {
-      "release-type": "node"
+      "release-type": "node",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "contract/package.json",
+          "jsonpath": "$.version"
+        }
+      ]
     }
   }
 }
