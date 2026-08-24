@@ -1,0 +1,8 @@
+FROM node:20-alpine
+
+# Install the Inngest CLI globally (pinned to the same version used outside Docker)
+RUN npm install -g inngest-cli@1.17.1 --quiet
+
+EXPOSE 8288
+
+ENTRYPOINT ["inngest-cli"]

@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Prisma generated
+generated/
+
+# Test coverage output
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# AWS CDK build artifacts
+cdk.out/
+
+# Husky (generated hook wrappers)
+.husky/_
+
+# Neon CLI local config (org-specific)
+.neon

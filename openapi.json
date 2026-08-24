@@ -1,0 +1,7500 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "CorpoPay API",
+    "version": "0.1.0",
+    "description": "Multi-tenant payment orchestration API."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4000"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "time": {
+            "type": "string",
+            "example": "2026-08-22T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "status",
+          "time"
+        ]
+      },
+      "Tenant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "environment"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "businessName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "businessName",
+          "email",
+          "password"
+        ]
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/Tenant"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "token",
+          "tenant",
+          "user"
+        ]
+      },
+      "MeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "slug",
+              "environment",
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "createdAt",
+          "tenant"
+        ]
+      },
+      "TenantProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "notifyWebhookUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "notifyEmail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "environment",
+          "createdAt",
+          "notifyWebhookUrl",
+          "notifyEmail"
+        ]
+      },
+      "TenantUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "notifyWebhookUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "notifyEmail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "notifyWebhookUrl",
+          "notifyEmail"
+        ]
+      },
+      "UserListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "createdAt"
+        ]
+      },
+      "ProviderConfigListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "credentials": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "status",
+          "environment",
+          "createdAt",
+          "updatedAt",
+          "credentials"
+        ]
+      },
+      "ProviderConfigUpsertResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "status",
+          "warnings"
+        ]
+      },
+      "ProviderTestResponse": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "connected",
+          "status",
+          "error"
+        ]
+      },
+      "PaymentLinkCreateResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "isRecurring": {
+            "type": "boolean"
+          },
+          "billingInterval": {
+            "type": "string",
+            "nullable": true
+          },
+          "intervalValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "url",
+          "amount",
+          "currency",
+          "description",
+          "reference",
+          "status",
+          "isRecurring",
+          "billingInterval",
+          "intervalValue",
+          "createdAt"
+        ]
+      },
+      "PaymentLinkListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "attemptCount": {
+            "type": "number"
+          },
+          "maxAttempts": {
+            "type": "number"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRecurring": {
+            "type": "boolean"
+          },
+          "billingInterval": {
+            "type": "string",
+            "nullable": true
+          },
+          "intervalValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "url",
+          "amount",
+          "currency",
+          "description",
+          "reference",
+          "provider",
+          "status",
+          "attemptCount",
+          "maxAttempts",
+          "expiresAt",
+          "isRecurring",
+          "billingInterval",
+          "intervalValue",
+          "createdAt"
+        ]
+      },
+      "PaymentLinkDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "maxAttempts": {
+            "type": "number"
+          },
+          "attemptCount": {
+            "type": "number"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRecurring": {
+            "type": "boolean"
+          },
+          "billingInterval": {
+            "type": "string",
+            "nullable": true
+          },
+          "intervalValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxRetries": {
+            "type": "number"
+          },
+          "isInstallment": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "_count": {
+            "type": "object",
+            "properties": {
+              "paymentIntents": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "paymentIntents"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "slug",
+          "amount",
+          "currency",
+          "description",
+          "reference",
+          "customerName",
+          "customerEmail",
+          "customerPhone",
+          "provider",
+          "status",
+          "maxAttempts",
+          "attemptCount",
+          "expiresAt",
+          "isRecurring",
+          "billingInterval",
+          "intervalValue",
+          "maxRetries",
+          "isInstallment",
+          "createdAt",
+          "updatedAt",
+          "url",
+          "_count"
+        ]
+      },
+      "PublicCheckoutResponse": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "merchantName": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string"
+          },
+          "isRecurring": {
+            "type": "boolean"
+          },
+          "isInstallment": {
+            "type": "boolean"
+          },
+          "billingInterval": {
+            "type": "string",
+            "nullable": true
+          },
+          "intervalValue": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "slug",
+          "merchantName",
+          "amount",
+          "currency",
+          "description",
+          "customerName",
+          "customerEmail",
+          "customerPhone",
+          "provider",
+          "isRecurring",
+          "isInstallment",
+          "billingInterval",
+          "intervalValue"
+        ]
+      },
+      "WebhookAck": {
+        "type": "object",
+        "properties": {
+          "received": {
+            "type": "boolean"
+          },
+          "duplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "received"
+        ]
+      },
+      "CreateIntentRequest": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "NAPS",
+              "VPS",
+              "STRIPE",
+              "PAYPAL",
+              "ADYEN"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "currency": {
+            "type": "string",
+            "default": "MAD"
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "returnUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "successUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "cancelUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "failureUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "webhookUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "customerEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "customerCountry": {
+            "type": "string"
+          },
+          "customerLocale": {
+            "type": "string"
+          },
+          "isPreauth": {
+            "type": "boolean"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "walletMode": {
+            "type": "string",
+            "enum": [
+              "apple_pay",
+              "google_pay"
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "amount",
+          "reference",
+          "description",
+          "returnUrl"
+        ]
+      },
+      "CreateIntentResponse": {
+        "type": "object",
+        "properties": {
+          "intentId": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "checkoutUrl": {
+            "type": "string"
+          },
+          "redirectUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerData": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "stripeData": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "clientSecret": {
+                "type": "string"
+              },
+              "publishableKey": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "clientSecret",
+              "publishableKey"
+            ]
+          },
+          "idempotent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "intentId",
+          "correlationId",
+          "checkoutUrl",
+          "redirectUrl",
+          "providerData",
+          "stripeData"
+        ]
+      },
+      "IntentStatusResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "status",
+          "providerRef"
+        ]
+      },
+      "IntentActionResult": {
+        "type": "object",
+        "properties": {
+          "intentId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "intentId",
+          "status"
+        ]
+      },
+      "PayRequest": {
+        "type": "object",
+        "properties": {
+          "customerIp": {
+            "type": "string"
+          },
+          "customerEmail": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  ""
+                ]
+              }
+            ]
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "installmentPlanId": {
+            "type": "string"
+          },
+          "downPaymentAmount": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        }
+      },
+      "PayResponse": {
+        "type": "object",
+        "properties": {
+          "intentId": {
+            "type": "string"
+          },
+          "agreementId": {
+            "type": "string"
+          },
+          "redirectUrl": {
+            "type": "string"
+          },
+          "providerData": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "intentId",
+          "redirectUrl",
+          "providerData"
+        ]
+      },
+      "PublicRelayResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "providerData": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "paywallUrl": {
+                "type": "string"
+              },
+              "payload": {
+                "type": "string"
+              },
+              "signature": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string"
+              },
+              "chargeId": {
+                "type": "string"
+              },
+              "redirectUrl": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "status",
+          "providerData"
+        ]
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerTransactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentLink": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "title": {
+                "type": "string",
+                "nullable": true
+              },
+              "slug": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "title",
+              "slug"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasRefund": {
+            "type": "boolean"
+          },
+          "refundStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "correlationId",
+          "status",
+          "provider",
+          "providerRef",
+          "providerTransactionId",
+          "amount",
+          "currency",
+          "paymentLink",
+          "reference",
+          "description",
+          "hasRefund",
+          "refundStatus",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TransactionDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "paymentLinkId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "providerData": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "customerIp": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "paymentLink": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "reference": {
+                "type": "string"
+              },
+              "customerName": {
+                "type": "string",
+                "nullable": true
+              },
+              "customerEmail": {
+                "type": "string",
+                "nullable": true
+              },
+              "customerPhone": {
+                "type": "string",
+                "nullable": true
+              },
+              "provider": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "slug",
+              "amount",
+              "currency",
+              "description",
+              "reference",
+              "customerName",
+              "customerEmail",
+              "customerPhone",
+              "provider",
+              "status",
+              "createdAt"
+            ]
+          },
+          "providerTxs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "providerTransactionId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "rawResponse": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "provider",
+                "providerTransactionId",
+                "rawResponse",
+                "createdAt"
+              ]
+            }
+          },
+          "refunds": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "providerRefundRef": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "amount",
+                "currency",
+                "providerRefundRef",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          },
+          "webhookEvents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "signatureVerified": {
+                  "type": "boolean"
+                },
+                "processed": {
+                  "type": "boolean"
+                },
+                "mappedStatus": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "processingError": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "provider",
+                "signatureVerified",
+                "processed",
+                "mappedStatus",
+                "processingError",
+                "createdAt"
+              ]
+            }
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "timestamp",
+                "detail"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "paymentLinkId",
+          "status",
+          "provider",
+          "providerRef",
+          "correlationId",
+          "providerData",
+          "customerIp",
+          "metadata",
+          "createdAt",
+          "updatedAt",
+          "paymentLink",
+          "providerTxs",
+          "refunds",
+          "webhookEvents",
+          "amount",
+          "currency",
+          "timeline"
+        ]
+      },
+      "PaymentIntentDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "paymentLinkId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "providerData": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "customerIp": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "paymentLink": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "slug": {
+                "type": "string"
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "reference": {
+                "type": "string"
+              },
+              "customerName": {
+                "type": "string",
+                "nullable": true
+              },
+              "customerEmail": {
+                "type": "string",
+                "nullable": true
+              },
+              "customerPhone": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "slug",
+              "amount",
+              "currency",
+              "description",
+              "reference",
+              "customerName",
+              "customerEmail",
+              "customerPhone"
+            ]
+          },
+          "providerTxs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "providerTransactionId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "rawResponse": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "provider",
+                "providerTransactionId",
+                "rawResponse",
+                "createdAt"
+              ]
+            }
+          },
+          "refunds": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "amount",
+                "createdAt"
+              ]
+            }
+          },
+          "webhookEvents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "signatureVerified": {
+                  "type": "boolean"
+                },
+                "processed": {
+                  "type": "boolean"
+                },
+                "mappedStatus": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "signatureVerified",
+                "processed",
+                "mappedStatus",
+                "createdAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "paymentLinkId",
+          "status",
+          "provider",
+          "providerRef",
+          "correlationId",
+          "providerData",
+          "customerIp",
+          "metadata",
+          "createdAt",
+          "updatedAt",
+          "paymentLink",
+          "providerTxs",
+          "refunds",
+          "webhookEvents"
+        ]
+      },
+      "RefundResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "providerRefundRef": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "amount",
+          "currency",
+          "providerRefundRef"
+        ]
+      },
+      "DashboardSummary": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "count",
+              "total",
+              "currency"
+            ]
+          },
+          "thisWeek": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "count",
+              "total",
+              "currency"
+            ]
+          },
+          "payoutStatus": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "today",
+          "thisWeek",
+          "payoutStatus"
+        ]
+      },
+      "ApiKeyListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "keyPrefix": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "keyPrefix",
+          "lastUsedAt",
+          "createdAt"
+        ]
+      },
+      "ApiKeyCreateResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "keyPrefix": {
+            "type": "string"
+          },
+          "rawKey": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "keyPrefix",
+          "rawKey",
+          "createdAt"
+        ]
+      },
+      "BillingEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "chargeId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "attemptNumber": {
+            "type": "number"
+          },
+          "billingPeriodStart": {
+            "type": "string",
+            "nullable": true
+          },
+          "billingPeriodEnd": {
+            "type": "string",
+            "nullable": true
+          },
+          "processedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "vpsTransactionId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "chargeId",
+          "status",
+          "amount",
+          "currency",
+          "attemptNumber",
+          "billingPeriodStart",
+          "billingPeriodEnd",
+          "processedAt",
+          "errorMessage",
+          "vpsTransactionId"
+        ]
+      },
+      "SubscriptionListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "intervalType": {
+            "type": "string"
+          },
+          "intervalValue": {
+            "type": "number"
+          },
+          "nextBillingDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "retryCount": {
+            "type": "number"
+          },
+          "billingEventCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "customerId",
+          "status",
+          "amount",
+          "currency",
+          "intervalType",
+          "intervalValue",
+          "nextBillingDate",
+          "retryCount",
+          "billingEventCount",
+          "createdAt"
+        ]
+      },
+      "SubscriptionDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "initialPaymentIntentId": {
+            "type": "string"
+          },
+          "paymentLinkId": {
+            "type": "string",
+            "nullable": true
+          },
+          "inngestRunId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "intervalType": {
+            "type": "string"
+          },
+          "intervalValue": {
+            "type": "number"
+          },
+          "nextBillingDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentPeriodStart": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentPeriodEnd": {
+            "type": "string",
+            "nullable": true
+          },
+          "trialEndDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "retryCount": {
+            "type": "number"
+          },
+          "maxRetries": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "billingEvents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingEvent"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "customerId",
+          "initialPaymentIntentId",
+          "paymentLinkId",
+          "inngestRunId",
+          "status",
+          "amount",
+          "currency",
+          "intervalType",
+          "intervalValue",
+          "nextBillingDate",
+          "currentPeriodStart",
+          "currentPeriodEnd",
+          "trialEndDate",
+          "retryCount",
+          "maxRetries",
+          "createdAt",
+          "updatedAt",
+          "billingEvents"
+        ]
+      },
+      "InstallmentPlanListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "durationMonths": {
+            "type": "number"
+          },
+          "annualInterestRate": {
+            "type": "number"
+          },
+          "minAmount": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxAmount": {
+            "type": "number",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "agreementCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "durationMonths",
+          "annualInterestRate",
+          "minAmount",
+          "maxAmount",
+          "isActive",
+          "agreementCount",
+          "createdAt"
+        ]
+      },
+      "InstallmentPlan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "durationMonths": {
+            "type": "number"
+          },
+          "annualInterestRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "minAmount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "maxAmount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "name",
+          "durationMonths",
+          "annualInterestRate",
+          "minAmount",
+          "maxAmount",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "InstallmentPlanSummary": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "durationMonths": {
+            "type": "number"
+          },
+          "annualInterestRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "durationMonths",
+          "annualInterestRate"
+        ]
+      },
+      "InstallmentCharge": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "installmentNumber": {
+            "type": "number"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "attemptNumber": {
+            "type": "number"
+          },
+          "processedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "installmentNumber",
+          "amount",
+          "currency",
+          "status",
+          "attemptNumber",
+          "processedAt",
+          "errorMessage"
+        ]
+      },
+      "InstallmentAgreementListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/InstallmentPlanSummary"
+          },
+          "status": {
+            "type": "string"
+          },
+          "principalAmount": {
+            "type": "number"
+          },
+          "downPayment": {
+            "type": "number"
+          },
+          "installmentAmount": {
+            "type": "number"
+          },
+          "totalInstallments": {
+            "type": "number"
+          },
+          "paidCount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "nextChargeDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "chargeCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "customerId",
+          "plan",
+          "status",
+          "principalAmount",
+          "downPayment",
+          "installmentAmount",
+          "totalInstallments",
+          "paidCount",
+          "currency",
+          "nextChargeDate",
+          "chargeCount",
+          "createdAt"
+        ]
+      },
+      "InstallmentAgreementDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "planId": {
+            "type": "string"
+          },
+          "paymentLinkId": {
+            "type": "string",
+            "nullable": true
+          },
+          "initialPaymentIntentId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "principalAmount": {
+            "type": "number"
+          },
+          "downPayment": {
+            "type": "number"
+          },
+          "installmentAmount": {
+            "type": "number"
+          },
+          "totalInstallments": {
+            "type": "number"
+          },
+          "paidCount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "nextChargeDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/InstallmentPlanSummary"
+          },
+          "installmentCharges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstallmentCharge"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "customerId",
+          "planId",
+          "paymentLinkId",
+          "initialPaymentIntentId",
+          "status",
+          "principalAmount",
+          "downPayment",
+          "installmentAmount",
+          "totalInstallments",
+          "paidCount",
+          "currency",
+          "nextChargeDate",
+          "createdAt",
+          "updatedAt",
+          "plan",
+          "installmentCharges"
+        ]
+      },
+      "AdminTenantListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "transactionCount": {
+            "type": "number"
+          },
+          "providerConfigs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "provider",
+                "status"
+              ]
+            }
+          },
+          "lastTransactionAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "environment",
+          "createdAt",
+          "transactionCount",
+          "providerConfigs",
+          "lastTransactionAt"
+        ]
+      },
+      "AdminTenantDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "notifyEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "notifyWebhookUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "email",
+                "role",
+                "createdAt"
+              ]
+            }
+          },
+          "providerConfigs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "environment": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "provider",
+                "status",
+                "environment",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "environment",
+          "notifyEmail",
+          "notifyWebhookUrl",
+          "createdAt",
+          "updatedAt",
+          "users",
+          "providerConfigs"
+        ]
+      },
+      "AdminWebhookEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentIntentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "signatureVerified": {
+            "type": "boolean"
+          },
+          "processed": {
+            "type": "boolean"
+          },
+          "processingError": {
+            "type": "string",
+            "nullable": true
+          },
+          "mappedStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "rawPayload": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "tenantId",
+          "paymentIntentId",
+          "signatureVerified",
+          "processed",
+          "processingError",
+          "mappedStatus",
+          "idempotencyKey",
+          "createdAt",
+          "rawPayload"
+        ]
+      },
+      "ProviderHealthRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "status",
+          "notes",
+          "updatedAt"
+        ]
+      },
+      "AdminVpsTenant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "healthCheck",
+        "summary": "Health check",
+        "tags": [
+          "Public"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/checkout/{slug}": {
+      "get": {
+        "operationId": "publicCheckout",
+        "summary": "Fetch a public checkout payment link",
+        "tags": [
+          "Public"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCheckoutResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment link not found"
+          },
+          "410": {
+            "description": "Link canceled / paid / expired"
+          }
+        }
+      }
+    },
+    "/public/checkout/{slug}/pay": {
+      "post": {
+        "operationId": "publicPay",
+        "summary": "Create a payment intent from a payment link",
+        "tags": [
+          "Public"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Plan required / amount constraints"
+          },
+          "404": {
+            "description": "Payment link not found"
+          },
+          "410": {
+            "description": "Link inactive / expired"
+          },
+          "429": {
+            "description": "Maximum payment attempts reached"
+          }
+        }
+      }
+    },
+    "/public/installment-plans/{slug}": {
+      "get": {
+        "operationId": "publicInstallmentPlans",
+        "summary": "List active installment plans for a checkout link",
+        "tags": [
+          "Public"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string"
+                    },
+                    "principal": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "plans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "planId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "durationMonths": {
+                            "type": "number"
+                          },
+                          "annualInterestRate": {
+                            "type": "number"
+                          },
+                          "installmentAmount": {
+                            "type": "number"
+                          },
+                          "totalAmount": {
+                            "type": "number"
+                          },
+                          "totalInterest": {
+                            "type": "number"
+                          },
+                          "minAmount": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "maxAmount": {
+                            "type": "number",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "planId",
+                          "name",
+                          "durationMonths",
+                          "annualInterestRate",
+                          "installmentAmount",
+                          "totalAmount",
+                          "totalInterest",
+                          "minAmount",
+                          "maxAmount"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "principal",
+                    "plans"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not an installment link"
+          },
+          "404": {
+            "description": "Payment link not found"
+          }
+        }
+      }
+    },
+    "/public/pay/{correlationId}": {
+      "get": {
+        "operationId": "publicRelay",
+        "summary": "Fetch persisted provider data for the hosted relay page",
+        "tags": [
+          "Public"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "correlationId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (JSON for API clients; HTML for browsers)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRelayResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment session not found"
+          }
+        }
+      }
+    },
+    "/webhooks/naps": {
+      "post": {
+        "operationId": "napsWebhook",
+        "summary": "NAPS provider webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Received (and possibly deduplicated)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON payload"
+          },
+          "401": {
+            "description": "Invalid webhook signature"
+          }
+        }
+      }
+    },
+    "/webhooks/vps": {
+      "post": {
+        "operationId": "vpsWebhook",
+        "summary": "VPS provider webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Received (and possibly deduplicated)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON payload"
+          },
+          "401": {
+            "description": "Invalid webhook signature"
+          }
+        }
+      }
+    },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "stripeWebhook",
+        "summary": "STRIPE provider webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Received (and possibly deduplicated)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON payload"
+          },
+          "401": {
+            "description": "Invalid webhook signature"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Login and get a JWT",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "register",
+        "summary": "Register a new merchant (creates a tenant)",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already taken"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "Get the authenticated user",
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "operationId": "forgotPassword",
+        "summary": "Request a password reset",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "resetPassword",
+        "summary": "Reset password with a token",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                },
+                "required": [
+                  "token",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tenant": {
+      "get": {
+        "operationId": "getTenant",
+        "summary": "Get the current tenant profile",
+        "tags": [
+          "Tenant"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantProfile"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateTenant",
+        "summary": "Update the current tenant",
+        "tags": [
+          "Tenant"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "notifyWebhookUrl": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uri"
+                  },
+                  "notifyEmail": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantUpdateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "listUsers",
+        "summary": "List tenant users",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserListItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/invite": {
+      "post": {
+        "operationId": "inviteUser",
+        "summary": "Invite a user to the tenant",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "STAFF",
+                      "OWNER"
+                    ]
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                },
+                "required": [
+                  "email",
+                  "role",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already taken"
+          }
+        }
+      }
+    },
+    "/users/{id}/role": {
+      "patch": {
+        "operationId": "changeUserRole",
+        "summary": "Change a user's role",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "STAFF",
+                      "OWNER"
+                    ]
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot remove the only owner"
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "delete": {
+        "operationId": "deleteUser",
+        "summary": "Delete a user",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Cannot delete self"
+          }
+        }
+      }
+    },
+    "/provider-configs": {
+      "get": {
+        "operationId": "listProviderConfigs",
+        "summary": "List the tenant's provider configs",
+        "tags": [
+          "Provider Configs"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderConfigListItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "upsertProviderConfig",
+        "summary": "Create or update a provider config",
+        "tags": [
+          "Provider Configs"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string",
+                    "enum": [
+                      "NAPS",
+                      "VPS",
+                      "STRIPE"
+                    ]
+                  },
+                  "environment": {
+                    "type": "string"
+                  },
+                  "credentials": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "nullable": true
+                    }
+                  }
+                },
+                "required": [
+                  "provider"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderConfigUpsertResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid credentials / unsafe test config"
+          }
+        }
+      }
+    },
+    "/provider-configs/{id}/status": {
+      "patch": {
+        "operationId": "setProviderConfigStatus",
+        "summary": "Enable or disable a provider config",
+        "tags": [
+          "Provider Configs"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "provider",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Config not found"
+          },
+          "409": {
+            "description": "Config not tested / invalid"
+          }
+        }
+      }
+    },
+    "/provider-configs/{id}/test": {
+      "post": {
+        "operationId": "testProviderConfig",
+        "summary": "Test a provider config connection",
+        "tags": [
+          "Provider Configs"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderTestResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Config not found"
+          },
+          "409": {
+            "description": "Config is disabled"
+          }
+        }
+      }
+    },
+    "/provider-configs/{id}": {
+      "delete": {
+        "operationId": "deleteProviderConfig",
+        "summary": "Delete a provider config",
+        "tags": [
+          "Provider Configs"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Config not found"
+          }
+        }
+      }
+    },
+    "/payment-links": {
+      "post": {
+        "operationId": "createPaymentLink",
+        "summary": "Create a payment link",
+        "tags": [
+          "Payment Links"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "maximum": 100000000
+                  },
+                  "currency": {
+                    "type": "string",
+                    "default": "MAD"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "reference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "provider": {
+                    "type": "string",
+                    "enum": [
+                      "NAPS",
+                      "VPS",
+                      "STRIPE"
+                    ]
+                  },
+                  "customerName": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "customerEmail": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          ""
+                        ]
+                      }
+                    ]
+                  },
+                  "customerPhone": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "maxAttempts": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 1
+                  },
+                  "isRecurring": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "billingInterval": {
+                    "type": "string",
+                    "enum": [
+                      "DAILY",
+                      "WEEKLY",
+                      "MONTHLY",
+                      "QUARTERLY",
+                      "ANNUAL",
+                      "CUSTOM"
+                    ]
+                  },
+                  "intervalValue": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365,
+                    "default": 1
+                  },
+                  "maxRetries": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 3
+                  },
+                  "isInstallment": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "amount",
+                  "description",
+                  "reference",
+                  "provider"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentLinkCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Provider not configured"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listPaymentLinks",
+        "summary": "List payment links",
+        "tags": [
+          "Payment Links"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PaymentLinkListItem"
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "total",
+                    "page",
+                    "limit"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment-links/{id}": {
+      "get": {
+        "operationId": "getPaymentLink",
+        "summary": "Get a payment link",
+        "tags": [
+          "Payment Links"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentLinkDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment link not found"
+          }
+        }
+      }
+    },
+    "/payment-links/{id}/cancel": {
+      "patch": {
+        "operationId": "cancelPaymentLink",
+        "summary": "Cancel a payment link",
+        "tags": [
+          "Payment Links"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Link not active"
+          },
+          "404": {
+            "description": "Payment link not found"
+          }
+        }
+      }
+    },
+    "/payment-intents": {
+      "post": {
+        "operationId": "createPaymentIntent",
+        "summary": "Create a direct payment intent",
+        "tags": [
+          "Payment Intents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Idempotent replay of a recent non-terminal intent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateIntentResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateIntentResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider unavailable"
+          }
+        }
+      }
+    },
+    "/payment-intents/{id}": {
+      "get": {
+        "operationId": "getPaymentIntent",
+        "summary": "Get payment intent detail",
+        "tags": [
+          "Payment Intents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentIntentDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment intent not found"
+          }
+        }
+      }
+    },
+    "/payment-intents/{id}/status": {
+      "get": {
+        "operationId": "getPaymentIntentStatus",
+        "summary": "Poll latest payment intent status from the provider",
+        "tags": [
+          "Payment Intents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment intent not found"
+          }
+        }
+      }
+    },
+    "/payment-intents/{id}/capture": {
+      "post": {
+        "operationId": "capturePaymentIntent",
+        "summary": "Capture a pre-authorised payment",
+        "tags": [
+          "Payment Intents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentActionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing provider ref / amount"
+          },
+          "404": {
+            "description": "Payment intent not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          }
+        }
+      }
+    },
+    "/payment-intents/{id}/cancel": {
+      "post": {
+        "operationId": "cancelPaymentIntent",
+        "summary": "Void/cancel a pre-authorised payment",
+        "tags": [
+          "Payment Intents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentActionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing provider ref"
+          },
+          "404": {
+            "description": "Payment intent not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          }
+        }
+      }
+    },
+    "/transactions": {
+      "get": {
+        "operationId": "listTransactions",
+        "summary": "List transactions for the current tenant",
+        "tags": [
+          "Transactions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "provider",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "dateFrom",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "dateTo",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Transaction"
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "total",
+                    "page",
+                    "limit"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/{id}": {
+      "get": {
+        "operationId": "getTransaction",
+        "summary": "Get transaction detail",
+        "tags": [
+          "Transactions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction not found"
+          }
+        }
+      }
+    },
+    "/transactions/{id}/refund": {
+      "post": {
+        "operationId": "refundTransaction",
+        "summary": "Refund a transaction",
+        "tags": [
+          "Refunds"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not refundable / no provider ref / missing amount"
+          },
+          "404": {
+            "description": "Transaction not found"
+          },
+          "409": {
+            "description": "Already refunded"
+          }
+        }
+      }
+    },
+    "/dashboard/summary": {
+      "get": {
+        "operationId": "getDashboardSummary",
+        "summary": "Get merchant sales summary",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exports/transactions.csv": {
+      "get": {
+        "operationId": "exportTransactionsCsv",
+        "summary": "Export transactions as CSV",
+        "tags": [
+          "Exports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "provider",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "dateFrom",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "dateTo",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV download",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys": {
+      "get": {
+        "operationId": "listApiKeys",
+        "summary": "List API keys",
+        "tags": [
+          "API Keys"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKeyListItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createApiKey",
+        "summary": "Create an API key",
+        "tags": [
+          "API Keys"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys/{id}": {
+      "delete": {
+        "operationId": "deleteApiKey",
+        "summary": "Revoke an API key",
+        "tags": [
+          "API Keys"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "API key not found"
+          }
+        }
+      }
+    },
+    "/subscriptions": {
+      "get": {
+        "operationId": "listSubscriptions",
+        "summary": "List subscriptions",
+        "tags": [
+          "Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "customerId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SubscriptionListItem"
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "total",
+                    "page",
+                    "limit"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions/{id}": {
+      "get": {
+        "operationId": "getSubscription",
+        "summary": "Get subscription detail",
+        "tags": [
+          "Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscription not found"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelSubscription",
+        "summary": "Cancel a subscription",
+        "tags": [
+          "Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already cancelled"
+          },
+          "404": {
+            "description": "Subscription not found"
+          }
+        }
+      }
+    },
+    "/subscriptions/{id}/pause": {
+      "post": {
+        "operationId": "pauseSubscription",
+        "summary": "Pause a subscription",
+        "tags": [
+          "Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Subscription not found"
+          }
+        }
+      }
+    },
+    "/subscriptions/{id}/resume": {
+      "post": {
+        "operationId": "resumeSubscription",
+        "summary": "Resume a paused subscription",
+        "tags": [
+          "Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Subscription not found"
+          }
+        }
+      }
+    },
+    "/subscriptions/{id}/events": {
+      "get": {
+        "operationId": "listSubscriptionBillingEvents",
+        "summary": "List billing events for a subscription",
+        "tags": [
+          "Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BillingEvent"
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "total",
+                    "page",
+                    "limit"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscription not found"
+          }
+        }
+      }
+    },
+    "/installment-plans": {
+      "get": {
+        "operationId": "listInstallmentPlans",
+        "summary": "List installment plans",
+        "tags": [
+          "Installment Plans"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InstallmentPlanListItem"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createInstallmentPlan",
+        "summary": "Create an installment plan",
+        "tags": [
+          "Installment Plans"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "durationMonths": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 120
+                  },
+                  "annualInterestRate": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "minAmount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "maxAmount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "name",
+                  "durationMonths",
+                  "annualInterestRate"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallmentPlan"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/installment-plans/{id}": {
+      "patch": {
+        "operationId": "updateInstallmentPlan",
+        "summary": "Update an installment plan",
+        "tags": [
+          "Installment Plans"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "durationMonths": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 120
+                  },
+                  "annualInterestRate": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "minAmount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "maxAmount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallmentPlan"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteInstallmentPlan",
+        "summary": "Delete an installment plan",
+        "tags": [
+          "Installment Plans"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plan not found"
+          },
+          "409": {
+            "description": "Plan has active agreements"
+          }
+        }
+      }
+    },
+    "/installment-agreements": {
+      "get": {
+        "operationId": "listInstallmentAgreements",
+        "summary": "List installment agreements",
+        "tags": [
+          "Installment Agreements"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "customerId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InstallmentAgreementListItem"
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "total",
+                    "page",
+                    "limit"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/installment-agreements/{id}": {
+      "get": {
+        "operationId": "getInstallmentAgreement",
+        "summary": "Get installment agreement detail",
+        "tags": [
+          "Installment Agreements"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallmentAgreementDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agreement not found"
+          }
+        }
+      }
+    },
+    "/installment-agreements/{id}/cancel": {
+      "post": {
+        "operationId": "cancelInstallmentAgreement",
+        "summary": "Cancel an installment agreement",
+        "tags": [
+          "Installment Agreements"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Agreement not found"
+          }
+        }
+      }
+    },
+    "/admin/payments/search": {
+      "get": {
+        "operationId": "adminSearchPayments",
+        "summary": "Search payments across identifiers",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "intent": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "type": "string"
+                        },
+                        "paymentLinkId": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "provider": {
+                          "type": "string"
+                        },
+                        "providerRef": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "correlationId": {
+                          "type": "string"
+                        },
+                        "providerData": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": {
+                            "nullable": true
+                          }
+                        },
+                        "customerIp": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "metadata": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": {
+                            "nullable": true
+                          }
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "paymentLink": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "amount": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "currency": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "reference": {
+                              "type": "string"
+                            },
+                            "customerName": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "customerEmail": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "customerPhone": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "provider": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "slug",
+                            "amount",
+                            "currency",
+                            "description",
+                            "reference",
+                            "customerName",
+                            "customerEmail",
+                            "customerPhone",
+                            "provider",
+                            "status",
+                            "createdAt"
+                          ]
+                        },
+                        "providerTxs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "provider": {
+                                "type": "string"
+                              },
+                              "providerTransactionId": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "provider",
+                              "providerTransactionId",
+                              "createdAt"
+                            ]
+                          }
+                        },
+                        "refunds": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "providerRefundRef": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "updatedAt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "status",
+                              "amount",
+                              "currency",
+                              "providerRefundRef",
+                              "createdAt",
+                              "updatedAt"
+                            ]
+                          }
+                        },
+                        "webhookEvents": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "provider": {
+                                "type": "string"
+                              },
+                              "signatureVerified": {
+                                "type": "boolean"
+                              },
+                              "processed": {
+                                "type": "boolean"
+                              },
+                              "mappedStatus": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "processingError": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "provider",
+                              "signatureVerified",
+                              "processed",
+                              "mappedStatus",
+                              "processingError",
+                              "createdAt"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "tenantId",
+                        "paymentLinkId",
+                        "status",
+                        "provider",
+                        "providerRef",
+                        "correlationId",
+                        "providerData",
+                        "customerIp",
+                        "metadata",
+                        "createdAt",
+                        "updatedAt",
+                        "paymentLink",
+                        "providerTxs",
+                        "refunds",
+                        "webhookEvents"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "found",
+                    "intent"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Query too short"
+          }
+        }
+      }
+    },
+    "/admin/webhooks": {
+      "get": {
+        "operationId": "adminListWebhooks",
+        "summary": "List webhook events",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "provider",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "tenantId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "verified",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "processed",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "dateFrom",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "dateTo",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminWebhookEvent"
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "total",
+                    "page",
+                    "limit"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/provider-health": {
+      "get": {
+        "operationId": "adminGetProviderHealth",
+        "summary": "Get provider health status",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderHealthRecord"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/provider-health/{provider}": {
+      "put": {
+        "operationId": "adminSetProviderHealth",
+        "summary": "Set provider health status",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "NORMAL",
+                      "DEGRADED",
+                      "DOWN"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderHealthRecord"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/vps-tenants": {
+      "get": {
+        "operationId": "adminListVpsTenants",
+        "summary": "List tenants with a connected VPS config",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminVpsTenant"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/recurring-test": {
+      "post": {
+        "operationId": "adminRecurringTest",
+        "summary": "Run recurring-billing readiness checks",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tenantId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "testedAt": {
+                      "type": "string"
+                    },
+                    "overallStatus": {
+                      "type": "string"
+                    },
+                    "totalVpsConfigs": {
+                      "type": "number"
+                    },
+                    "tenants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tenantId": {
+                            "type": "string"
+                          },
+                          "tenantName": {
+                            "type": "string"
+                          },
+                          "checks": {
+                            "type": "object",
+                            "properties": {
+                              "connectivity": {
+                                "type": "boolean"
+                              },
+                              "profileStorage": {
+                                "type": "boolean"
+                              },
+                              "hasActiveSubscriptions": {
+                                "type": "boolean"
+                              },
+                              "migrationApplied": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "connectivity",
+                              "profileStorage",
+                              "hasActiveSubscriptions",
+                              "migrationApplied"
+                            ]
+                          },
+                          "latencyMs": {
+                            "type": "number"
+                          },
+                          "vpsError": {
+                            "type": "string"
+                          },
+                          "dbError": {
+                            "type": "string"
+                          },
+                          "subscriptionStats": {
+                            "type": "object",
+                            "properties": {
+                              "active": {
+                                "type": "number"
+                              },
+                              "pastDue": {
+                                "type": "number"
+                              },
+                              "pending": {
+                                "type": "number"
+                              },
+                              "cancelledLast30d": {
+                                "type": "number"
+                              },
+                              "billingEventsTotal": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "active",
+                              "pastDue",
+                              "pending",
+                              "cancelledLast30d",
+                              "billingEventsTotal"
+                            ]
+                          },
+                          "dueTodayCount": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "tenantId",
+                          "tenantName",
+                          "checks",
+                          "latencyMs",
+                          "subscriptionStats",
+                          "dueTodayCount"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "testedAt",
+                    "overallStatus",
+                    "totalVpsConfigs",
+                    "tenants"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tenants": {
+      "get": {
+        "operationId": "adminListTenants",
+        "summary": "List tenants",
+        "tags": [
+          "Admin Tenants"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminTenantListItem"
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "total",
+                    "page",
+                    "limit"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tenants/{id}": {
+      "get": {
+        "operationId": "adminGetTenant",
+        "summary": "Get tenant detail",
+        "tags": [
+          "Admin Tenants"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTenantDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant not found"
+          }
+        }
+      }
+    },
+    "/admin/tenants/{id}/status": {
+      "patch": {
+        "operationId": "adminSetTenantStatus",
+        "summary": "Enable or disable a tenant",
+        "tags": [
+          "Admin Tenants"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE",
+                      "DISABLED"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tenants/{id}/provider-configs": {
+      "get": {
+        "operationId": "adminGetTenantProviderConfigs",
+        "summary": "List a tenant's provider configs (credentials masked)",
+        "tags": [
+          "Admin Provider Configs"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "provider": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "environment": {
+                        "type": "string"
+                      },
+                      "credentials": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "provider",
+                      "status",
+                      "environment",
+                      "credentials"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/simulation/start": {
+      "post": {
+        "operationId": "simulationStart",
+        "summary": "Spin up a recurring-billing simulation",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "default": 1
+                  },
+                  "currency": {
+                    "type": "string",
+                    "default": "MAD"
+                  },
+                  "retryDelay1": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 3600,
+                    "default": 30
+                  },
+                  "retryDelay2": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 3600,
+                    "default": 60
+                  },
+                  "retryDelay3": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 3600,
+                    "default": 120
+                  }
+                },
+                "required": [
+                  "tenantId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "subscriptionId": {
+                      "type": "string"
+                    },
+                    "paymentIntentId": {
+                      "type": "string"
+                    },
+                    "retries": {
+                      "type": "object",
+                      "properties": {
+                        "delay1": {
+                          "type": "string"
+                        },
+                        "delay2": {
+                          "type": "string"
+                        },
+                        "delay3": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "delay1",
+                        "delay2",
+                        "delay3"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sessionId",
+                    "subscriptionId",
+                    "paymentIntentId",
+                    "retries"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No VPS config"
+          }
+        }
+      }
+    },
+    "/admin/simulation/status/{sessionId}": {
+      "get": {
+        "operationId": "simulationStatus",
+        "summary": "Poll simulation subscription state",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "subscription": {
+                      "$ref": "#/components/schemas/SubscriptionDetail"
+                    },
+                    "billingEvents": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BillingEvent"
+                      }
+                    },
+                    "done": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "sessionId",
+                    "subscription",
+                    "billingEvents",
+                    "done"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Simulation session not found"
+          }
+        }
+      }
+    },
+    "/admin/simulation/cleanup/{sessionId}": {
+      "delete": {
+        "operationId": "simulationCleanup",
+        "summary": "Wipe records created by a simulation session",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "object",
+                      "properties": {
+                        "subscriptions": {
+                          "type": "number"
+                        },
+                        "billingEvents": {
+                          "type": "number"
+                        },
+                        "paymentIntents": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "subscriptions",
+                        "billingEvents",
+                        "paymentIntents"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/simulation/bnpl/plans/{tenantId}": {
+      "get": {
+        "operationId": "simulationBnplPlans",
+        "summary": "List a tenant's active installment plans",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "tenantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "durationMonths": {
+                            "type": "number"
+                          },
+                          "annualInterestRate": {
+                            "type": "number"
+                          },
+                          "minAmount": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "maxAmount": {
+                            "type": "number",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "durationMonths",
+                          "annualInterestRate",
+                          "minAmount",
+                          "maxAmount"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/simulation/bnpl/prepare": {
+      "post": {
+        "operationId": "simulationBnplPrepare",
+        "summary": "Create a throwaway installment link + PayWall payload",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "default": 1000
+                  },
+                  "months": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 120,
+                    "default": 3
+                  },
+                  "apr": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 0
+                  }
+                },
+                "required": [
+                  "tenantId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "linkId": {
+                      "type": "string"
+                    },
+                    "agreementId": {
+                      "type": "string"
+                    },
+                    "sessionTag": {
+                      "type": "string"
+                    },
+                    "paywallUrl": {
+                      "type": "string"
+                    },
+                    "paywallPayload": {
+                      "type": "string"
+                    },
+                    "paywallSignature": {
+                      "type": "string"
+                    },
+                    "preview": {
+                      "type": "object",
+                      "properties": {
+                        "totalInstallments": {
+                          "type": "number"
+                        },
+                        "installmentAmount": {
+                          "type": "number"
+                        },
+                        "principalAmount": {
+                          "type": "number"
+                        },
+                        "apr": {
+                          "type": "number"
+                        },
+                        "currency": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "totalInstallments",
+                        "installmentAmount",
+                        "principalAmount",
+                        "apr",
+                        "currency"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "linkId",
+                    "agreementId",
+                    "sessionTag",
+                    "paywallUrl",
+                    "paywallPayload",
+                    "paywallSignature",
+                    "preview"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No VPS config"
+          }
+        }
+      }
+    },
+    "/admin/simulation/bnpl/await-agreement/{linkId}": {
+      "get": {
+        "operationId": "simulationBnplAwaitAgreement",
+        "summary": "Poll for agreement activation",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "linkId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "agreementId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "totalInstallments": {
+                      "type": "number"
+                    },
+                    "paidCount": {
+                      "type": "number"
+                    },
+                    "installmentAmount": {
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "paymentServiceUrl": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "found"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/simulation/bnpl/fire": {
+      "post": {
+        "operationId": "simulationBnplFire",
+        "summary": "Launch an accelerated installment simulation",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "agreementId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "chargeDelay": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 3600,
+                    "default": 30
+                  },
+                  "retryDelay1": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 3600,
+                    "default": 15
+                  },
+                  "retryDelay2": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 3600,
+                    "default": 30
+                  },
+                  "retryDelay3": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 3600,
+                    "default": 60
+                  }
+                },
+                "required": [
+                  "agreementId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agreementId": {
+                      "type": "string"
+                    },
+                    "delays": {
+                      "type": "object",
+                      "properties": {
+                        "chargeDelay": {
+                          "type": "string"
+                        },
+                        "retryDelay1": {
+                          "type": "string"
+                        },
+                        "retryDelay2": {
+                          "type": "string"
+                        },
+                        "retryDelay3": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "chargeDelay",
+                        "retryDelay1",
+                        "retryDelay2",
+                        "retryDelay3"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "agreementId",
+                    "delays"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a sim agreement / not active"
+          },
+          "404": {
+            "description": "Agreement not found"
+          }
+        }
+      }
+    },
+    "/admin/simulation/bnpl/status/{agreementId}": {
+      "get": {
+        "operationId": "simulationBnplStatus",
+        "summary": "Poll installment agreement + charges",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "agreementId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agreementId": {
+                      "type": "string"
+                    },
+                    "agreement": {
+                      "$ref": "#/components/schemas/InstallmentAgreementDetail"
+                    },
+                    "installmentCharges": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InstallmentCharge"
+                      }
+                    },
+                    "done": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "agreementId",
+                    "agreement",
+                    "installmentCharges",
+                    "done"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agreement not found"
+          }
+        }
+      }
+    },
+    "/admin/simulation/bnpl/cleanup/{agreementId}": {
+      "delete": {
+        "operationId": "simulationBnplCleanup",
+        "summary": "Teardown BNPL sandbox fixtures",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "agreementId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "object",
+                      "properties": {
+                        "charges": {
+                          "type": "number"
+                        },
+                        "agreements": {
+                          "type": "number"
+                        },
+                        "paymentIntents": {
+                          "type": "number"
+                        },
+                        "paymentLinks": {
+                          "type": "number"
+                        },
+                        "plans": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "charges",
+                        "agreements",
+                        "paymentIntents",
+                        "paymentLinks",
+                        "plans"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/simulation/direct/prepare": {
+      "post": {
+        "operationId": "simulationDirectPrepare",
+        "summary": "Create a direct-charge simulation",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "default": 1
+                  }
+                },
+                "required": [
+                  "tenantId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "linkId": {
+                      "type": "string"
+                    },
+                    "sessionTag": {
+                      "type": "string"
+                    },
+                    "paywallUrl": {
+                      "type": "string"
+                    },
+                    "paywallPayload": {
+                      "type": "string"
+                    },
+                    "paywallSignature": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "intentId",
+                    "linkId",
+                    "sessionTag",
+                    "paywallUrl",
+                    "paywallPayload",
+                    "paywallSignature",
+                    "amount"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No VPS config"
+          }
+        }
+      }
+    },
+    "/admin/simulation/direct/status/{intentId}": {
+      "get": {
+        "operationId": "simulationDirectStatus",
+        "summary": "Poll direct-charge simulation status",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "intentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "providerRef": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "terminal": {
+                      "type": "boolean"
+                    },
+                    "rawVpsStatus": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "paymentServiceUrl": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "settleError": {
+                      "type": "string"
+                    },
+                    "vpsRawResponse": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "nullable": true
+                      }
+                    },
+                    "queryError": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "intentId",
+                    "status",
+                    "providerRef",
+                    "terminal"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Intent not found"
+          }
+        }
+      }
+    },
+    "/admin/simulation/direct/cleanup/{intentId}": {
+      "delete": {
+        "operationId": "simulationDirectCleanup",
+        "summary": "Teardown a direct-charge simulation",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "intentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "object",
+                      "properties": {
+                        "intents": {
+                          "type": "number"
+                        },
+                        "links": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "intents",
+                        "links"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/simulation/preauth/prepare": {
+      "post": {
+        "operationId": "simulationPreauthPrepare",
+        "summary": "Create a pre-auth simulation",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "default": 1
+                  }
+                },
+                "required": [
+                  "tenantId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "linkId": {
+                      "type": "string"
+                    },
+                    "sessionTag": {
+                      "type": "string"
+                    },
+                    "paywallUrl": {
+                      "type": "string"
+                    },
+                    "paywallPayload": {
+                      "type": "string"
+                    },
+                    "paywallSignature": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "intentId",
+                    "linkId",
+                    "sessionTag",
+                    "paywallUrl",
+                    "paywallPayload",
+                    "paywallSignature",
+                    "amount"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No VPS config"
+          }
+        }
+      }
+    },
+    "/admin/simulation/preauth/status/{intentId}": {
+      "get": {
+        "operationId": "simulationPreauthStatus",
+        "summary": "Poll pre-auth simulation status",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "intentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "providerRef": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "terminal": {
+                      "type": "boolean"
+                    },
+                    "authorized": {
+                      "type": "boolean"
+                    },
+                    "rawVpsStatus": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "paymentServiceUrl": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "queryError": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "intentId",
+                    "status",
+                    "providerRef",
+                    "terminal",
+                    "authorized"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Intent not found"
+          }
+        }
+      }
+    },
+    "/admin/simulation/preauth/capture/{intentId}": {
+      "post": {
+        "operationId": "simulationPreauthCapture",
+        "summary": "Settle a pre-authorized charge",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "intentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentActionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Wrong state / no provider ref"
+          },
+          "404": {
+            "description": "Intent not found"
+          }
+        }
+      }
+    },
+    "/admin/simulation/preauth/cancel/{intentId}": {
+      "post": {
+        "operationId": "simulationPreauthCancel",
+        "summary": "Release held funds (auth reversal)",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "intentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentActionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Wrong state / no provider ref"
+          },
+          "404": {
+            "description": "Intent not found"
+          }
+        }
+      }
+    },
+    "/admin/simulation/preauth/cleanup/{intentId}": {
+      "delete": {
+        "operationId": "simulationPreauthCleanup",
+        "summary": "Teardown a pre-auth simulation",
+        "tags": [
+          "Admin Simulation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "intentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "object",
+                      "properties": {
+                        "intents": {
+                          "type": "number"
+                        },
+                        "links": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "intents",
+                        "links"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
