@@ -42,32 +42,44 @@ jobs:
       - name: Run gitleaks
         run: gitleaks detect --source . --exit-code 1
 
-  # ── Schema quality (Atlas Pro) — skipped until ATLAS_TOKEN is configured ──────
-  schema-lint:
+  # ── Schema validation (Prisma, free — replaces Atlas Pro schema lint) ──────
+  schema-validate:
     runs-on: ubuntu-latest
-    if: ${{ secrets.ATLAS_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install Atlas
-        run: curl -sSfL https://atlasgo.sh | sh
-      - name: Authenticate to Atlas Cloud
-        run: atlas login --token "${{ secrets.ATLAS_TOKEN }}"
-      - name: Lint Prisma schema
-        run: atlas schema lint --dev-url "docker://postgres/16" --url "file://prisma/schema.prisma"
 
-  # ── API contract diff (Bump.sh) — skipped until BUMP_TOKEN + BUMP_DOC_SLUG ────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+  # ── API contract breaking-change gate (openapi-diff, free — replaces Bump.sh) ─
   contract-diff:
     runs-on: ubuntu-latest
-    if: ${{ secrets.BUMP_TOKEN != '' && secrets.BUMP_DOC_SLUG != '' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check API contract for breaking changes
-        uses: bump-sh/github-action@v1
         with:
-          doc: ${{ secrets.BUMP_DOC_SLUG }}
-          token: ${{ secrets.BUMP_TOKEN }}
-          command: diff
-          file: openapi.json
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Check API contract for breaking changes
+        run: |
+          BASE_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -z "$BASE_TAG" ]; then
+            echo "No previous release tag; skipping breaking-change check."
+            exit 0
+          fi
+          git show "$BASE_TAG:openapi.json" > /tmp/openapi.base.json
+          npx --yes openapi-diff /tmp/openapi.base.json openapi.json
 
   # ── Unified quality gate (Dagger) — mirrors `test`; keep `test` until parity ──
   dagger:
