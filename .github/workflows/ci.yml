@@ -41,3 +41,30 @@ jobs:
 
       - name: Run gitleaks
         run: gitleaks detect --source . --exit-code 1
+
+  # ── Schema quality (Atlas Pro) — skipped until ATLAS_TOKEN is configured ──────
+  schema-lint:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.ATLAS_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Atlas
+        run: curl -sSfL https://atlasgo.sh | sh
+      - name: Authenticate to Atlas Cloud
+        run: atlas login --token "${{ secrets.ATLAS_TOKEN }}"
+      - name: Lint Prisma schema
+        run: atlas schema lint --dev-url "docker://postgres/16" --url "file://prisma/schema.prisma"
+
+  # ── API contract diff (Bump.sh) — skipped until BUMP_TOKEN + BUMP_DOC_SLUG ────
+  contract-diff:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.BUMP_TOKEN != '' && secrets.BUMP_DOC_SLUG != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check API contract for breaking changes
+        uses: bump-sh/github-action@v1
+        with:
+          doc: ${{ secrets.BUMP_DOC_SLUG }}
+          token: ${{ secrets.BUMP_TOKEN }}
+          command: diff
+          file: openapi.json
