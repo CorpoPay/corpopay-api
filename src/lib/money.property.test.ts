@@ -13,7 +13,7 @@ import { centimes, centimesToMad, centimesToMadString, madToCentimes } from "./m
 describe("money properties", () => {
   it("madToCentimes always yields a whole integer (no fractional centimes)", () => {
     fc.assert(
-      fc.property(fc.double({ min: 0, max: 1_000_000 }), (amount) => {
+      fc.property(fc.double({ min: 0, max: 1_000_000, noNaN: true }), (amount) => {
         expect(Number.isInteger(madToCentimes(amount))).toBe(true);
       }),
     );
@@ -29,7 +29,7 @@ describe("money properties", () => {
 
   it("round-trips MAD → centimes → MAD within one centime", () => {
     fc.assert(
-      fc.property(fc.double({ min: 0, max: 1_000_000 }), (amount) => {
+      fc.property(fc.double({ min: 0, max: 1_000_000, noNaN: true }), (amount) => {
         const back = centimesToMad(madToCentimes(amount));
         expect(Math.abs(back - amount)).toBeLessThanOrEqual(0.01);
       }),

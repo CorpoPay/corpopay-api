@@ -28,6 +28,13 @@ export function computeInstallmentAmount(
   }
   const r = annualRatePct / 100 / 12;
   const factor = (1 + r) ** n;
+  // Guard against near-zero monthly rates: when (1 + r)^n rounds to exactly 1,
+  // the amortization denominator (factor - 1) collapses to 0 and the formula
+  // yields NaN/Infinity. A rate that small is numerically indistinguishable
+  // from zero interest, so fall back to the exact equal split.
+  if (factor === 1) {
+    return Math.round((principal / n) * 100) / 100;
+  }
   const payment = (principal * (r * factor)) / (factor - 1);
   // Round UP to nearest centime
   return Math.ceil(payment * 100) / 100;

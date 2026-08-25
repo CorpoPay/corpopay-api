@@ -11,6 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:demo": "tsx prisma/seed-demo.ts",
+    "db:reset:demo": "tsx prisma/reset-demo.ts",
     "lint": "biome check src",
     "lint:fix": "biome check --write src",
     "test": "vitest run",
