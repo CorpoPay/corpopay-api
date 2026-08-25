@@ -35,6 +35,16 @@ services:
       DIRECT_URL:   "postgresql://corpopay:corpopay@postgres:5432/corpopay?schema=public"
       # Tell Inngest SDK to send events to the local dev server container, not cloud
       INNGEST_BASE_URL: "http://inngest:8288"
+      # ── Demo mode (zero-config: in-memory FakeAdapter, no PSP secrets) ────────
+      DEMO_MODE: "true"
+      # Demo-only secrets. Override via .env if you need your own values.
+      ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      JWT_SECRET: "demo-jwt-secret-change-me"
+      JWT_EXPIRES_IN: "7d"
+      INNGEST_EVENT_KEY: "demo"
+      INNGEST_SIGNING_KEY: "demo"
+      API_BASE_URL: "http://localhost:4000"
+      WEB_BASE_URL: "http://localhost:3000"
     ports:
       - "4000:4000"
     volumes:
@@ -58,6 +68,29 @@ services:
       retries: 10
       start_period: 30s
 
+  # ─── Web ──────────────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ../corpopay-web
+      dockerfile: Dockerfile.dev
+    container_name: corpopay_web
+    restart: unless-stopped
+    environment:
+      # Browser (client) reaches the API via the host's localhost
+      NEXT_PUBLIC_API_URL: "http://localhost:4000"
+      # Server-side (SSR) reaches the API via Docker's internal network
+      API_BASE_URL: "http://api:4000"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../corpopay-web:/app
+      - web_node_modules:/app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    # Bind the Next.js dev server to 0.0.0.0 so it is reachable from the host
+    command: npm run dev -- -H 0.0.0.0
+
   # ─── Inngest Dev Server ───────────────────────────────────────────────────────
   inngest:
     build:
@@ -73,6 +106,16 @@ services:
       api:
         condition: service_healthy
 
+  # ─── Mailpit (SMTP sandbox — UI on :8025) ─────────────────────────────────────
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: corpopay_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+
 volumes:
   postgres_data:
   api_node_modules:
+  web_node_modules:

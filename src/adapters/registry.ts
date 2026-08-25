@@ -4,12 +4,19 @@ import { NapsCredentials, VpsCredentials, StripeCredentials, ProviderAdapter } f
 import { NapsAdapter } from "./naps.adapter";
 import { VpsAdapter } from "./vps.adapter";
 import { StripeAdapter } from "./stripe.adapter";
+import { FakeAdapter } from "./fake.adapter";
 
 /**
  * Given a ProviderConfig row, decrypt its credentials and return the
  * appropriate adapter instance.
  */
 export function getAdapter(provider: Provider, encryptedCredentials: string): ProviderAdapter {
+  // Demo mode: return the deterministic in-memory adapter regardless of the
+  // provider/credentials, so `docker compose up` works with zero PSP secrets.
+  if (process.env.DEMO_MODE === "true") {
+    return new FakeAdapter();
+  }
+
   const credentials = decryptCredentials(encryptedCredentials);
 
   switch (provider) {

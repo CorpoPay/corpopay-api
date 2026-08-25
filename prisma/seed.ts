@@ -46,6 +46,7 @@ const DEMO_VPS_CREDENTIALS = {
 // Skip the demo VPS config + installment plans unless the sandbox secrets are
 // provided via env. Without them the config would be created with empty
 // credentials and fail at connection-test time.
+const DEMO_MODE = process.env.DEMO_MODE === "true";
 const hasDemoVpsSecrets =
   !!process.env.SEED_VPS_PAYWALL_SECRET &&
   !!process.env.SEED_VPS_CALLER_PASSWORD &&
@@ -114,7 +115,11 @@ async function main() {
   }
 
   // ─── Demo VPS/Payzone config + installment plans ────────────────────────────
-  if (hasDemoVpsSecrets) {
+  if (DEMO_MODE || hasDemoVpsSecrets) {
+    // In demo mode there are no real PSP credentials — the FakeAdapter ignores
+    // them, so encrypt a placeholder object just to satisfy the schema.
+    const credentials = hasDemoVpsSecrets ? DEMO_VPS_CREDENTIALS : { demoMode: true };
+
     await prisma.providerConfig.upsert({
       where: {
         tenantId_provider: { tenantId: tenant.id, provider: Provider.VPS },
@@ -122,12 +127,12 @@ async function main() {
       create: {
         tenantId: tenant.id,
         provider: Provider.VPS,
-        encryptedCredentials: encrypt(JSON.stringify(DEMO_VPS_CREDENTIALS)),
+        encryptedCredentials: encrypt(JSON.stringify(credentials)),
         status: ProviderConfigStatus.CONNECTED,
         environment: Environment.SANDBOX,
       },
       update: {
-        encryptedCredentials: encrypt(JSON.stringify(DEMO_VPS_CREDENTIALS)),
+        encryptedCredentials: encrypt(JSON.stringify(credentials)),
         status: ProviderConfigStatus.CONNECTED,
       },
     });
@@ -164,7 +169,7 @@ async function main() {
     console.log("✅ Demo installment plans seeded.");
   } else {
     console.warn(
-      "⚠️  Skipping demo VPS config + installment plans — set SEED_VPS_PAYWALL_SECRET, SEED_VPS_CALLER_PASSWORD and SEED_VPS_NOTIFICATION_KEY to seed a working sandbox config.",
+      "⚠️  Skipping demo provider config + installment plans — set SEED_VPS_PAYWALL_SECRET, SEED_VPS_CALLER_PASSWORD and SEED_VPS_NOTIFICATION_KEY to seed a working sandbox config.",
     );
   }
 
