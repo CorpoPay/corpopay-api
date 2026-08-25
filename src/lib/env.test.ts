@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { ENV_VAR_NAMES, OPTIONAL_ENV_VAR_NAMES, buildLambdaEnvironment, envSchema } from "./env";
+import { describe, expect, it } from "vitest";
+import { buildLambdaEnvironment, ENV_VAR_NAMES, envSchema, OPTIONAL_ENV_VAR_NAMES } from "./env";
 
 const REQUIRED_VARS = [
   "DATABASE_URL",

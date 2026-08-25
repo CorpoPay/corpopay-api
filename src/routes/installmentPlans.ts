@@ -13,11 +13,11 @@
  */
 import { Router } from "express";
 import { AuditAction } from "@/generated/prisma/client";
+import { computeInstallmentAmount, totalInterest } from "../lib/billing";
 import { prisma } from "../lib/prisma";
 import { forTenant } from "../lib/tenant-db";
 import { requireAuth, requireMerchant } from "../middleware/auth";
-import { asyncHandler, AppError } from "../middleware/errorHandler";
-import { computeInstallmentAmount, totalInterest } from "../lib/billing";
+import { AppError, asyncHandler } from "../middleware/errorHandler";
 import { planSchema } from "../schemas/installment-plans";
 
 // ─── Merchant router ─────────────────────────────────────────────────────────

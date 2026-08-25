@@ -7,11 +7,11 @@
  */
 import { Router } from "express";
 import { AuditAction } from "@/generated/prisma/client";
+import { inngest } from "../lib/inngest";
 import { prisma } from "../lib/prisma";
 import { forTenant } from "../lib/tenant-db";
-import { inngest } from "../lib/inngest";
 import { requireAuth, requireMerchant } from "../middleware/auth";
-import { asyncHandler, AppError } from "../middleware/errorHandler";
+import { AppError, asyncHandler } from "../middleware/errorHandler";
 
 const router = Router();
 

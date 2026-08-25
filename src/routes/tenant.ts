@@ -1,16 +1,16 @@
 import { Router } from "express";
+import { AuditAction } from "@/generated/prisma/client";
 import { prisma } from "../lib/prisma";
 import {
+  requireAdmin,
   requireAuth,
   requireMerchant,
   requireOwner,
-  requireAdmin,
   requireSuperAdmin,
 } from "../middleware/auth";
-import { asyncHandler, AppError } from "../middleware/errorHandler";
-import { AuditAction } from "@/generated/prisma/client";
-import { updateTenantSchema } from "../schemas/tenant";
+import { AppError, asyncHandler } from "../middleware/errorHandler";
 import { tenantStatusSchema } from "../schemas/admin";
+import { updateTenantSchema } from "../schemas/tenant";
 
 const router = Router();
 

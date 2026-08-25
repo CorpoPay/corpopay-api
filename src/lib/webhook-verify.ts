@@ -14,8 +14,8 @@
  *     metadata, then look up the provider config.
  */
 import { Provider } from "@/generated/prisma/client";
-import { prisma } from "./prisma";
 import { getAdapter } from "../adapters/registry";
+import { prisma } from "./prisma";
 
 type VerifyWebhookSuccess = {
   ok: true;
@@ -74,7 +74,8 @@ export async function verifyWebhook(
       tenantId = intent.tenantId;
     } else {
       const chargeId = (payload["chargeId"] ?? payload["customerId"] ?? payload["orderId"]) as
-        string | undefined;
+        | string
+        | undefined;
 
       if (!chargeId) {
         return {

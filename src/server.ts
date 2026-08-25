@@ -1,8 +1,8 @@
 /// <reference path="./types/express-augment.ts" />
 import "./types/express-augment"; // loads Express Request augmentation (req.user)
+import app from "./app";
 // Env vars are injected via the environment.
 import { validateEnv } from "./lib/validateEnv";
-import app from "./app";
 
 // Validate all required environment variables before starting the server.
 // Throws synchronously if anything is missing so the process never starts

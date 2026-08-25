@@ -9,12 +9,12 @@
  * This moves the slow DB work off the HTTP hot-path so providers get an immediate
  * 200 and never time-out waiting for us.
  */
-import { Provider } from "@/generated/prisma/client";
-import { inngest } from "../lib/inngest";
-import { prisma } from "../lib/prisma";
-import { madToCentimes } from "../lib/money";
+import type { Provider } from "@/generated/prisma/client";
 import { getAdapter } from "../adapters/registry";
+import { inngest } from "../lib/inngest";
 import { maskObject } from "../lib/mask";
+import { madToCentimes } from "../lib/money";
+import { prisma } from "../lib/prisma";
 
 export const webhookProcessor = inngest.createFunction(
   {

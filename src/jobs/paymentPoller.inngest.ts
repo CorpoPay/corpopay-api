@@ -17,9 +17,10 @@
  *     was prematurely marking live sessions as terminal.
  *   - VPS / NAPS / others: 15 min — short-lived provider sessions.
  */
+
+import { getAdapter } from "../adapters/registry";
 import { inngest } from "../lib/inngest";
 import { prisma } from "../lib/prisma";
-import { getAdapter } from "../adapters/registry";
 
 const POLL_INTERVAL_MS = 30_000; // 30 s between polls
 const MAX_DURATION_MS_DEFAULT = 900_000; // 15 min  — VPS / NAPS

@@ -1,16 +1,15 @@
-import { Router } from "express";
 import bcrypt from "bcryptjs";
+import { Router } from "express";
+import { UserRole } from "@/generated/prisma/client";
+import { prisma } from "../lib/prisma";
+import { requireAuth, signToken } from "../middleware/auth";
+import { AppError, asyncHandler } from "../middleware/errorHandler";
 import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
 } from "../schemas/auth";
-import { prisma } from "../lib/prisma";
-import { signToken, requireAuth } from "../middleware/auth";
-import { asyncHandler } from "../middleware/errorHandler";
-import { AppError } from "../middleware/errorHandler";
-import { UserRole } from "@/generated/prisma/client";
 
 const router = Router();
 

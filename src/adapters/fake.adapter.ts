@@ -1,10 +1,10 @@
-import { PaymentIntentStatus } from "@/generated/prisma/client";
-import {
-  ProviderAdapter,
+import type { PaymentIntentStatus } from "@/generated/prisma/client";
+import type {
+  CancelResult,
+  CaptureResult,
   CreateCheckoutParams,
   CreateCheckoutResult,
-  CaptureResult,
-  CancelResult,
+  ProviderAdapter,
   QueryStatusResult,
   RefundResult,
   TestConnectionResult,

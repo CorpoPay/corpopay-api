@@ -7,9 +7,10 @@
  *
  * Dunning: 3 retries at +1d / +2d / +4d, then DEFAULTED.
  */
+
+import { chargeInstallment, runDunningLadder } from "../lib/dunning";
 import { inngest } from "../lib/inngest";
 import { prisma } from "../lib/prisma";
-import { chargeInstallment, runDunningLadder } from "../lib/dunning";
 
 interface InstallmentChargePayload {
   agreementId: string;

@@ -1,7 +1,7 @@
 /**
  * Billing utilities — date math for subscription cycles + installment amortization.
  */
-import { BillingInterval } from "@/generated/prisma/client";
+import type { BillingInterval } from "@/generated/prisma/client";
 
 // ─── Installment / BNPL ────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ export function computeInstallmentAmount(
     return Math.round((principal / n) * 100) / 100;
   }
   const r = annualRatePct / 100 / 12;
-  const factor = Math.pow(1 + r, n);
+  const factor = (1 + r) ** n;
   const payment = (principal * (r * factor)) / (factor - 1);
   // Round UP to nearest centime
   return Math.ceil(payment * 100) / 100;

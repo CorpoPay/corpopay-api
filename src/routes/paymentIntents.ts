@@ -7,17 +7,17 @@
  * Public   POST /public/checkout/:slug/pay    – creates a PaymentIntent from a Payment Link and redirects
  */
 import { Router } from "express";
-import { createIntentSchema, paySchema } from "../schemas/payment-intents";
 import { Provider } from "@/generated/prisma/client";
+import { getAdapter } from "../adapters/registry";
+import { computeInstallmentAmount } from "../lib/billing";
+import { inngest } from "../lib/inngest";
+import { maskObject } from "../lib/mask";
+import { trackMetric } from "../lib/metrics";
 import { prisma } from "../lib/prisma";
 import { forTenant } from "../lib/tenant-db";
-import { inngest } from "../lib/inngest";
 import { requireAuth, requireMerchant } from "../middleware/auth";
-import { asyncHandler, AppError } from "../middleware/errorHandler";
-import { trackMetric } from "../lib/metrics";
-import { getAdapter } from "../adapters/registry";
-import { maskObject } from "../lib/mask";
-import { computeInstallmentAmount } from "../lib/billing";
+import { AppError, asyncHandler } from "../middleware/errorHandler";
+import { createIntentSchema, paySchema } from "../schemas/payment-intents";
 
 // ─── Merchant router ─────────────────────────────────────────────────────────────
 

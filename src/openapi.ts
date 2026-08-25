@@ -1,25 +1,25 @@
 import { extendZodWithOpenApi, OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
+import { providerHealthSchema, tenantStatusSchema } from "./schemas/admin";
+import { createApiKeySchema } from "./schemas/api-keys";
 import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
 } from "./schemas/auth";
-import { updateTenantSchema } from "./schemas/tenant";
-import { changeRoleSchema, inviteSchema } from "./schemas/users";
-import { providerConfigStatusSchema } from "./schemas/provider-config";
-import { createPaymentLinkSchema } from "./schemas/payment-links";
-import { createIntentSchema, paySchema } from "./schemas/payment-intents";
 import { planSchema } from "./schemas/installment-plans";
-import { createApiKeySchema } from "./schemas/api-keys";
-import { providerHealthSchema, tenantStatusSchema } from "./schemas/admin";
+import { createIntentSchema, paySchema } from "./schemas/payment-intents";
+import { createPaymentLinkSchema } from "./schemas/payment-links";
+import { providerConfigStatusSchema } from "./schemas/provider-config";
 import {
   bnplFireSchema,
   bnplPrepareSchema,
   prepareSchema,
   startSchema,
 } from "./schemas/simulation";
+import { updateTenantSchema } from "./schemas/tenant";
+import { changeRoleSchema, inviteSchema } from "./schemas/users";
 
 extendZodWithOpenApi(z);
 

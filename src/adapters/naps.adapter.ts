@@ -10,15 +10,15 @@
  * The structure below is a skeleton that mirrors typical NAPS-style integrations.
  */
 import crypto from "crypto";
-import { PaymentIntentStatus } from "@/generated/prisma/client";
+import type { PaymentIntentStatus } from "@/generated/prisma/client";
 import { NAPS_STATUS_MAP } from "../lib/status-maps";
-import {
-  ProviderAdapter,
-  NapsCredentials,
+import type {
+  CancelResult,
+  CaptureResult,
   CreateCheckoutParams,
   CreateCheckoutResult,
-  CaptureResult,
-  CancelResult,
+  NapsCredentials,
+  ProviderAdapter,
   QueryStatusResult,
   RefundResult,
   TestConnectionResult,

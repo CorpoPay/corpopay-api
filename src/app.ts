@@ -1,32 +1,31 @@
-import express, { Request, Response, RequestHandler } from "express";
+import { apiReference } from "@scalar/express-api-reference";
+import express, { type Request, type RequestHandler, type Response } from "express";
 import morgan from "morgan";
-
+import { corsMiddleware } from "./config/cors";
+import { inngestHandler } from "./config/inngest";
+import { apiLimiter, authLimiter, checkoutLimiter } from "./config/rate-limit";
 // ─── Config modules ────────────────────────────────────────────────────────────────
 import { securityHeaders } from "./config/security";
-import { corsMiddleware } from "./config/cors";
-import { authLimiter, checkoutLimiter, apiLimiter } from "./config/rate-limit";
-import { inngestHandler } from "./config/inngest";
-
-// ─── Routers ───────────────────────────────────────────────────────────────────────
-import authRouter from "./routes/auth";
-import tenantRouter, { adminTenantRouter } from "./routes/tenant";
-import usersRouter from "./routes/users";
-import providerConfigRouter, { adminProviderConfigRouter } from "./routes/providerConfig";
-import paymentLinksRouter, { publicCheckoutRouter } from "./routes/paymentLinks";
-import paymentIntentsRouter, { publicPayRouter, publicRelayRouter } from "./routes/paymentIntents";
-import transactionsRouter from "./routes/transactions";
-import dashboardRouter from "./routes/dashboard";
-import refundsRouter from "./routes/refunds";
-import exportsRouter from "./routes/exports";
-import webhooksRouter from "./routes/webhooks";
+import { errorHandler } from "./middleware/errorHandler";
+import { buildOpenApiDocument } from "./openapi-document";
 import adminRouter from "./routes/admin";
 import apiKeysRouter from "./routes/apiKeys";
-import subscriptionsRouter from "./routes/subscriptions";
-import simulationRouter from "./routes/simulation";
-import installmentPlansRouter, { publicInstallmentPlansRouter } from "./routes/installmentPlans";
+// ─── Routers ───────────────────────────────────────────────────────────────────────
+import authRouter from "./routes/auth";
+import dashboardRouter from "./routes/dashboard";
+import exportsRouter from "./routes/exports";
 import installmentAgreementsRouter from "./routes/installmentAgreements";
-
-import { errorHandler } from "./middleware/errorHandler";
+import installmentPlansRouter, { publicInstallmentPlansRouter } from "./routes/installmentPlans";
+import paymentIntentsRouter, { publicPayRouter, publicRelayRouter } from "./routes/paymentIntents";
+import paymentLinksRouter, { publicCheckoutRouter } from "./routes/paymentLinks";
+import providerConfigRouter, { adminProviderConfigRouter } from "./routes/providerConfig";
+import refundsRouter from "./routes/refunds";
+import simulationRouter from "./routes/simulation";
+import subscriptionsRouter from "./routes/subscriptions";
+import tenantRouter, { adminTenantRouter } from "./routes/tenant";
+import transactionsRouter from "./routes/transactions";
+import usersRouter from "./routes/users";
+import webhooksRouter from "./routes/webhooks";
 
 const app = express();
 
@@ -129,6 +128,14 @@ app.use("/admin", apiLimiter, adminRouter);
 
 // ─── Inngest job handler (POST /api/inngest) ─────────────────────────────────────
 app.use("/api/inngest", inngestHandler);
+
+// ─── API reference (Scalar) ──────────────────────────────────────────────────────
+// Interactive OpenAPI docs, rendered from the same zod-to-openapi registry that
+// generates `openapi.json` for the @corpopay/contract package.
+app.get("/openapi.json", (_req: Request, res: Response) => {
+  res.json(buildOpenApiDocument());
+});
+app.use("/docs", apiReference({ spec: { url: "/openapi.json" } }));
 
 // ─── 404 handler ─────────────────────────────────────────────────────────────────
 app.use((_req: Request, res: Response) => {

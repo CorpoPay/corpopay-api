@@ -1,10 +1,10 @@
 import { Provider } from "@/generated/prisma/client";
 import { decryptCredentials } from "../lib/encryption";
-import { NapsCredentials, VpsCredentials, StripeCredentials, ProviderAdapter } from "./types";
-import { NapsAdapter } from "./naps.adapter";
-import { VpsAdapter } from "./vps.adapter";
-import { StripeAdapter } from "./stripe.adapter";
 import { FakeAdapter } from "./fake.adapter";
+import { NapsAdapter } from "./naps.adapter";
+import { StripeAdapter } from "./stripe.adapter";
+import type { NapsCredentials, ProviderAdapter, StripeCredentials, VpsCredentials } from "./types";
+import { VpsAdapter } from "./vps.adapter";
 
 /**
  * Given a ProviderConfig row, decrypt its credentials and return the

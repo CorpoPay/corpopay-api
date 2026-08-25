@@ -4,7 +4,7 @@
  * Unit tests for the boot-time environment variable guard.
  * Each test manipulates process.env in isolation and restores it afterwards.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,16 @@
+rules:
+  - id: corpopay-insecure-random
+    message: >-
+      Math.random() is not cryptographically secure. Use the Node crypto module
+      (crypto.randomBytes / crypto.randomUUID) for tokens, IDs, and one-time codes.
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    pattern: Math.random()
+    paths:
+      include:
+        - src/**
+    metadata:
+      category: security
+      cwe: "CWE-338"

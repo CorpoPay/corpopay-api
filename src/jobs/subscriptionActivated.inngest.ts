@@ -7,14 +7,14 @@
  *  2. Sleeps through any trial period.
  *  3. Fires the first billing/renewal.due event to kick off charging.
  */
-import { BillingInterval } from "@/generated/prisma/client";
-import { inngest } from "../lib/inngest";
-import { prisma } from "../lib/prisma";
+import type { BillingInterval } from "@/generated/prisma/client";
 import {
-  computeNextBillingDate,
   billingIdempotencyKey,
+  computeNextBillingDate,
   notifySubscriptionEvent,
 } from "../lib/billing";
+import { inngest } from "../lib/inngest";
+import { prisma } from "../lib/prisma";
 
 interface SubscriptionActivatedPayload {
   subscriptionId: string;

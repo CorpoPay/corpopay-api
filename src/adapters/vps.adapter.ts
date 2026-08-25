@@ -16,19 +16,19 @@
  * signed with callerPassword.
  */
 import crypto from "crypto";
-import { PaymentIntentStatus } from "@/generated/prisma/client";
+import type { PaymentIntentStatus } from "@/generated/prisma/client";
 import { VPS_STATUS_MAP } from "../lib/status-maps";
-import {
-  ProviderAdapter,
-  VpsCredentials,
+import type {
+  CancelResult,
+  CaptureResult,
+  ChargeRenewalResult,
   CreateCheckoutParams,
   CreateCheckoutResult,
-  CaptureResult,
-  CancelResult,
+  ProviderAdapter,
   QueryStatusResult,
   RefundResult,
-  ChargeRenewalResult,
   TestConnectionResult,
+  VpsCredentials,
 } from "./types";
 
 // ─── Status mapping is shared: see src/lib/status-maps.ts ─────────────────────────

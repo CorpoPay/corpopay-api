@@ -15,8 +15,8 @@
  *   - duplicate idempotency key → 200 deduplicated
  */
 import crypto from "crypto";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import request from "supertest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ─── Mock Prisma ──────────────────────────────────────────────────────────────
 // vi.mock is hoisted to the top of the file by Vitest — factory functions must
@@ -69,10 +69,10 @@ vi.mock("../lib/encryption", () => ({
 
 // ─── Import app + mocked modules AFTER vi.mock calls ─────────────────────────
 
-import app from "../app";
-import { prisma } from "../lib/prisma";
-import { inngest } from "../lib/inngest";
 import { getAdapter } from "../adapters/registry";
+import app from "../app";
+import { inngest } from "../lib/inngest";
+import { prisma } from "../lib/prisma";
 
 // Typed references to the auto-mocked functions for use in tests
 const mockFindFirstIntent = prisma.paymentIntent.findFirst as ReturnType<typeof vi.fn>;

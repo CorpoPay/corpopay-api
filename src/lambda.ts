@@ -3,10 +3,11 @@
  * Wraps the Express app with serverless-http so it can run as a Lambda function
  * behind API Gateway (HTTP API or REST API).
  */
+
+import type { Handler } from "aws-lambda";
+import serverlessHttp from "serverless-http";
 import { loadSecrets } from "./lib/secrets";
 import { validateEnv } from "./lib/validateEnv";
-import serverlessHttp from "serverless-http";
-import type { Handler } from "aws-lambda";
 
 // Resolve secrets from SSM Parameter Store at cold-start,
 // then validate all required environment variables.

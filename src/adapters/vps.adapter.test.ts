@@ -10,9 +10,9 @@
  * No network calls, no DB, no Prisma — pure unit tests.
  */
 import crypto from "crypto";
-import { describe, it, expect, beforeEach } from "vitest";
-import { VpsAdapter } from "./vps.adapter";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { VpsCredentials } from "./types";
+import { VpsAdapter } from "./vps.adapter";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

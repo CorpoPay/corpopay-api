@@ -14,7 +14,7 @@
  * already in `process.env` (e.g. injected by the environment). `validateEnv()`
  * still surfaces any missing required variable.
  */
-import { SSMClient, GetParametersByPathCommand } from "@aws-sdk/client-ssm";
+import { GetParametersByPathCommand, SSMClient } from "@aws-sdk/client-ssm";
 
 export async function loadSecrets(env: NodeJS.ProcessEnv = process.env): Promise<void> {
   const prefix = env.SSM_SECRETS_PREFIX;

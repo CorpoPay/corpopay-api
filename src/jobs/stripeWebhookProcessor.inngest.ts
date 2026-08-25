@@ -31,11 +31,11 @@
  * That is the primary join key used throughout this processor.
  */
 
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { Provider } from "@/generated/prisma/client";
 import { inngest } from "../lib/inngest";
-import { prisma } from "../lib/prisma";
 import { maskObject } from "../lib/mask";
+import { prisma } from "../lib/prisma";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -71,7 +71,13 @@ function extractCorrelationId(obj: Record<string, unknown>): string | null {
 }
 
 type InternalStatus =
-  "CREATED" | "REQUIRES_ACTION" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "CANCELED" | "REFUNDED";
+  | "CREATED"
+  | "REQUIRES_ACTION"
+  | "PROCESSING"
+  | "SUCCEEDED"
+  | "FAILED"
+  | "CANCELED"
+  | "REFUNDED";
 
 // ─── Inngest function ─────────────────────────────────────────────────────────
 

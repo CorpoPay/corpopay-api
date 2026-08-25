@@ -5,9 +5,10 @@
  * Uses configurable second-level delays instead of real monthly intervals.
  * Each installment has its own 3-attempt dunning at configurable retry delays.
  */
+
+import { chargeInstallment, runDunningLadder } from "../lib/dunning";
 import { inngest } from "../lib/inngest";
 import { prisma } from "../lib/prisma";
-import { chargeInstallment, runDunningLadder } from "../lib/dunning";
 
 interface InstallmentSimPayload {
   agreementId: string;

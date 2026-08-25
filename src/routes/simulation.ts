@@ -14,18 +14,19 @@
  *   GET    /admin/simulation/bnpl/status/:agreementId – live poll agreement + charges
  *   DELETE /admin/simulation/bnpl/cleanup/:agreementId – teardown all sandbox fixtures
  */
+
+import { randomUUID } from "crypto";
 import { Router } from "express";
 import { z } from "zod";
-import { Provider, PaymentIntentStatus } from "@/generated/prisma/client";
-import { prisma } from "../lib/prisma";
-import { inngest } from "../lib/inngest";
-import { randomUUID } from "crypto";
-import { encrypt } from "../lib/encryption";
+import { PaymentIntentStatus, Provider } from "@/generated/prisma/client";
 import { getAdapter } from "../adapters/registry";
-import { VpsAdapter } from "../adapters/vps.adapter";
-import { requireAuth, requireSuperAdmin } from "../middleware/auth";
-import { asyncHandler, AppError } from "../middleware/errorHandler";
+import type { VpsAdapter } from "../adapters/vps.adapter";
 import { billingIdempotencyKey, computeInstallmentAmount } from "../lib/billing";
+import { encrypt } from "../lib/encryption";
+import { inngest } from "../lib/inngest";
+import { prisma } from "../lib/prisma";
+import { requireAuth, requireSuperAdmin } from "../middleware/auth";
+import { AppError, asyncHandler } from "../middleware/errorHandler";
 import {
   bnplFireSchema,
   bnplPrepareSchema,

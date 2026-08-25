@@ -1,4 +1,4 @@
-import { PaymentIntentStatus } from "@/generated/prisma/client";
+import type { PaymentIntentStatus } from "@/generated/prisma/client";
 
 /**
  * Single source of truth for provider → CorpoPay status mapping.

@@ -10,7 +10,7 @@
  * The rules live in `env.ts` (single source of truth); this module only
  * applies them to `process.env` and formats the result.
  */
-import { ENV_DESCRIPTIONS, ENV_VAR_NAMES, OPTIONAL_ENV_VAR_NAMES, envSchema } from "./env";
+import { ENV_DESCRIPTIONS, ENV_VAR_NAMES, envSchema, OPTIONAL_ENV_VAR_NAMES } from "./env";
 
 const RESET = "\x1b[0m";
 const RED = "\x1b[31m";

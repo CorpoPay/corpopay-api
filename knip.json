@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["src/lambda.ts", "scripts/*.mjs"],
-  "ignore": ["contract/**"],
-  "ignoreDependencies": ["@prisma/client", "esbuild"]
+  "ignore": ["contract/**", "ci/**", "k6/**"],
+  "ignoreDependencies": ["@prisma/client", "esbuild"],
+  "ignoreBinaries": ["k6"]
 }

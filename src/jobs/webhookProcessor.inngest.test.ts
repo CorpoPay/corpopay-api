@@ -16,7 +16,7 @@
  *   3. unknown chargeId   — both lookups miss  → intent is null → signatureVerified false
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ─── Mock Prisma ──────────────────────────────────────────────────────────────
 
@@ -89,9 +89,9 @@ vi.mock("../lib/encryption", () => ({
 
 // ─── Import AFTER mocks ───────────────────────────────────────────────────────
 
-import { prisma } from "../lib/prisma";
-import { inngest } from "../lib/inngest";
 import { getAdapter } from "../adapters/registry";
+import { inngest } from "../lib/inngest";
+import { prisma } from "../lib/prisma";
 
 // webhookProcessor's module-level side-effect calls inngest.createFunction and
 // assigns the result. Because our mock returns the raw handler, importing the

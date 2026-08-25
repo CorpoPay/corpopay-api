@@ -24,13 +24,17 @@
  *   - The Stripe event ID (evt_xxx) is used as the idempotency key.
  */
 import crypto from "crypto";
-import { Router, Request, Response } from "express";
+import { type Request, type Response, Router } from "express";
 import { Provider } from "@/generated/prisma/client";
-import { prisma } from "../lib/prisma";
 import { inngest } from "../lib/inngest";
-import { asyncHandler } from "../middleware/errorHandler";
 import { trackMetric } from "../lib/metrics";
-import { verifyWebhook, VerifyWebhookResult, VerifyWebhookFailure } from "../lib/webhook-verify";
+import { prisma } from "../lib/prisma";
+import {
+  type VerifyWebhookFailure,
+  type VerifyWebhookResult,
+  verifyWebhook,
+} from "../lib/webhook-verify";
+import { asyncHandler } from "../middleware/errorHandler";
 
 const router = Router();
 

@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import type { NextFunction, Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import { UserRole } from "@/generated/prisma/client";
 import { prisma } from "../lib/prisma";
 

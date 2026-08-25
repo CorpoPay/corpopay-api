@@ -27,17 +27,17 @@
  */
 
 import Stripe from "stripe";
-import { PaymentIntentStatus } from "@/generated/prisma/client";
+import type { PaymentIntentStatus } from "@/generated/prisma/client";
 import { mapStripeStatus } from "../lib/status-maps";
-import {
-  ProviderAdapter,
-  StripeCredentials,
+import type {
+  CancelResult,
+  CaptureResult,
   CreateCheckoutParams,
   CreateCheckoutResult,
-  CaptureResult,
-  CancelResult,
+  ProviderAdapter,
   QueryStatusResult,
   RefundResult,
+  StripeCredentials,
   TestConnectionResult,
 } from "./types";
 
