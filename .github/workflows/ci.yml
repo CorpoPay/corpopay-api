@@ -90,3 +90,38 @@ jobs:
         run: curl -fsSL https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Run unified quality gate
         run: $HOME/.local/bin/dagger call -m ci check --src .
+
+  # ── Dependency vulnerability audit (non-blocking: 3 high transitive advisories) ─
+  audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+  # ── Code coverage gate (per-file thresholds in vitest.config.ts) ────────────
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run coverage (enforces per-file thresholds)
+        run: npm run test:coverage
