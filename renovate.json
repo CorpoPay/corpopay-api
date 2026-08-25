@@ -1,4 +1,35 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"]
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "UTC",
+  "labels": ["dependencies"],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 10,
+  "rebaseWhen": "conflicted",
+  "recreateWhen": "auto",
+  "pruneStaleBranches": true,
+  "packageRules": [
+    {
+      "description": "Automerge minor and patch updates for stable (non-0.x) dependencies",
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "description": "Automerge minor and patch devDependency updates, including 0.x",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "description": "Group major updates into one reviewable PR and never automerge",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "groupName": "major dependencies",
+      "groupSlug": "major-deps"
+    }
+  ]
 }
