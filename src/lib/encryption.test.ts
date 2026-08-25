@@ -66,7 +66,7 @@ describe("encryptCredentials / decryptCredentials", () => {
 
 describe("decrypt — legacy crypto-js CBC fallback", () => {
   it("decrypts a legacy CBC row when ENCRYPTION_KEY_V1 is set", () => {
-    const legacyKey = "legacy-key-0123456789abcdefghijkl"; // 32 chars
+    const legacyKey = "legacy-key-0123456789abcdefghijkl"; // #gitleaks:allow (test-only legacy key)
     process.env.ENCRYPTION_KEY_V1 = legacyKey;
 
     // Recreate the exact legacy wire format: base64( iv(16) || ciphertext )

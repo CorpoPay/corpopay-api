@@ -62,7 +62,7 @@ describe("StripeAdapter.createCheckoutSession", () => {
   it("returns a clientSecret for wallet (apple_pay / google_pay) mode", async () => {
     mockStripe.paymentIntents.create.mockResolvedValue({
       id: "pi_456",
-      client_secret: "pi_456_secret_abc",
+      client_secret: "pi_456_secret_abc", // #gitleaks:allow (test fixture)
     });
 
     const result = await makeAdapter().createCheckoutSession({
