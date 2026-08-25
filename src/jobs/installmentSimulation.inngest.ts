@@ -20,8 +20,12 @@ interface InstallmentSimPayload {
 }
 
 export const installmentSimulation = inngest.createFunction(
-  { id: "installment-simulation", name: "Installment Simulation (Admin)", retries: 0 },
-  { event: "billing/installment.simulation" },
+  {
+    id: "installment-simulation",
+    name: "Installment Simulation (Admin)",
+    retries: 0,
+    triggers: [{ event: "billing/installment.simulation" }],
+  },
   async ({ event, step, runId }) => {
     const {
       agreementId,

@@ -46,6 +46,12 @@ vi.mock("../lib/inngest", () => ({
   },
 }));
 
+// ─── Mock Inngest handler (so serve() never runs against the mocked client) ──
+
+vi.mock("../config/inngest", () => ({
+  inngestHandler: (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
+
 // ─── Mock adapter registry ────────────────────────────────────────────────────
 
 vi.mock("../adapters/registry", () => ({

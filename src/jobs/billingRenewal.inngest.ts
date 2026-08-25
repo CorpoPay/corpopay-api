@@ -43,8 +43,8 @@ export const billingRenewal = inngest.createFunction(
     id: "billing-renewal",
     name: "Billing Renewal",
     retries: 0, // We manage retries explicitly via step.sleep
+    triggers: [{ event: "billing/renewal.due" }],
   },
-  { event: "billing/renewal.due" },
   async ({ event, step, runId }) => {
     const data = event.data as RenewalDuePayload;
     const {

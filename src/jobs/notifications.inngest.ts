@@ -23,8 +23,8 @@ export const notifications = inngest.createFunction(
     id: "payment-notifications",
     name: "Payment Notifications",
     retries: 3,
+    triggers: [{ event: "payment/notify" }],
   },
-  { event: "payment/notify" },
   async ({ event }) => {
     const { intentId, tenantId, status } = event.data as {
       intentId: string;

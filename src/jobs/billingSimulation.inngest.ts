@@ -45,8 +45,8 @@ export const billingSimulation = inngest.createFunction(
     id: "billing-simulation",
     name: "Billing Simulation (Admin)",
     retries: 0,
+    triggers: [{ event: "billing/renewal.simulation" }],
   },
-  { event: "billing/renewal.simulation" },
   async ({ event, step }) => {
     const data = event.data as SimulationPayload;
     const {

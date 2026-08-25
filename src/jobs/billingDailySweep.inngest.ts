@@ -19,8 +19,8 @@ export const billingDailySweep = inngest.createFunction(
   {
     id: "billing-daily-sweep",
     name: "Billing Daily Sweep",
+    triggers: [{ cron: "0 0 * * *" }], // midnight UTC daily
   },
-  { cron: "0 0 * * *" }, // midnight UTC daily
   async ({ step }) => {
     // ── Step 1: Fetch all subscriptions due for billing ───────────────────────
     const due = await step.run("find-due-subscriptions", async () => {

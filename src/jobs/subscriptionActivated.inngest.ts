@@ -31,8 +31,8 @@ export const onSubscriptionCreated = inngest.createFunction(
   {
     id: "on-subscription-created",
     name: "On Subscription Created",
+    triggers: [{ event: "billing/subscription.activated" }],
   },
-  { event: "billing/subscription.activated" },
   async ({ event, step }) => {
     const data = event.data as SubscriptionActivatedPayload;
 

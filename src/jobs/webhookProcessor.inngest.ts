@@ -22,8 +22,8 @@ export const webhookProcessor = inngest.createFunction(
     name: "Webhook Processor",
     // Inngest deduplicates events with the same id within a 24-h window.
     // We pass the provider-supplied idempotency key as the event id in send().
+    triggers: [{ event: "webhook/process" }],
   },
-  { event: "webhook/process" },
   async ({ event, step }) => {
     const { provider, payloadJson, rawBodyBase64, headers, idempotencyKey } = event.data as {
       provider: Provider;

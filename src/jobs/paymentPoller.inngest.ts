@@ -32,8 +32,11 @@ function maxDurationFor(provider: string): number {
 }
 
 export const paymentPoller = inngest.createFunction(
-  { id: "payment-poller", name: "Payment Status Poller" },
-  { event: "payment/poll-status" },
+  {
+    id: "payment-poller",
+    name: "Payment Status Poller",
+    triggers: [{ event: "payment/poll-status" }],
+  },
   async ({ event, step }) => {
     const { intentId, provider, tenantId } = event.data as {
       intentId: string;

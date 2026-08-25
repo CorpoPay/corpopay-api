@@ -25,8 +25,8 @@ export const installmentCharge = inngest.createFunction(
     id: "installment-charge",
     name: "Installment Charge",
     retries: 0,
+    triggers: [{ event: "billing/installment.charge.due" }],
   },
-  { event: "billing/installment.charge.due" },
   async ({ event, step, runId }) => {
     const { agreementId, installmentNumber, tenantId, chargeId, idempotencyId } =
       event.data as InstallmentChargePayload;

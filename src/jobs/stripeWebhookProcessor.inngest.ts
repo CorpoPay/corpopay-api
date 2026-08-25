@@ -88,8 +88,8 @@ export const stripeWebhookProcessor = inngest.createFunction(
     retries: 5,
     // Inngest deduplicates events by id — we pass "STRIPE:<evt_xxx>" from the
     // webhook route so duplicate Stripe deliveries are silently dropped.
+    triggers: [{ event: "webhook/stripe.process" }],
   },
-  { event: "webhook/stripe.process" },
   async ({ event, step }) => {
     const { payloadJson, idempotencyKey } = event.data as {
       payloadJson: Record<string, unknown>;

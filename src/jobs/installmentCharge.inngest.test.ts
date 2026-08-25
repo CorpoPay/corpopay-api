@@ -13,7 +13,7 @@ vi.mock("../lib/dunning", () => ({
 
 vi.mock("../lib/inngest", () => ({
   inngest: {
-    createFunction: vi.fn((_o: unknown, _t: unknown, handler: unknown) => handler),
+    createFunction: vi.fn((_opts: unknown, handler: unknown) => handler),
     send: vi.fn().mockResolvedValue(undefined),
   },
 }));
