@@ -180,3 +180,45 @@ export const LedgerCategoryValues = [
   "ADJUSTMENT",
   "DISBURSEMENT",
 ] as const;
+
+export type FeeType = "FLAT" | "PERCENTAGE" | "PER_METHOD" | "TIERED";
+export const FeeTypeValues = ["FLAT", "PERCENTAGE", "PER_METHOD", "TIERED"] as const;
+
+export type AvailabilityMode = "IMMEDIATE" | "DELAY" | "ON_FULFILLMENT" | "ON_COLLECTION";
+export const AvailabilityModeValues = [
+  "IMMEDIATE",
+  "DELAY",
+  "ON_FULFILLMENT",
+  "ON_COLLECTION",
+] as const;
+
+export type PayoutSchedule =
+  | "MANUAL"
+  | "AUTO_DAILY"
+  | "AUTO_WEEKLY"
+  | "AUTO_MONTHLY"
+  | "THRESHOLD"
+  | "INSTANT";
+export const PayoutScheduleValues = [
+  "MANUAL",
+  "AUTO_DAILY",
+  "AUTO_WEEKLY",
+  "AUTO_MONTHLY",
+  "THRESHOLD",
+  "INSTANT",
+] as const;
+
+export type ReserveType = "NONE" | "FIXED" | "ROLLING";
+export const ReserveTypeValues = ["NONE", "FIXED", "ROLLING"] as const;
+
+export type ReversalFundingPolicy =
+  | "NET_FROM_AVAILABLE"
+  | "DEBIT_RESERVE"
+  | "INVOICE_TENANT"
+  | "ALLOW_NEGATIVE";
+export const ReversalFundingPolicyValues = [
+  "NET_FROM_AVAILABLE",
+  "DEBIT_RESERVE",
+  "INVOICE_TENANT",
+  "ALLOW_NEGATIVE",
+] as const;

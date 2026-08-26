@@ -1286,6 +1286,76 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/fee-schedules": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List fee schedules */
+    get: operations["listFeeSchedules"];
+    put?: never;
+    /** Create a fee schedule */
+    post: operations["createFeeSchedule"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fee-schedules/active": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the active fee schedule */
+    get: operations["getActiveFeeSchedule"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/settlement-policies": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List settlement policies */
+    get: operations["listSettlementPolicies"];
+    put?: never;
+    /** Create a settlement policy */
+    post: operations["createSettlementPolicy"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/settlement-policies/active": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the active settlement policy */
+    get: operations["getActiveSettlementPolicy"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1912,6 +1982,49 @@ export interface components {
         [key: string]: number | string;
       };
       entries: components["schemas"]["LedgerEntry"][];
+    };
+    FeeSchedule: {
+      id: string;
+      version: number;
+      name: string | null;
+      feeType: string;
+      flatCents: number | null;
+      percentageBps: number | null;
+      perMethodCents: {
+        [key: string]: number;
+      } | null;
+      tiersCents:
+        | {
+            upToCents: number;
+            percentageBps: number;
+          }[]
+        | null;
+      currency: string;
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
+    SettlementPolicy: {
+      id: string;
+      version: number;
+      name: string | null;
+      industry: string | null;
+      mcc: string | null;
+      availabilityMode: string;
+      availabilityDelayDays: number | null;
+      reserveType: string;
+      reservePercentageBps: number | null;
+      reserveHoldDays: number | null;
+      reserveFixedCents: number | null;
+      payoutSchedule: string;
+      payoutMinCents: number | null;
+      reversalFunding: string;
+      allowNegative: boolean;
+      splittingEnabled: boolean;
+      feeScheduleId: string | null;
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
     };
   };
   responses: never;
@@ -4742,6 +4855,196 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["LedgerResponse"];
         };
+      };
+    };
+  };
+  listFeeSchedules: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FeeSchedule"][];
+        };
+      };
+    };
+  };
+  createFeeSchedule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          name?: string | null;
+          /** @enum {string} */
+          feeType: "FLAT" | "PERCENTAGE" | "PER_METHOD" | "TIERED";
+          flatCents?: number | null;
+          percentageBps?: number | null;
+          perMethodCents?: {
+            [key: string]: number;
+          } | null;
+          tiersCents?:
+            | {
+                upToCents: number;
+                percentageBps: number;
+              }[]
+            | null;
+          currency?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FeeSchedule"];
+        };
+      };
+    };
+  };
+  getActiveFeeSchedule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FeeSchedule"];
+        };
+      };
+      /** @description No active fee schedule */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listSettlementPolicies: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementPolicy"][];
+        };
+      };
+    };
+  };
+  createSettlementPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          name?: string | null;
+          industry?: string | null;
+          mcc?: string | null;
+          /** @enum {string|null} */
+          availabilityMode?: "IMMEDIATE" | "DELAY" | "ON_FULFILLMENT" | "ON_COLLECTION" | null;
+          availabilityDelayDays?: number | null;
+          /** @enum {string|null} */
+          reserveType?: "NONE" | "FIXED" | "ROLLING" | null;
+          reservePercentageBps?: number | null;
+          reserveHoldDays?: number | null;
+          reserveFixedCents?: number | null;
+          /** @enum {string|null} */
+          payoutSchedule?:
+            | "MANUAL"
+            | "AUTO_DAILY"
+            | "AUTO_WEEKLY"
+            | "AUTO_MONTHLY"
+            | "THRESHOLD"
+            | "INSTANT"
+            | null;
+          payoutMinCents?: number | null;
+          /** @enum {string|null} */
+          reversalFunding?:
+            | "NET_FROM_AVAILABLE"
+            | "DEBIT_RESERVE"
+            | "INVOICE_TENANT"
+            | "ALLOW_NEGATIVE"
+            | null;
+          allowNegative?: boolean | null;
+          splittingEnabled?: boolean | null;
+          feeScheduleId?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementPolicy"];
+        };
+      };
+    };
+  };
+  getActiveSettlementPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementPolicy"];
+        };
+      };
+      /** @description No active settlement policy */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

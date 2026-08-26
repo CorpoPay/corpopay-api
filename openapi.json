@@ -2481,6 +2481,177 @@
           }
         },
         "required": ["balanced", "balances", "entries"]
+      },
+      "FeeSchedule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "feeType": {
+            "type": "string"
+          },
+          "flatCents": {
+            "type": "integer",
+            "nullable": true
+          },
+          "percentageBps": {
+            "type": "integer",
+            "nullable": true
+          },
+          "perMethodCents": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "tiersCents": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "upToCents": {
+                  "type": "number"
+                },
+                "percentageBps": {
+                  "type": "number"
+                }
+              },
+              "required": ["upToCents", "percentageBps"]
+            }
+          },
+          "currency": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "name",
+          "feeType",
+          "flatCents",
+          "percentageBps",
+          "perMethodCents",
+          "tiersCents",
+          "currency",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SettlementPolicy": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "industry": {
+            "type": "string",
+            "nullable": true
+          },
+          "mcc": {
+            "type": "string",
+            "nullable": true
+          },
+          "availabilityMode": {
+            "type": "string"
+          },
+          "availabilityDelayDays": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reserveType": {
+            "type": "string"
+          },
+          "reservePercentageBps": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reserveHoldDays": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reserveFixedCents": {
+            "type": "integer",
+            "nullable": true
+          },
+          "payoutSchedule": {
+            "type": "string"
+          },
+          "payoutMinCents": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reversalFunding": {
+            "type": "string"
+          },
+          "allowNegative": {
+            "type": "boolean"
+          },
+          "splittingEnabled": {
+            "type": "boolean"
+          },
+          "feeScheduleId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "name",
+          "industry",
+          "mcc",
+          "availabilityMode",
+          "availabilityDelayDays",
+          "reserveType",
+          "reservePercentageBps",
+          "reserveHoldDays",
+          "reserveFixedCents",
+          "payoutSchedule",
+          "payoutMinCents",
+          "reversalFunding",
+          "allowNegative",
+          "splittingEnabled",
+          "feeScheduleId",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
       }
     },
     "parameters": {}
@@ -7051,6 +7222,320 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/fee-schedules": {
+      "get": {
+        "operationId": "listFeeSchedules",
+        "summary": "List fee schedules",
+        "tags": ["Fee Schedules"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeeSchedule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createFeeSchedule",
+        "summary": "Create a fee schedule",
+        "tags": ["Fee Schedules"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "feeType": {
+                    "type": "string",
+                    "enum": ["FLAT", "PERCENTAGE", "PER_METHOD", "TIERED"]
+                  },
+                  "flatCents": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "percentageBps": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "perMethodCents": {
+                    "type": "object",
+                    "nullable": true,
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "tiersCents": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "upToCents": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "percentageBps": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": ["upToCents", "percentageBps"]
+                    }
+                  },
+                  "currency": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 3,
+                    "maxLength": 3
+                  }
+                },
+                "required": ["feeType"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeSchedule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fee-schedules/active": {
+      "get": {
+        "operationId": "getActiveFeeSchedule",
+        "summary": "Get the active fee schedule",
+        "tags": ["Fee Schedules"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeSchedule"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active fee schedule"
+          }
+        }
+      }
+    },
+    "/settlement-policies": {
+      "get": {
+        "operationId": "listSettlementPolicies",
+        "summary": "List settlement policies",
+        "tags": ["Settlement Policies"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettlementPolicy"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSettlementPolicy",
+        "summary": "Create a settlement policy",
+        "tags": ["Settlement Policies"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "industry": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "mcc": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 8
+                  },
+                  "availabilityMode": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["IMMEDIATE", "DELAY", "ON_FULFILLMENT", "ON_COLLECTION"]
+                  },
+                  "availabilityDelayDays": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "reserveType": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["NONE", "FIXED", "ROLLING"]
+                  },
+                  "reservePercentageBps": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "reserveHoldDays": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "reserveFixedCents": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "payoutSchedule": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      "MANUAL",
+                      "AUTO_DAILY",
+                      "AUTO_WEEKLY",
+                      "AUTO_MONTHLY",
+                      "THRESHOLD",
+                      "INSTANT"
+                    ]
+                  },
+                  "payoutMinCents": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "reversalFunding": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      "NET_FROM_AVAILABLE",
+                      "DEBIT_RESERVE",
+                      "INVOICE_TENANT",
+                      "ALLOW_NEGATIVE"
+                    ]
+                  },
+                  "allowNegative": {
+                    "type": "boolean",
+                    "nullable": true
+                  },
+                  "splittingEnabled": {
+                    "type": "boolean",
+                    "nullable": true
+                  },
+                  "feeScheduleId": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementPolicy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settlement-policies/active": {
+      "get": {
+        "operationId": "getActiveSettlementPolicy",
+        "summary": "Get the active settlement policy",
+        "tags": ["Settlement Policies"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementPolicy"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active settlement policy"
           }
         }
       }
