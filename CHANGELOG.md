@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.3.1...corpopay-api-v0.4.0) (2026-08-26)
+
+
+### Features
+
+* **ledger:** add PayFac double-entry settlement ledger core ([e6a8cb1](https://github.com/CorpoPay/corpopay-api/commit/e6a8cb181b1e1a37d51756ed1f3c1301e322da5f))
+
 ## [0.3.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.3.0...corpopay-api-v0.3.1) (2026-08-26)
 
 
