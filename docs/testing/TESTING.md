@@ -44,6 +44,31 @@ npm run db:reset:demo   # truncate demo tenant + re-seed
 
 ---
 
+## Sandbox seed (multi-tenant)
+
+`prisma/seed-sandbox.ts` builds a richer **multi-tenant** dataset for local dev
+and end-to-end tests. It reuses the `demo` graph and adds two realistic tenants —
+`otoparking` (parking) and `jabadoor` (retail) — each exercising the full
+lifecycle (users, providers, links, intents, refunds, subscriptions, installment
+plans, API keys, webhook events).
+
+| File | Purpose |
+|---|---|
+| `prisma/seed-sandbox.ts` | Idempotent multi-tenant seeder (demo + otoparking + jabadoor). |
+| `prisma/reset-sandbox.ts` | FK-safe truncate of all sandbox tenants + re-seed. |
+
+```bash
+npm run db:seed:sandbox   # demo + otoparking + jabadoor
+npm run db:reset:sandbox  # truncate all sandbox tenants + re-seed
+```
+
+`docker compose up` runs both `prisma/seed.ts` (master: internal admin, provider
+health, Acme sample) and `prisma/seed-sandbox.ts`, so the local Postgres is fully
+seeded. All sandbox credentials are `demo-*` / `<slug>-*` placeholders — never
+real PSP keys.
+
+---
+
 ## Test pyramid
 
 | Layer | Scope | Location | Fast? |
