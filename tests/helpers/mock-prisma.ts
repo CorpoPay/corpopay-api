@@ -69,6 +69,8 @@ export function buildMockPrisma(): MockPrisma {
       return arg;
     }),
     $disconnect: vi.fn(),
+    $executeRaw: vi.fn(async () => 0),
+    $queryRaw: vi.fn(async () => []),
   };
   prisma.$extends = vi.fn(() => prisma);
   return prisma;

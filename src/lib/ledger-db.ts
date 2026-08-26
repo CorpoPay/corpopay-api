@@ -94,6 +94,11 @@ export async function postEntry(
   const postingId = randomUUID();
 
   const write = async (client: Prisma.TransactionClient): Promise<[PostedEntry, PostedEntry]> => {
+    // Serialize money movement for this tenant so the balanceAfter snapshot is
+    // computed against a stable balance (prevents a lost update on the audit
+    // field under concurrent postings). Transaction-scoped; released on commit.
+    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`;
+
     const debitAfter = centimes(
       (await accountBalanceCents(client, tenantId, p.debit.account)) + delta(p.debit),
     );
