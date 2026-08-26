@@ -31,5 +31,8 @@
       "groupName": "major dependencies",
       "groupSlug": "major-deps"
     }
-  ]
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": false
+  }
 }
