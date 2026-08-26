@@ -91,22 +91,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Prepare base spec
+      - name: Resolve base tag
         id: base
         run: |
           BASE_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
           if [ -z "$BASE_TAG" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            git show "$BASE_TAG:openapi.json" > /tmp/openapi.base.json
             echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "tag=$BASE_TAG" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check API contract for breaking changes
         if: steps.base.outputs.skip != 'true'
         uses: oasdiff/oasdiff-action/breaking@v0
         with:
-          base: /tmp/openapi.base.json
+          base: "${{ steps.base.outputs.tag }}:openapi.json"
           revision: openapi.json
           fail-on: ERR
 
