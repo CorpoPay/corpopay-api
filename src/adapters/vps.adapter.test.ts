@@ -10,7 +10,7 @@
  * No network calls, no DB, no Prisma — pure unit tests.
  */
 import crypto from "crypto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VpsCredentials } from "./types";
 import { VpsAdapter } from "./vps.adapter";
 
@@ -431,5 +431,67 @@ describe("encrypt / decrypt roundtrip", async () => {
     const { encrypt } = await import("../lib/encryption");
     expect(() => encrypt("test")).toThrow("ENCRYPTION_KEY environment variable is not set");
     process.env.ENCRYPTION_KEY = originalKey ?? "a".repeat(64);
+  });
+});
+
+// ─── queryTransactionStatus ────────────────────────────────────────────────────
+
+describe("VpsAdapter.queryTransactionStatus", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("maps 404 entity_not_found_error to REQUIRES_ACTION (charge not yet created)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        ({
+          ok: false,
+          status: 404,
+          json: async () => ({
+            errorCode: "entity_not_found_error",
+            message: "Cannot find charge with ID: x",
+          }),
+        }) as unknown as typeof fetch,
+    );
+
+    const result = await makeAdapter().queryTransactionStatus("some-charge-id");
+    expect(result.status).toBe("REQUIRES_ACTION");
+    expect(result.rawResponse).toEqual({
+      errorCode: "entity_not_found_error",
+      message: "Cannot find charge with ID: x",
+    });
+  });
+
+  it("still throws on other non-200 errors (e.g. 401)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        ({
+          ok: false,
+          status: 401,
+          json: async () => ({ message: "Unauthorized" }),
+        }) as unknown as typeof fetch,
+    );
+
+    await expect(makeAdapter().queryTransactionStatus("some-charge-id")).rejects.toThrow(
+      /VPS GET HTTP 401/,
+    );
+  });
+
+  it("maps a CHARGED status to SUCCEEDED and returns the transaction id", async () => {
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({ status: "CHARGED", id: "charge-1" }),
+        }) as unknown as typeof fetch,
+    );
+
+    const result = await makeAdapter().queryTransactionStatus("charge-1");
+    expect(result.status).toBe("SUCCEEDED");
+    expect(result.providerTransactionId).toBe("charge-1");
   });
 });

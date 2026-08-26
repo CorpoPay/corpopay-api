@@ -294,6 +294,16 @@ export class VpsAdapter implements ProviderAdapter {
     const raw = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
     if (!response.ok) {
+      // 404 "entity_not_found_error" means the charge doesn't exist yet — the
+      // customer hasn't submitted the paywall form. That's a normal "still
+      // pending" state, not an error: return a non-terminal status so pollers
+      // keep polling (mirrors Stripe's "PI not yet created → REQUIRES_ACTION").
+      if (response.status === 404 && raw["errorCode"] === "entity_not_found_error") {
+        return {
+          status: "REQUIRES_ACTION",
+          rawResponse: raw,
+        };
+      }
       throw new Error(`VPS GET HTTP ${response.status}: ${JSON.stringify(raw)}`);
     }
 
