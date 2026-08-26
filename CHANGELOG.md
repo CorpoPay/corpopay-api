@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.7.0...corpopay-api-v0.8.0) (2026-08-26)
+
+
+### Features
+
+* **settlement:** add reversals + clawback engine (Phase 4) ([5048cf8](https://github.com/CorpoPay/corpopay-api/commit/5048cf8c10b3ca12d81aaf3f3a81fa7214ec1ec9))
+
 ## [0.7.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.6.0...corpopay-api-v0.7.0) (2026-08-26)
 
 
