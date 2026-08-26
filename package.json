@@ -1,9 +1,9 @@
 {
   "name": "corpopay-api",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "CorpoPay backend API \u2013 Express + Prisma + serverless-http",
+  "description": "CorpoPay backend API – Express + Prisma + serverless-http",
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
     "start": "tsx src/server.ts",

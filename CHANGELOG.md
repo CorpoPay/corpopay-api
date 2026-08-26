@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.2.0...corpopay-api-v0.3.0) (2026-08-26)
+
+
+### Features
+
+* **webhooks:** sign outbound merchant webhooks with per-tenant HMAC secret ([370be20](https://github.com/CorpoPay/corpopay-api/commit/370be20fdebbeac3c925f14943d55db3875e3def))
+
+
+### Bug Fixes
+
+* **ci:** set GH_REPO for release-please auto-merge and switch contract-diff to oasdiff ([4579538](https://github.com/CorpoPay/corpopay-api/commit/4579538dcf524243f621cd0da3782552803ceb69))
+
 ## [0.2.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.1.0...corpopay-api-v0.2.0) (2026-08-26)
 
 
