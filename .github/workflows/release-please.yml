@@ -23,4 +23,4 @@ jobs:
         if: ${{ steps.release.outputs.prs_created == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge ${{ fromJson(steps.release.outputs.pr).number }} --auto --squash
+        run: gh pr merge ${{ fromJson(steps.release.outputs.pr).number }} --auto --merge
