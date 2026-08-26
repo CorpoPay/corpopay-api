@@ -31,10 +31,7 @@
             "example": "2026-08-22T00:00:00.000Z"
           }
         },
-        "required": [
-          "status",
-          "time"
-        ]
+        "required": ["status", "time"]
       },
       "Tenant": {
         "type": "object",
@@ -52,12 +49,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "slug",
-          "environment"
-        ]
+        "required": ["id", "name", "slug", "environment"]
       },
       "User": {
         "type": "object",
@@ -72,11 +64,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "email",
-          "role"
-        ]
+        "required": ["id", "email", "role"]
       },
       "LoginRequest": {
         "type": "object",
@@ -89,10 +77,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "email",
-          "password"
-        ]
+        "required": ["email", "password"]
       },
       "RegisterRequest": {
         "type": "object",
@@ -111,11 +96,7 @@
             "minLength": 8
           }
         },
-        "required": [
-          "businessName",
-          "email",
-          "password"
-        ]
+        "required": ["businessName", "email", "password"]
       },
       "AuthResponse": {
         "type": "object",
@@ -130,11 +111,7 @@
             "$ref": "#/components/schemas/User"
           }
         },
-        "required": [
-          "token",
-          "tenant",
-          "user"
-        ]
+        "required": ["token", "tenant", "user"]
       },
       "MeResponse": {
         "type": "object",
@@ -170,22 +147,10 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "name",
-              "slug",
-              "environment",
-              "status"
-            ]
+            "required": ["id", "name", "slug", "environment", "status"]
           }
         },
-        "required": [
-          "id",
-          "email",
-          "role",
-          "createdAt",
-          "tenant"
-        ]
+        "required": ["id", "email", "role", "createdAt", "tenant"]
       },
       "TenantProfile": {
         "type": "object",
@@ -249,13 +214,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "id",
-          "name",
-          "slug",
-          "notifyWebhookUrl",
-          "notifyEmail"
-        ]
+        "required": ["id", "name", "slug", "notifyWebhookUrl", "notifyEmail"]
       },
       "UserListItem": {
         "type": "object",
@@ -273,12 +232,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "email",
-          "role",
-          "createdAt"
-        ]
+        "required": ["id", "email", "role", "createdAt"]
       },
       "ProviderConfigListItem": {
         "type": "object",
@@ -337,12 +291,7 @@
             }
           }
         },
-        "required": [
-          "id",
-          "provider",
-          "status",
-          "warnings"
-        ]
+        "required": ["id", "provider", "status", "warnings"]
       },
       "ProviderTestResponse": {
         "type": "object",
@@ -358,11 +307,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "connected",
-          "status",
-          "error"
-        ]
+        "required": ["connected", "status", "error"]
       },
       "PaymentLinkCreateResponse": {
         "type": "object",
@@ -601,9 +546,7 @@
                 "type": "number"
               }
             },
-            "required": [
-              "paymentIntents"
-            ]
+            "required": ["paymentIntents"]
           }
         },
         "required": [
@@ -714,22 +657,14 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "received"
-        ]
+        "required": ["received"]
       },
       "CreateIntentRequest": {
         "type": "object",
         "properties": {
           "provider": {
             "type": "string",
-            "enum": [
-              "NAPS",
-              "VPS",
-              "STRIPE",
-              "PAYPAL",
-              "ADYEN"
-            ]
+            "enum": ["NAPS", "VPS", "STRIPE", "PAYPAL", "ADYEN"]
           },
           "amount": {
             "type": "integer",
@@ -797,19 +732,10 @@
           },
           "walletMode": {
             "type": "string",
-            "enum": [
-              "apple_pay",
-              "google_pay"
-            ]
+            "enum": ["apple_pay", "google_pay"]
           }
         },
-        "required": [
-          "provider",
-          "amount",
-          "reference",
-          "description",
-          "returnUrl"
-        ]
+        "required": ["provider", "amount", "reference", "description", "returnUrl"]
       },
       "CreateIntentResponse": {
         "type": "object",
@@ -845,10 +771,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "clientSecret",
-              "publishableKey"
-            ]
+            "required": ["clientSecret", "publishableKey"]
           },
           "idempotent": {
             "type": "boolean"
@@ -874,10 +797,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "status",
-          "providerRef"
-        ]
+        "required": ["status", "providerRef"]
       },
       "IntentActionResult": {
         "type": "object",
@@ -889,10 +809,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "intentId",
-          "status"
-        ]
+        "required": ["intentId", "status"]
       },
       "PayRequest": {
         "type": "object",
@@ -908,9 +825,7 @@
               },
               {
                 "type": "string",
-                "enum": [
-                  ""
-                ]
+                "enum": [""]
               }
             ]
           },
@@ -947,11 +862,7 @@
             }
           }
         },
-        "required": [
-          "intentId",
-          "redirectUrl",
-          "providerData"
-        ]
+        "required": ["intentId", "redirectUrl", "providerData"]
       },
       "PublicRelayResponse": {
         "type": "object",
@@ -984,10 +895,7 @@
             }
           }
         },
-        "required": [
-          "status",
-          "providerData"
-        ]
+        "required": ["status", "providerData"]
       },
       "Transaction": {
         "type": "object",
@@ -1041,10 +949,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "title",
-              "slug"
-            ]
+            "required": ["title", "slug"]
           },
           "reference": {
             "type": "string",
@@ -1227,13 +1132,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id",
-                "provider",
-                "providerTransactionId",
-                "rawResponse",
-                "createdAt"
-              ]
+              "required": ["id", "provider", "providerTransactionId", "rawResponse", "createdAt"]
             }
           },
           "refunds": {
@@ -1354,11 +1253,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "type",
-                "timestamp",
-                "detail"
-              ]
+              "required": ["type", "timestamp", "detail"]
             }
           }
         },
@@ -1509,13 +1404,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id",
-                "provider",
-                "providerTransactionId",
-                "rawResponse",
-                "createdAt"
-              ]
+              "required": ["id", "provider", "providerTransactionId", "rawResponse", "createdAt"]
             }
           },
           "refunds": {
@@ -1543,12 +1432,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id",
-                "status",
-                "amount",
-                "createdAt"
-              ]
+              "required": ["id", "status", "amount", "createdAt"]
             }
           },
           "webhookEvents": {
@@ -1573,13 +1457,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id",
-                "signatureVerified",
-                "processed",
-                "mappedStatus",
-                "createdAt"
-              ]
+              "required": ["id", "signatureVerified", "processed", "mappedStatus", "createdAt"]
             }
           }
         },
@@ -1629,13 +1507,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "id",
-          "status",
-          "amount",
-          "currency",
-          "providerRefundRef"
-        ]
+        "required": ["id", "status", "amount", "currency", "providerRefundRef"]
       },
       "DashboardSummary": {
         "type": "object",
@@ -1653,11 +1525,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "count",
-              "total",
-              "currency"
-            ]
+            "required": ["count", "total", "currency"]
           },
           "thisWeek": {
             "type": "object",
@@ -1672,21 +1540,13 @@
                 "type": "string"
               }
             },
-            "required": [
-              "count",
-              "total",
-              "currency"
-            ]
+            "required": ["count", "total", "currency"]
           },
           "payoutStatus": {
             "type": "string"
           }
         },
-        "required": [
-          "today",
-          "thisWeek",
-          "payoutStatus"
-        ]
+        "required": ["today", "thisWeek", "payoutStatus"]
       },
       "ApiKeyListItem": {
         "type": "object",
@@ -1708,13 +1568,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "keyPrefix",
-          "lastUsedAt",
-          "createdAt"
-        ]
+        "required": ["id", "name", "keyPrefix", "lastUsedAt", "createdAt"]
       },
       "ApiKeyCreateResponse": {
         "type": "object",
@@ -1735,13 +1589,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "keyPrefix",
-          "rawKey",
-          "createdAt"
-        ]
+        "required": ["id", "name", "keyPrefix", "rawKey", "createdAt"]
       },
       "BillingEvent": {
         "type": "object",
@@ -2107,11 +1955,7 @@
             ]
           }
         },
-        "required": [
-          "name",
-          "durationMonths",
-          "annualInterestRate"
-        ]
+        "required": ["name", "durationMonths", "annualInterestRate"]
       },
       "InstallmentCharge": {
         "type": "object",
@@ -2341,10 +2185,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "provider",
-                "status"
-              ]
+              "required": ["provider", "status"]
             }
           },
           "lastTransactionAt": {
@@ -2414,12 +2255,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id",
-                "email",
-                "role",
-                "createdAt"
-              ]
+              "required": ["id", "email", "role", "createdAt"]
             }
           },
           "providerConfigs": {
@@ -2443,13 +2279,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id",
-                "provider",
-                "status",
-                "environment",
-                "updatedAt"
-              ]
+              "required": ["id", "provider", "status", "environment", "updatedAt"]
             }
           }
         },
@@ -2547,13 +2377,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "id",
-          "provider",
-          "status",
-          "notes",
-          "updatedAt"
-        ]
+        "required": ["id", "provider", "status", "notes", "updatedAt"]
       },
       "AdminVpsTenant": {
         "type": "object",
@@ -2565,10 +2389,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name"
-        ]
+        "required": ["id", "name"]
       }
     },
     "parameters": {}
@@ -2578,9 +2399,7 @@
       "get": {
         "operationId": "healthCheck",
         "summary": "Health check",
-        "tags": [
-          "Public"
-        ],
+        "tags": ["Public"],
         "responses": {
           "200": {
             "description": "OK",
@@ -2599,9 +2418,7 @@
       "get": {
         "operationId": "publicCheckout",
         "summary": "Fetch a public checkout payment link",
-        "tags": [
-          "Public"
-        ],
+        "tags": ["Public"],
         "parameters": [
           {
             "schema": {
@@ -2636,9 +2453,7 @@
       "post": {
         "operationId": "publicPay",
         "summary": "Create a payment intent from a payment link",
-        "tags": [
-          "Public"
-        ],
+        "tags": ["Public"],
         "parameters": [
           {
             "schema": {
@@ -2688,9 +2503,7 @@
       "get": {
         "operationId": "publicInstallmentPlans",
         "summary": "List active installment plans for a checkout link",
-        "tags": [
-          "Public"
-        ],
+        "tags": ["Public"],
         "parameters": [
           {
             "schema": {
@@ -2771,11 +2584,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "currency",
-                    "principal",
-                    "plans"
-                  ]
+                  "required": ["currency", "principal", "plans"]
                 }
               }
             }
@@ -2793,9 +2602,7 @@
       "get": {
         "operationId": "publicRelay",
         "summary": "Fetch persisted provider data for the hosted relay page",
-        "tags": [
-          "Public"
-        ],
+        "tags": ["Public"],
         "parameters": [
           {
             "schema": {
@@ -2827,9 +2634,7 @@
       "post": {
         "operationId": "napsWebhook",
         "summary": "NAPS provider webhook",
-        "tags": [
-          "Webhooks"
-        ],
+        "tags": ["Webhooks"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2866,9 +2671,7 @@
       "post": {
         "operationId": "vpsWebhook",
         "summary": "VPS provider webhook",
-        "tags": [
-          "Webhooks"
-        ],
+        "tags": ["Webhooks"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2905,9 +2708,7 @@
       "post": {
         "operationId": "stripeWebhook",
         "summary": "STRIPE provider webhook",
-        "tags": [
-          "Webhooks"
-        ],
+        "tags": ["Webhooks"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2944,9 +2745,7 @@
       "post": {
         "operationId": "login",
         "summary": "Login and get a JWT",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2977,9 +2776,7 @@
       "post": {
         "operationId": "register",
         "summary": "Register a new merchant (creates a tenant)",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3010,9 +2807,7 @@
       "get": {
         "operationId": "getMe",
         "summary": "Get the authenticated user",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []
@@ -3039,9 +2834,7 @@
       "post": {
         "operationId": "forgotPassword",
         "summary": "Request a password reset",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3053,9 +2846,7 @@
                     "format": "email"
                   }
                 },
-                "required": [
-                  "email"
-                ]
+                "required": ["email"]
               }
             }
           }
@@ -3072,9 +2863,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "message"
-                  ]
+                  "required": ["message"]
                 }
               }
             }
@@ -3086,9 +2875,7 @@
       "post": {
         "operationId": "resetPassword",
         "summary": "Reset password with a token",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3103,10 +2890,7 @@
                     "minLength": 8
                   }
                 },
-                "required": [
-                  "token",
-                  "password"
-                ]
+                "required": ["token", "password"]
               }
             }
           }
@@ -3123,9 +2907,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "message"
-                  ]
+                  "required": ["message"]
                 }
               }
             }
@@ -3137,9 +2919,7 @@
       "get": {
         "operationId": "getTenant",
         "summary": "Get the current tenant profile",
-        "tags": [
-          "Tenant"
-        ],
+        "tags": ["Tenant"],
         "security": [
           {
             "bearerAuth": []
@@ -3161,9 +2941,7 @@
       "patch": {
         "operationId": "updateTenant",
         "summary": "Update the current tenant",
-        "tags": [
-          "Tenant"
-        ],
+        "tags": ["Tenant"],
         "security": [
           {
             "bearerAuth": []
@@ -3189,6 +2967,9 @@
                     "type": "string",
                     "nullable": true,
                     "format": "email"
+                  },
+                  "rotateWebhookSigningSecret": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -3213,9 +2994,7 @@
       "get": {
         "operationId": "listUsers",
         "summary": "List tenant users",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -3242,9 +3021,7 @@
       "post": {
         "operationId": "inviteUser",
         "summary": "Invite a user to the tenant",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -3262,21 +3039,14 @@
                   },
                   "role": {
                     "type": "string",
-                    "enum": [
-                      "STAFF",
-                      "OWNER"
-                    ]
+                    "enum": ["STAFF", "OWNER"]
                   },
                   "password": {
                     "type": "string",
                     "minLength": 8
                   }
                 },
-                "required": [
-                  "email",
-                  "role",
-                  "password"
-                ]
+                "required": ["email", "role", "password"]
               }
             }
           }
@@ -3302,9 +3072,7 @@
       "patch": {
         "operationId": "changeUserRole",
         "summary": "Change a user's role",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -3328,15 +3096,10 @@
                 "properties": {
                   "role": {
                     "type": "string",
-                    "enum": [
-                      "STAFF",
-                      "OWNER"
-                    ]
+                    "enum": ["STAFF", "OWNER"]
                   }
                 },
-                "required": [
-                  "role"
-                ]
+                "required": ["role"]
               }
             }
           }
@@ -3362,9 +3125,7 @@
       "delete": {
         "operationId": "deleteUser",
         "summary": "Delete a user",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -3394,9 +3155,7 @@
       "get": {
         "operationId": "listProviderConfigs",
         "summary": "List the tenant's provider configs",
-        "tags": [
-          "Provider Configs"
-        ],
+        "tags": ["Provider Configs"],
         "security": [
           {
             "bearerAuth": []
@@ -3421,9 +3180,7 @@
       "post": {
         "operationId": "upsertProviderConfig",
         "summary": "Create or update a provider config",
-        "tags": [
-          "Provider Configs"
-        ],
+        "tags": ["Provider Configs"],
         "security": [
           {
             "bearerAuth": []
@@ -3437,11 +3194,7 @@
                 "properties": {
                   "provider": {
                     "type": "string",
-                    "enum": [
-                      "NAPS",
-                      "VPS",
-                      "STRIPE"
-                    ]
+                    "enum": ["NAPS", "VPS", "STRIPE"]
                   },
                   "environment": {
                     "type": "string"
@@ -3453,9 +3206,7 @@
                     }
                   }
                 },
-                "required": [
-                  "provider"
-                ]
+                "required": ["provider"]
               }
             }
           }
@@ -3481,9 +3232,7 @@
       "patch": {
         "operationId": "setProviderConfigStatus",
         "summary": "Enable or disable a provider config",
-        "tags": [
-          "Provider Configs"
-        ],
+        "tags": ["Provider Configs"],
         "security": [
           {
             "bearerAuth": []
@@ -3509,9 +3258,7 @@
                     "type": "boolean"
                   }
                 },
-                "required": [
-                  "enabled"
-                ]
+                "required": ["enabled"]
               }
             }
           }
@@ -3534,11 +3281,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "provider",
-                    "status"
-                  ]
+                  "required": ["id", "provider", "status"]
                 }
               }
             }
@@ -3556,9 +3299,7 @@
       "post": {
         "operationId": "testProviderConfig",
         "summary": "Test a provider config connection",
-        "tags": [
-          "Provider Configs"
-        ],
+        "tags": ["Provider Configs"],
         "security": [
           {
             "bearerAuth": []
@@ -3598,9 +3339,7 @@
       "delete": {
         "operationId": "deleteProviderConfig",
         "summary": "Delete a provider config",
-        "tags": [
-          "Provider Configs"
-        ],
+        "tags": ["Provider Configs"],
         "security": [
           {
             "bearerAuth": []
@@ -3630,9 +3369,7 @@
       "post": {
         "operationId": "createPaymentLink",
         "summary": "Create a payment link",
-        "tags": [
-          "Payment Links"
-        ],
+        "tags": ["Payment Links"],
         "security": [
           {
             "bearerAuth": []
@@ -3666,11 +3403,7 @@
                   },
                   "provider": {
                     "type": "string",
-                    "enum": [
-                      "NAPS",
-                      "VPS",
-                      "STRIPE"
-                    ]
+                    "enum": ["NAPS", "VPS", "STRIPE"]
                   },
                   "customerName": {
                     "type": "string",
@@ -3684,9 +3417,7 @@
                       },
                       {
                         "type": "string",
-                        "enum": [
-                          ""
-                        ]
+                        "enum": [""]
                       }
                     ]
                   },
@@ -3710,14 +3441,7 @@
                   },
                   "billingInterval": {
                     "type": "string",
-                    "enum": [
-                      "DAILY",
-                      "WEEKLY",
-                      "MONTHLY",
-                      "QUARTERLY",
-                      "ANNUAL",
-                      "CUSTOM"
-                    ]
+                    "enum": ["DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "ANNUAL", "CUSTOM"]
                   },
                   "intervalValue": {
                     "type": "integer",
@@ -3736,12 +3460,7 @@
                     "default": false
                   }
                 },
-                "required": [
-                  "amount",
-                  "description",
-                  "reference",
-                  "provider"
-                ]
+                "required": ["amount", "description", "reference", "provider"]
               }
             }
           }
@@ -3765,9 +3484,7 @@
       "get": {
         "operationId": "listPaymentLinks",
         "summary": "List payment links",
-        "tags": [
-          "Payment Links"
-        ],
+        "tags": ["Payment Links"],
         "security": [
           {
             "bearerAuth": []
@@ -3831,12 +3548,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "data",
-                    "total",
-                    "page",
-                    "limit"
-                  ]
+                  "required": ["data", "total", "page", "limit"]
                 }
               }
             }
@@ -3848,9 +3560,7 @@
       "get": {
         "operationId": "getPaymentLink",
         "summary": "Get a payment link",
-        "tags": [
-          "Payment Links"
-        ],
+        "tags": ["Payment Links"],
         "security": [
           {
             "bearerAuth": []
@@ -3887,9 +3597,7 @@
       "patch": {
         "operationId": "cancelPaymentLink",
         "summary": "Cancel a payment link",
-        "tags": [
-          "Payment Links"
-        ],
+        "tags": ["Payment Links"],
         "security": [
           {
             "bearerAuth": []
@@ -3920,10 +3628,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "status"
-                  ]
+                  "required": ["id", "status"]
                 }
               }
             }
@@ -3941,9 +3646,7 @@
       "post": {
         "operationId": "createPaymentIntent",
         "summary": "Create a direct payment intent",
-        "tags": [
-          "Payment Intents"
-        ],
+        "tags": ["Payment Intents"],
         "security": [
           {
             "bearerAuth": []
@@ -3989,9 +3692,7 @@
       "get": {
         "operationId": "getPaymentIntent",
         "summary": "Get payment intent detail",
-        "tags": [
-          "Payment Intents"
-        ],
+        "tags": ["Payment Intents"],
         "security": [
           {
             "bearerAuth": []
@@ -4028,9 +3729,7 @@
       "get": {
         "operationId": "getPaymentIntentStatus",
         "summary": "Poll latest payment intent status from the provider",
-        "tags": [
-          "Payment Intents"
-        ],
+        "tags": ["Payment Intents"],
         "security": [
           {
             "bearerAuth": []
@@ -4067,9 +3766,7 @@
       "post": {
         "operationId": "capturePaymentIntent",
         "summary": "Capture a pre-authorised payment",
-        "tags": [
-          "Payment Intents"
-        ],
+        "tags": ["Payment Intents"],
         "security": [
           {
             "bearerAuth": []
@@ -4112,9 +3809,7 @@
       "post": {
         "operationId": "cancelPaymentIntent",
         "summary": "Void/cancel a pre-authorised payment",
-        "tags": [
-          "Payment Intents"
-        ],
+        "tags": ["Payment Intents"],
         "security": [
           {
             "bearerAuth": []
@@ -4157,9 +3852,7 @@
       "get": {
         "operationId": "listTransactions",
         "summary": "List transactions for the current tenant",
-        "tags": [
-          "Transactions"
-        ],
+        "tags": ["Transactions"],
         "security": [
           {
             "bearerAuth": []
@@ -4255,12 +3948,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "data",
-                    "total",
-                    "page",
-                    "limit"
-                  ]
+                  "required": ["data", "total", "page", "limit"]
                 }
               }
             }
@@ -4272,9 +3960,7 @@
       "get": {
         "operationId": "getTransaction",
         "summary": "Get transaction detail",
-        "tags": [
-          "Transactions"
-        ],
+        "tags": ["Transactions"],
         "security": [
           {
             "bearerAuth": []
@@ -4311,9 +3997,7 @@
       "post": {
         "operationId": "refundTransaction",
         "summary": "Refund a transaction",
-        "tags": [
-          "Refunds"
-        ],
+        "tags": ["Refunds"],
         "security": [
           {
             "bearerAuth": []
@@ -4356,9 +4040,7 @@
       "get": {
         "operationId": "getDashboardSummary",
         "summary": "Get merchant sales summary",
-        "tags": [
-          "Dashboard"
-        ],
+        "tags": ["Dashboard"],
         "security": [
           {
             "bearerAuth": []
@@ -4382,9 +4064,7 @@
       "get": {
         "operationId": "exportTransactionsCsv",
         "summary": "Export transactions as CSV",
-        "tags": [
-          "Exports"
-        ],
+        "tags": ["Exports"],
         "security": [
           {
             "bearerAuth": []
@@ -4450,9 +4130,7 @@
       "get": {
         "operationId": "listApiKeys",
         "summary": "List API keys",
-        "tags": [
-          "API Keys"
-        ],
+        "tags": ["API Keys"],
         "security": [
           {
             "bearerAuth": []
@@ -4477,9 +4155,7 @@
       "post": {
         "operationId": "createApiKey",
         "summary": "Create an API key",
-        "tags": [
-          "API Keys"
-        ],
+        "tags": ["API Keys"],
         "security": [
           {
             "bearerAuth": []
@@ -4497,9 +4173,7 @@
                     "maxLength": 100
                   }
                 },
-                "required": [
-                  "name"
-                ]
+                "required": ["name"]
               }
             }
           }
@@ -4522,9 +4196,7 @@
       "delete": {
         "operationId": "deleteApiKey",
         "summary": "Revoke an API key",
-        "tags": [
-          "API Keys"
-        ],
+        "tags": ["API Keys"],
         "security": [
           {
             "bearerAuth": []
@@ -4554,9 +4226,7 @@
       "get": {
         "operationId": "listSubscriptions",
         "summary": "List subscriptions",
-        "tags": [
-          "Subscriptions"
-        ],
+        "tags": ["Subscriptions"],
         "security": [
           {
             "bearerAuth": []
@@ -4620,12 +4290,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "data",
-                    "total",
-                    "page",
-                    "limit"
-                  ]
+                  "required": ["data", "total", "page", "limit"]
                 }
               }
             }
@@ -4637,9 +4302,7 @@
       "get": {
         "operationId": "getSubscription",
         "summary": "Get subscription detail",
-        "tags": [
-          "Subscriptions"
-        ],
+        "tags": ["Subscriptions"],
         "security": [
           {
             "bearerAuth": []
@@ -4674,9 +4337,7 @@
       "delete": {
         "operationId": "cancelSubscription",
         "summary": "Cancel a subscription",
-        "tags": [
-          "Subscriptions"
-        ],
+        "tags": ["Subscriptions"],
         "security": [
           {
             "bearerAuth": []
@@ -4707,10 +4368,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "status"
-                  ]
+                  "required": ["id", "status"]
                 }
               }
             }
@@ -4728,9 +4386,7 @@
       "post": {
         "operationId": "pauseSubscription",
         "summary": "Pause a subscription",
-        "tags": [
-          "Subscriptions"
-        ],
+        "tags": ["Subscriptions"],
         "security": [
           {
             "bearerAuth": []
@@ -4761,10 +4417,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "status"
-                  ]
+                  "required": ["id", "status"]
                 }
               }
             }
@@ -4782,9 +4435,7 @@
       "post": {
         "operationId": "resumeSubscription",
         "summary": "Resume a paused subscription",
-        "tags": [
-          "Subscriptions"
-        ],
+        "tags": ["Subscriptions"],
         "security": [
           {
             "bearerAuth": []
@@ -4815,10 +4466,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "status"
-                  ]
+                  "required": ["id", "status"]
                 }
               }
             }
@@ -4836,9 +4484,7 @@
       "get": {
         "operationId": "listSubscriptionBillingEvents",
         "summary": "List billing events for a subscription",
-        "tags": [
-          "Subscriptions"
-        ],
+        "tags": ["Subscriptions"],
         "security": [
           {
             "bearerAuth": []
@@ -4894,12 +4540,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "data",
-                    "total",
-                    "page",
-                    "limit"
-                  ]
+                  "required": ["data", "total", "page", "limit"]
                 }
               }
             }
@@ -4914,9 +4555,7 @@
       "get": {
         "operationId": "listInstallmentPlans",
         "summary": "List installment plans",
-        "tags": [
-          "Installment Plans"
-        ],
+        "tags": ["Installment Plans"],
         "security": [
           {
             "bearerAuth": []
@@ -4937,9 +4576,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -4949,9 +4586,7 @@
       "post": {
         "operationId": "createInstallmentPlan",
         "summary": "Create an installment plan",
-        "tags": [
-          "Installment Plans"
-        ],
+        "tags": ["Installment Plans"],
         "security": [
           {
             "bearerAuth": []
@@ -4993,11 +4628,7 @@
                     "default": true
                   }
                 },
-                "required": [
-                  "name",
-                  "durationMonths",
-                  "annualInterestRate"
-                ]
+                "required": ["name", "durationMonths", "annualInterestRate"]
               }
             }
           }
@@ -5020,9 +4651,7 @@
       "patch": {
         "operationId": "updateInstallmentPlan",
         "summary": "Update an installment plan",
-        "tags": [
-          "Installment Plans"
-        ],
+        "tags": ["Installment Plans"],
         "security": [
           {
             "bearerAuth": []
@@ -5097,9 +4726,7 @@
       "delete": {
         "operationId": "deleteInstallmentPlan",
         "summary": "Delete an installment plan",
-        "tags": [
-          "Installment Plans"
-        ],
+        "tags": ["Installment Plans"],
         "security": [
           {
             "bearerAuth": []
@@ -5127,9 +4754,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "deleted"
-                  ]
+                  "required": ["deleted"]
                 }
               }
             }
@@ -5147,9 +4772,7 @@
       "get": {
         "operationId": "listInstallmentAgreements",
         "summary": "List installment agreements",
-        "tags": [
-          "Installment Agreements"
-        ],
+        "tags": ["Installment Agreements"],
         "security": [
           {
             "bearerAuth": []
@@ -5213,12 +4836,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "data",
-                    "total",
-                    "page",
-                    "limit"
-                  ]
+                  "required": ["data", "total", "page", "limit"]
                 }
               }
             }
@@ -5230,9 +4848,7 @@
       "get": {
         "operationId": "getInstallmentAgreement",
         "summary": "Get installment agreement detail",
-        "tags": [
-          "Installment Agreements"
-        ],
+        "tags": ["Installment Agreements"],
         "security": [
           {
             "bearerAuth": []
@@ -5269,9 +4885,7 @@
       "post": {
         "operationId": "cancelInstallmentAgreement",
         "summary": "Cancel an installment agreement",
-        "tags": [
-          "Installment Agreements"
-        ],
+        "tags": ["Installment Agreements"],
         "security": [
           {
             "bearerAuth": []
@@ -5302,10 +4916,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "status"
-                  ]
+                  "required": ["id", "status"]
                 }
               }
             }
@@ -5323,9 +4934,7 @@
       "get": {
         "operationId": "adminSearchPayments",
         "summary": "Search payments across identifiers",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "security": [
           {
             "bearerAuth": []
@@ -5488,12 +5097,7 @@
                                 "type": "string"
                               }
                             },
-                            "required": [
-                              "id",
-                              "provider",
-                              "providerTransactionId",
-                              "createdAt"
-                            ]
+                            "required": ["id", "provider", "providerTransactionId", "createdAt"]
                           }
                         },
                         "refunds": {
@@ -5603,10 +5207,7 @@
                       ]
                     }
                   },
-                  "required": [
-                    "found",
-                    "intent"
-                  ]
+                  "required": ["found", "intent"]
                 }
               }
             }
@@ -5621,9 +5222,7 @@
       "get": {
         "operationId": "adminListWebhooks",
         "summary": "List webhook events",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "security": [
           {
             "bearerAuth": []
@@ -5719,12 +5318,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "data",
-                    "total",
-                    "page",
-                    "limit"
-                  ]
+                  "required": ["data", "total", "page", "limit"]
                 }
               }
             }
@@ -5736,9 +5330,7 @@
       "get": {
         "operationId": "adminGetProviderHealth",
         "summary": "Get provider health status",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "security": [
           {
             "bearerAuth": []
@@ -5765,9 +5357,7 @@
       "put": {
         "operationId": "adminSetProviderHealth",
         "summary": "Set provider health status",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "security": [
           {
             "bearerAuth": []
@@ -5791,20 +5381,14 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "NORMAL",
-                      "DEGRADED",
-                      "DOWN"
-                    ]
+                    "enum": ["NORMAL", "DEGRADED", "DOWN"]
                   },
                   "notes": {
                     "type": "string",
                     "maxLength": 500
                   }
                 },
-                "required": [
-                  "status"
-                ]
+                "required": ["status"]
               }
             }
           }
@@ -5827,9 +5411,7 @@
       "get": {
         "operationId": "adminListVpsTenants",
         "summary": "List tenants with a connected VPS config",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "security": [
           {
             "bearerAuth": []
@@ -5856,9 +5438,7 @@
       "post": {
         "operationId": "adminRecurringTest",
         "summary": "Run recurring-billing readiness checks",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "security": [
           {
             "bearerAuth": []
@@ -5980,12 +5560,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "testedAt",
-                    "overallStatus",
-                    "totalVpsConfigs",
-                    "tenants"
-                  ]
+                  "required": ["testedAt", "overallStatus", "totalVpsConfigs", "tenants"]
                 }
               }
             }
@@ -5997,9 +5572,7 @@
       "get": {
         "operationId": "adminListTenants",
         "summary": "List tenants",
-        "tags": [
-          "Admin Tenants"
-        ],
+        "tags": ["Admin Tenants"],
         "security": [
           {
             "bearerAuth": []
@@ -6055,12 +5628,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "data",
-                    "total",
-                    "page",
-                    "limit"
-                  ]
+                  "required": ["data", "total", "page", "limit"]
                 }
               }
             }
@@ -6072,9 +5640,7 @@
       "get": {
         "operationId": "adminGetTenant",
         "summary": "Get tenant detail",
-        "tags": [
-          "Admin Tenants"
-        ],
+        "tags": ["Admin Tenants"],
         "security": [
           {
             "bearerAuth": []
@@ -6111,9 +5677,7 @@
       "patch": {
         "operationId": "adminSetTenantStatus",
         "summary": "Enable or disable a tenant",
-        "tags": [
-          "Admin Tenants"
-        ],
+        "tags": ["Admin Tenants"],
         "security": [
           {
             "bearerAuth": []
@@ -6137,15 +5701,10 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "ACTIVE",
-                      "DISABLED"
-                    ]
+                    "enum": ["ACTIVE", "DISABLED"]
                   }
                 },
-                "required": [
-                  "status"
-                ]
+                "required": ["status"]
               }
             }
           }
@@ -6165,10 +5724,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "status"
-                  ]
+                  "required": ["id", "status"]
                 }
               }
             }
@@ -6180,9 +5736,7 @@
       "get": {
         "operationId": "adminGetTenantProviderConfigs",
         "summary": "List a tenant's provider configs (credentials masked)",
-        "tags": [
-          "Admin Provider Configs"
-        ],
+        "tags": ["Admin Provider Configs"],
         "security": [
           {
             "bearerAuth": []
@@ -6227,13 +5781,7 @@
                         }
                       }
                     },
-                    "required": [
-                      "id",
-                      "provider",
-                      "status",
-                      "environment",
-                      "credentials"
-                    ]
+                    "required": ["id", "provider", "status", "environment", "credentials"]
                   }
                 }
               }
@@ -6246,9 +5794,7 @@
       "post": {
         "operationId": "simulationStart",
         "summary": "Spin up a recurring-billing simulation",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6293,9 +5839,7 @@
                     "default": 120
                   }
                 },
-                "required": [
-                  "tenantId"
-                ]
+                "required": ["tenantId"]
               }
             }
           }
@@ -6330,19 +5874,10 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "delay1",
-                        "delay2",
-                        "delay3"
-                      ]
+                      "required": ["delay1", "delay2", "delay3"]
                     }
                   },
-                  "required": [
-                    "sessionId",
-                    "subscriptionId",
-                    "paymentIntentId",
-                    "retries"
-                  ]
+                  "required": ["sessionId", "subscriptionId", "paymentIntentId", "retries"]
                 }
               }
             }
@@ -6357,9 +5892,7 @@
       "get": {
         "operationId": "simulationStatus",
         "summary": "Poll simulation subscription state",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6399,12 +5932,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "sessionId",
-                    "subscription",
-                    "billingEvents",
-                    "done"
-                  ]
+                  "required": ["sessionId", "subscription", "billingEvents", "done"]
                 }
               }
             }
@@ -6419,9 +5947,7 @@
       "delete": {
         "operationId": "simulationCleanup",
         "summary": "Wipe records created by a simulation session",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6458,16 +5984,10 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "subscriptions",
-                        "billingEvents",
-                        "paymentIntents"
-                      ]
+                      "required": ["subscriptions", "billingEvents", "paymentIntents"]
                     }
                   },
-                  "required": [
-                    "deleted"
-                  ]
+                  "required": ["deleted"]
                 }
               }
             }
@@ -6479,9 +5999,7 @@
       "get": {
         "operationId": "simulationBnplPlans",
         "summary": "List a tenant's active installment plans",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6542,9 +6060,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -6556,9 +6072,7 @@
       "post": {
         "operationId": "simulationBnplPrepare",
         "summary": "Create a throwaway installment link + PayWall payload",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6593,9 +6107,7 @@
                     "default": 0
                   }
                 },
-                "required": [
-                  "tenantId"
-                ]
+                "required": ["tenantId"]
               }
             }
           }
@@ -6677,9 +6189,7 @@
       "get": {
         "operationId": "simulationBnplAwaitAgreement",
         "summary": "Poll for agreement activation",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6729,9 +6239,7 @@
                       "nullable": true
                     }
                   },
-                  "required": [
-                    "found"
-                  ]
+                  "required": ["found"]
                 }
               }
             }
@@ -6743,9 +6251,7 @@
       "post": {
         "operationId": "simulationBnplFire",
         "summary": "Launch an accelerated installment simulation",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6786,9 +6292,7 @@
                     "default": 60
                   }
                 },
-                "required": [
-                  "agreementId"
-                ]
+                "required": ["agreementId"]
               }
             }
           }
@@ -6820,18 +6324,10 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "chargeDelay",
-                        "retryDelay1",
-                        "retryDelay2",
-                        "retryDelay3"
-                      ]
+                      "required": ["chargeDelay", "retryDelay1", "retryDelay2", "retryDelay3"]
                     }
                   },
-                  "required": [
-                    "agreementId",
-                    "delays"
-                  ]
+                  "required": ["agreementId", "delays"]
                 }
               }
             }
@@ -6849,9 +6345,7 @@
       "get": {
         "operationId": "simulationBnplStatus",
         "summary": "Poll installment agreement + charges",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6891,12 +6385,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "agreementId",
-                    "agreement",
-                    "installmentCharges",
-                    "done"
-                  ]
+                  "required": ["agreementId", "agreement", "installmentCharges", "done"]
                 }
               }
             }
@@ -6911,9 +6400,7 @@
       "delete": {
         "operationId": "simulationBnplCleanup",
         "summary": "Teardown BNPL sandbox fixtures",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -6965,9 +6452,7 @@
                       ]
                     }
                   },
-                  "required": [
-                    "deleted"
-                  ]
+                  "required": ["deleted"]
                 }
               }
             }
@@ -6979,9 +6464,7 @@
       "post": {
         "operationId": "simulationDirectPrepare",
         "summary": "Create a direct-charge simulation",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -7004,9 +6487,7 @@
                     "default": 1
                   }
                 },
-                "required": [
-                  "tenantId"
-                ]
+                "required": ["tenantId"]
               }
             }
           }
@@ -7064,9 +6545,7 @@
       "get": {
         "operationId": "simulationDirectStatus",
         "summary": "Poll direct-charge simulation status",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -7124,12 +6603,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "intentId",
-                    "status",
-                    "providerRef",
-                    "terminal"
-                  ]
+                  "required": ["intentId", "status", "providerRef", "terminal"]
                 }
               }
             }
@@ -7144,9 +6618,7 @@
       "delete": {
         "operationId": "simulationDirectCleanup",
         "summary": "Teardown a direct-charge simulation",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -7180,15 +6652,10 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "intents",
-                        "links"
-                      ]
+                      "required": ["intents", "links"]
                     }
                   },
-                  "required": [
-                    "deleted"
-                  ]
+                  "required": ["deleted"]
                 }
               }
             }
@@ -7200,9 +6667,7 @@
       "post": {
         "operationId": "simulationPreauthPrepare",
         "summary": "Create a pre-auth simulation",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -7225,9 +6690,7 @@
                     "default": 1
                   }
                 },
-                "required": [
-                  "tenantId"
-                ]
+                "required": ["tenantId"]
               }
             }
           }
@@ -7285,9 +6748,7 @@
       "get": {
         "operationId": "simulationPreauthStatus",
         "summary": "Poll pre-auth simulation status",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -7339,13 +6800,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "intentId",
-                    "status",
-                    "providerRef",
-                    "terminal",
-                    "authorized"
-                  ]
+                  "required": ["intentId", "status", "providerRef", "terminal", "authorized"]
                 }
               }
             }
@@ -7360,9 +6815,7 @@
       "post": {
         "operationId": "simulationPreauthCapture",
         "summary": "Settle a pre-authorized charge",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -7402,9 +6855,7 @@
       "post": {
         "operationId": "simulationPreauthCancel",
         "summary": "Release held funds (auth reversal)",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -7444,9 +6895,7 @@
       "delete": {
         "operationId": "simulationPreauthCleanup",
         "summary": "Teardown a pre-auth simulation",
-        "tags": [
-          "Admin Simulation"
-        ],
+        "tags": ["Admin Simulation"],
         "security": [
           {
             "bearerAuth": []
@@ -7480,15 +6929,10 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "intents",
-                        "links"
-                      ]
+                      "required": ["intents", "links"]
                     }
                   },
-                  "required": [
-                    "deleted"
-                  ]
+                  "required": ["deleted"]
                 }
               }
             }

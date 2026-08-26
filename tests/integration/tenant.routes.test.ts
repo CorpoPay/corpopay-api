@@ -87,6 +87,99 @@ describe("tenant routes", () => {
     expect(res.status).toBe(403);
   });
 
+  it("generates a webhook signing secret when a webhook URL is first set", async () => {
+    mockFindUniqueTenant.mockResolvedValue({
+      id: "tenant-a",
+      name: "Tenant A",
+      slug: "tenant-a",
+      status: "ACTIVE",
+      environment: "SANDBOX",
+      createdAt: new Date(),
+      notifyWebhookUrl: null,
+      notifyEmail: null,
+      webhookSigningSecret: null,
+    });
+    mockUpdateTenant.mockResolvedValue({
+      id: "tenant-a",
+      name: "Tenant A",
+      slug: "tenant-a",
+      notifyWebhookUrl: "https://example.com/hook",
+      notifyEmail: null,
+      webhookSigningSecret: "v2:encrypted",
+    });
+    const res = await request(app)
+      .patch("/tenant")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`)
+      .send({ notifyWebhookUrl: "https://example.com/hook" });
+    expect(res.status).toBe(200);
+    expect(res.body.webhookSigningSecret).toMatch(/^[0-9a-f]{64}$/);
+    expect(res.body.hasWebhookSigningSecret).toBe(true);
+  });
+
+  it("does not re-return the secret when one already exists", async () => {
+    mockFindUniqueTenant.mockResolvedValue({
+      id: "tenant-a",
+      name: "Tenant A",
+      slug: "tenant-a",
+      status: "ACTIVE",
+      environment: "SANDBOX",
+      createdAt: new Date(),
+      notifyWebhookUrl: "https://example.com/hook",
+      notifyEmail: null,
+      webhookSigningSecret: "v2:existing-encrypted",
+    });
+    mockUpdateTenant.mockResolvedValue({
+      id: "tenant-a",
+      name: "Tenant A",
+      slug: "tenant-a",
+      notifyWebhookUrl: "https://example.com/hook",
+      notifyEmail: null,
+      webhookSigningSecret: "v2:existing-encrypted",
+    });
+    const res = await request(app)
+      .patch("/tenant")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`)
+      .send({ notifyWebhookUrl: "https://example.com/hook" });
+    expect(res.status).toBe(200);
+    expect(res.body.webhookSigningSecret).toBeUndefined();
+    expect(res.body.hasWebhookSigningSecret).toBe(true);
+  });
+
+  it("rotates the webhook signing secret on demand", async () => {
+    mockUpdateTenant.mockResolvedValue({
+      id: "tenant-a",
+      name: "Tenant A",
+      slug: "tenant-a",
+      notifyWebhookUrl: "https://example.com/hook",
+      notifyEmail: null,
+      webhookSigningSecret: "v2:rotated-encrypted",
+    });
+    const res = await request(app)
+      .patch("/tenant")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`)
+      .send({ rotateWebhookSigningSecret: true });
+    expect(res.status).toBe(200);
+    expect(res.body.webhookSigningSecret).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("reports hasWebhookSigningSecret without exposing the secret", async () => {
+    mockFindUniqueTenant.mockResolvedValue({
+      id: "tenant-a",
+      name: "Tenant A",
+      slug: "tenant-a",
+      status: "ACTIVE",
+      environment: "SANDBOX",
+      createdAt: new Date(),
+      notifyWebhookUrl: "https://example.com/hook",
+      notifyEmail: null,
+      webhookSigningSecret: "v2:encrypted",
+    });
+    const res = await request(app).get("/tenant").set("Authorization", `Bearer ${OWNER_TOKEN}`);
+    expect(res.status).toBe(200);
+    expect(res.body.hasWebhookSigningSecret).toBe(true);
+    expect(res.body.webhookSigningSecret).toBeUndefined();
+  });
+
   it("transitions a tenant status as SUPER_ADMIN", async () => {
     mockUpdateTenant.mockResolvedValue({ id: "tenant-a", status: "DISABLED" });
     const res = await request(app)

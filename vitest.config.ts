@@ -28,6 +28,7 @@ export default defineConfig({
         "src/lib/status-maps.ts",
         "src/lib/mask.ts",
         "src/lib/webhook-verify.ts",
+        "src/lib/webhook-sign.ts",
         "src/routes/auth.ts",
         "src/routes/users.ts",
         "src/routes/tenant.ts",
@@ -54,6 +55,7 @@ export default defineConfig({
         "src/lib/status-maps.ts": { lines: 100 },
         "src/lib/mask.ts": { lines: 100 },
         "src/lib/webhook-verify.ts": { lines: 100 },
+        "src/lib/webhook-sign.ts": { lines: 100 },
         "src/lib/validateEnv.ts": { lines: 100 },
         // Calibrated from measured baselines (a small buffer below each
         // measured % so coverage stays green while the suites grow).

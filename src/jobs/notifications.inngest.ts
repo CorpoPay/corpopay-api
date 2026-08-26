@@ -15,8 +15,10 @@
  *   re-running them on retry is safe.
  */
 import { RetryAfterError } from "inngest";
+import { decrypt } from "../lib/encryption";
 import { inngest } from "../lib/inngest";
 import { prisma } from "../lib/prisma";
+import { buildWebhookSignatureHeader } from "../lib/webhook-sign";
 
 export const notifications = inngest.createFunction(
   {
@@ -58,6 +60,7 @@ export const notifications = inngest.createFunction(
       select: {
         name: true,
         notifyWebhookUrl: true,
+        webhookSigningSecret: true,
       },
     });
 
@@ -84,12 +87,23 @@ export const notifications = inngest.createFunction(
     }
 
     // ── 1. Direct outbound webhook — the documented purpose of notifyWebhookUrl ──
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-CorpoPay-Webhook-Id": `${intentId}:${status}`,
+    };
+    if (tenant.webhookSigningSecret) {
+      const signingSecret = decrypt(tenant.webhookSigningSecret);
+      const { signature, timestamp } = buildWebhookSignatureHeader(signingSecret, messageBody);
+      headers["X-CorpoPay-Signature"] = signature;
+      headers["X-CorpoPay-Timestamp"] = String(timestamp);
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5_000);
     try {
       const res = await fetch(tenant.notifyWebhookUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: messageBody,
         signal: controller.signal,
       });

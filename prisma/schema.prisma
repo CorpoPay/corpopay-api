@@ -137,6 +137,7 @@ model Tenant {
   environment      Environment  @default(SANDBOX)
   notifyEmail      String?      // optional: send payment outcome emails via configured adapter
   notifyWebhookUrl String?      // optional: outbound webhook URL for real-time payment events
+  webhookSigningSecret String?  // AES-256 encrypted HMAC secret for signing outbound merchant webhooks
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 

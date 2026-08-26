@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { AuditAction } from "@/generated/prisma/client";
+import { encrypt } from "../lib/encryption";
 import { prisma } from "../lib/prisma";
+import { generateWebhookSecret } from "../lib/webhook-sign";
 import {
   requireAdmin,
   requireAuth,
@@ -32,10 +34,12 @@ router.get(
         createdAt: true,
         notifyWebhookUrl: true,
         notifyEmail: true,
+        webhookSigningSecret: true,
       },
     });
     if (!tenant) throw new AppError(404, "TENANT_NOT_FOUND", "Tenant not found");
-    res.json(tenant);
+    const { webhookSigningSecret, ...rest } = tenant;
+    res.json({ ...rest, hasWebhookSigningSecret: Boolean(webhookSigningSecret) });
   }),
 );
 
@@ -47,9 +51,29 @@ router.patch(
   requireOwner,
   asyncHandler(async (req, res) => {
     const data = updateTenantSchema.parse(req.body);
+    const { rotateWebhookSigningSecret, ...update } = data;
+
+    // Generate/rotate the outbound webhook signing secret when explicitly asked,
+    // or when a webhook URL is first configured and no secret exists yet.
+    let newSecret: string | null = null;
+    if (rotateWebhookSigningSecret) {
+      newSecret = generateWebhookSecret();
+    } else if (update.notifyWebhookUrl) {
+      const existing = await prisma.tenant.findUnique({
+        where: { id: req.user!.tenantId },
+        select: { webhookSigningSecret: true },
+      });
+      if (!existing?.webhookSigningSecret) {
+        newSecret = generateWebhookSecret();
+      }
+    }
+
     const tenant = await prisma.tenant.update({
       where: { id: req.user!.tenantId },
-      data,
+      data: {
+        ...update,
+        ...(newSecret ? { webhookSigningSecret: encrypt(newSecret) } : {}),
+      },
     });
     res.json({
       id: tenant.id,
@@ -57,6 +81,9 @@ router.patch(
       slug: tenant.slug,
       notifyWebhookUrl: tenant.notifyWebhookUrl,
       notifyEmail: tenant.notifyEmail,
+      hasWebhookSigningSecret: Boolean(tenant.webhookSigningSecret || newSecret),
+      // Plaintext secret returned exactly once (on generation/rotation).
+      ...(newSecret ? { webhookSigningSecret: newSecret } : {}),
     });
   }),
 );
