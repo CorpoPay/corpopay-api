@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Dagger CLI
-        run: curl -fsSL https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
+        run: curl -fsSL https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION=v0.21.8 BIN_DIR=$HOME/.local/bin sh
       - name: Run unified quality gate
         run: $HOME/.local/bin/dagger call -m ci check --src .
 
