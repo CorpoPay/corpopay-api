@@ -194,6 +194,22 @@ enum ReversalFundingPolicy {
   ALLOW_NEGATIVE
 }
 
+enum PayoutStatus {
+  DRAFT
+  SCHEDULED
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum PayoutMethod {
+  BANK_TRANSFER
+  CARD
+  WALLET
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -222,6 +238,7 @@ model Tenant {
   ledgerEntries         LedgerEntry[]
   feeSchedules          FeeSchedule[]
   settlementPolicies    SettlementPolicy[]
+  payouts               Payout[]
 
   @@map("tenants")
 }
@@ -573,6 +590,7 @@ model LedgerEntry {
   createdAt    DateTime        @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payoutItem PayoutItem?
 
   @@index([postingId])
   @@index([tenantId, account])
@@ -632,4 +650,39 @@ model SettlementPolicy {
   @@unique([tenantId, version])
   @@index([tenantId, isActive])
   @@map("settlement_policies")
+}
+
+model Payout {
+  id                 String        @id @default(cuid())
+  tenantId           String
+  amount             Decimal       @db.Decimal(12, 2) // MAD — centimes at the lib boundary
+  currency           String        @default("MAD")
+  status             PayoutStatus  @default(DRAFT)
+  provider           Provider
+  providerTransferId String?
+  feeAmount          Decimal       @db.Decimal(12, 2) @default(0)
+  method             PayoutMethod  @default(BANK_TRANSFER)
+  idempotencyKey     String
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items  PayoutItem[]
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, status])
+  @@map("payouts")
+}
+
+model PayoutItem {
+  id            String   @id @default(cuid())
+  payoutId      String
+  ledgerEntryId String   @unique // each AVAILABLE entry settled at most once (no double-payout)
+  amount        Decimal  @db.Decimal(12, 2)
+
+  payout      Payout      @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+  ledgerEntry LedgerEntry @relation(fields: [ledgerEntryId], references: [id], onDelete: Restrict)
+
+  @@index([payoutId])
+  @@map("payout_items")
 }

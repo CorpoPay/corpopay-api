@@ -4,6 +4,9 @@ import type {
   CaptureResult,
   CreateCheckoutParams,
   CreateCheckoutResult,
+  CreatePayoutParams,
+  PayoutResult,
+  PayoutStatusResult,
   ProviderAdapter,
   QueryStatusResult,
   RefundResult,
@@ -66,6 +69,19 @@ export class FakeAdapter implements ProviderAdapter {
 
   mapStatusToInternal(providerStatus: string): PaymentIntentStatus {
     return (providerStatus as PaymentIntentStatus) ?? "PROCESSING";
+  }
+
+  async createPayout(params: CreatePayoutParams): Promise<PayoutResult> {
+    return {
+      success: true,
+      providerTransferId: `fake-payout-${params.reference}`,
+      rawRequest: {},
+      rawResponse: {},
+    };
+  }
+
+  async getPayoutStatus(providerTransferId: string): Promise<PayoutStatusResult> {
+    return { status: "PAID", providerTransferId, rawResponse: {} };
   }
 
   async testConnection(): Promise<TestConnectionResult> {

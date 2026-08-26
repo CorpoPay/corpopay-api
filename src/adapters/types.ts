@@ -1,4 +1,4 @@
-import type { PaymentIntentStatus } from "@/generated/prisma/client";
+import type { PaymentIntentStatus, PayoutMethod, PayoutStatus } from "@/generated/prisma/client";
 
 // ─── Credential shapes ───────────────────────────────────────────────────────────
 
@@ -155,6 +155,29 @@ export interface TestConnectionResult {
   error?: string;
 }
 
+export interface CreatePayoutParams {
+  /** Payout amount in centimes (the net amount transferred to the tenant). */
+  amount: number;
+  currency: string;
+  /** Idempotency / correlation key — the adapter should dedupe on this. */
+  reference: string;
+  /** BANK_TRANSFER | CARD | WALLET. */
+  method: PayoutMethod;
+}
+
+export interface PayoutResult {
+  success: boolean;
+  providerTransferId?: string;
+  rawRequest: Record<string, unknown>;
+  rawResponse: Record<string, unknown>;
+}
+
+export interface PayoutStatusResult {
+  status: PayoutStatus;
+  providerTransferId?: string;
+  rawResponse: Record<string, unknown>;
+}
+
 /**
  * All provider adapters must implement this interface.
  */
@@ -184,4 +207,13 @@ export interface ProviderAdapter {
   mapStatusToInternal(providerStatus: string): PaymentIntentStatus;
 
   testConnection(): Promise<TestConnectionResult>;
+
+  /**
+   * Disburse funds to the tenant (payout leg). Providers that do not support
+   * payouts yet should throw an AppError.
+   */
+  createPayout(params: CreatePayoutParams): Promise<PayoutResult>;
+
+  /** Poll the status of an outbound payout / transfer. */
+  getPayoutStatus(providerTransferId: string): Promise<PayoutStatusResult>;
 }

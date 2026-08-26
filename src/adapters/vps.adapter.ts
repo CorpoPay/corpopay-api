@@ -24,6 +24,9 @@ import type {
   ChargeRenewalResult,
   CreateCheckoutParams,
   CreateCheckoutResult,
+  CreatePayoutParams,
+  PayoutResult,
+  PayoutStatusResult,
   ProviderAdapter,
   QueryStatusResult,
   RefundResult,
@@ -362,6 +365,14 @@ export class VpsAdapter implements ProviderAdapter {
   //   404  → API reachable and credentials accepted (charge simply not found)
   //   401/403 → API reachable but credentials rejected
   //   anything else or network error → treat as unreachable
+
+  async createPayout(_params: CreatePayoutParams): Promise<PayoutResult> {
+    throw new Error(`${this.name} payouts are not yet implemented`);
+  }
+
+  async getPayoutStatus(_providerTransferId: string): Promise<PayoutStatusResult> {
+    throw new Error(`${this.name} payout status is not yet implemented`);
+  }
 
   async testConnection(): Promise<TestConnectionResult> {
     try {

@@ -17,7 +17,10 @@ import type {
   CaptureResult,
   CreateCheckoutParams,
   CreateCheckoutResult,
+  CreatePayoutParams,
   NapsCredentials,
+  PayoutResult,
+  PayoutStatusResult,
   ProviderAdapter,
   QueryStatusResult,
   RefundResult,
@@ -192,6 +195,14 @@ export class NapsAdapter implements ProviderAdapter {
   }
 
   // ─── testConnection ───────────────────────────────────────────────────────────
+
+  async createPayout(_params: CreatePayoutParams): Promise<PayoutResult> {
+    throw new Error(`${this.name} payouts are not yet implemented`);
+  }
+
+  async getPayoutStatus(_providerTransferId: string): Promise<PayoutStatusResult> {
+    throw new Error(`${this.name} payout status is not yet implemented`);
+  }
 
   async testConnection(): Promise<TestConnectionResult> {
     try {

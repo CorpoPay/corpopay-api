@@ -34,6 +34,8 @@ export const TENANT_SCOPED_MODELS = [
   "LedgerEntry",
   "FeeSchedule",
   "SettlementPolicy",
+  "Payout",
+  "PayoutItem",
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];

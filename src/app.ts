@@ -20,6 +20,7 @@ import installmentPlansRouter, { publicInstallmentPlansRouter } from "./routes/i
 import ledgerRouter from "./routes/ledger";
 import paymentIntentsRouter, { publicPayRouter, publicRelayRouter } from "./routes/paymentIntents";
 import paymentLinksRouter, { publicCheckoutRouter } from "./routes/paymentLinks";
+import payoutsRouter from "./routes/payouts";
 import providerConfigRouter, { adminProviderConfigRouter } from "./routes/providerConfig";
 import refundsRouter from "./routes/refunds";
 import settlementPoliciesRouter from "./routes/settlement-policies";
@@ -125,6 +126,7 @@ app.use("/installment-agreements", apiLimiter, installmentAgreementsRouter);
 app.use("/ledger", apiLimiter, ledgerRouter);
 app.use("/fee-schedules", apiLimiter, feeSchedulesRouter);
 app.use("/settlement-policies", apiLimiter, settlementPoliciesRouter);
+app.use("/payouts", apiLimiter, payoutsRouter);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────────
 app.use("/admin/tenants", apiLimiter, adminTenantRouter);

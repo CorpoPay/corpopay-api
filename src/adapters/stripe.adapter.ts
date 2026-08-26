@@ -34,6 +34,9 @@ import type {
   CaptureResult,
   CreateCheckoutParams,
   CreateCheckoutResult,
+  CreatePayoutParams,
+  PayoutResult,
+  PayoutStatusResult,
   ProviderAdapter,
   QueryStatusResult,
   RefundResult,
@@ -343,6 +346,14 @@ export class StripeAdapter implements ProviderAdapter {
   //
   // stripe.balance.retrieve() is a lightweight authenticated call that confirms
   // the secret key is valid without touching real data.
+
+  async createPayout(_params: CreatePayoutParams): Promise<PayoutResult> {
+    throw new Error(`${this.name} payouts are not yet implemented`);
+  }
+
+  async getPayoutStatus(_providerTransferId: string): Promise<PayoutStatusResult> {
+    throw new Error(`${this.name} payout status is not yet implemented`);
+  }
 
   async testConnection(): Promise<TestConnectionResult> {
     try {

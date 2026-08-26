@@ -222,3 +222,24 @@ export const ReversalFundingPolicyValues = [
   "INVOICE_TENANT",
   "ALLOW_NEGATIVE",
 ] as const;
+
+export type PayoutStatus =
+  | "DRAFT"
+  | "SCHEDULED"
+  | "PENDING"
+  | "PROCESSING"
+  | "PAID"
+  | "FAILED"
+  | "CANCELLED";
+export const PayoutStatusValues = [
+  "DRAFT",
+  "SCHEDULED",
+  "PENDING",
+  "PROCESSING",
+  "PAID",
+  "FAILED",
+  "CANCELLED",
+] as const;
+
+export type PayoutMethod = "BANK_TRANSFER" | "CARD" | "WALLET";
+export const PayoutMethodValues = ["BANK_TRANSFER", "CARD", "WALLET"] as const;

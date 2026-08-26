@@ -21,7 +21,9 @@ import {
   InstallmentAgreementStatus,
   PaymentIntentStatus,
   PaymentLinkStatus,
+  PayoutMethod,
   PayoutSchedule,
+  PayoutStatus,
   Prisma,
   Provider,
   ProviderConfigStatus,
@@ -394,6 +396,38 @@ export function makeSettlementPolicy(
     splittingEnabled: false,
     feeScheduleId: null,
     isActive: true,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Payout ─────────────────────────────────────────────────────────────────────
+
+export function makePayout(overrides: Partial<Prisma.PayoutUncheckedCreateInput> = {}) {
+  const data: Prisma.PayoutUncheckedCreateInput = {
+    id: "payout-1",
+    tenantId: TENANT_A_ID,
+    amount: 100, // 100.00 MAD
+    currency: "MAD",
+    status: PayoutStatus.DRAFT,
+    provider: Provider.VPS,
+    providerTransferId: null,
+    feeAmount: 0,
+    method: PayoutMethod.BANK_TRANSFER,
+    idempotencyKey: "payout-idem-1",
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Payout item ────────────────────────────────────────────────────────────────
+
+export function makePayoutItem(overrides: Partial<Prisma.PayoutItemUncheckedCreateInput> = {}) {
+  const data: Prisma.PayoutItemUncheckedCreateInput = {
+    id: "payout-item-1",
+    payoutId: "payout-1",
+    ledgerEntryId: "ledger-entry-1",
+    amount: 100,
     ...overrides,
   };
   return data;

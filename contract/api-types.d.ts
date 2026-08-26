@@ -1356,6 +1356,75 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/payouts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List payouts */
+    get: operations["listPayouts"];
+    put?: never;
+    /** Snapshot eligible funds into a payout */
+    post: operations["createPayout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/payouts/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a payout */
+    get: operations["getPayout"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/payouts/{id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel a payout */
+    post: operations["cancelPayout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/payouts/{id}/process": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Disburse a payout via the provider and settle the ledger */
+    post: operations["processPayout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2023,6 +2092,25 @@ export interface components {
       splittingEnabled: boolean;
       feeScheduleId: string | null;
       isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
+    PayoutItem: {
+      id: string;
+      ledgerEntryId: string;
+      amountCents: number;
+    };
+    Payout: {
+      id: string;
+      status: string;
+      provider: string;
+      method: string;
+      currency: string;
+      amountCents: number;
+      feeCents: number;
+      providerTransferId: string | null;
+      idempotencyKey: string;
+      items: components["schemas"]["PayoutItem"][];
       createdAt: string;
       updatedAt: string;
     };
@@ -5040,6 +5128,136 @@ export interface operations {
         };
       };
       /** @description No active settlement policy */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listPayouts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Payout"][];
+        };
+      };
+    };
+  };
+  createPayout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          idempotencyKey: string;
+          /** @enum {string} */
+          provider: "NAPS" | "VPS" | "STRIPE" | "PAYPAL" | "ADYEN";
+          /** @enum {string|null} */
+          method?: "BANK_TRANSFER" | "CARD" | "WALLET" | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Payout"];
+        };
+      };
+    };
+  };
+  getPayout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Payout"];
+        };
+      };
+      /** @description Payout not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  cancelPayout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Payout"];
+        };
+      };
+    };
+  };
+  processPayout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Payout"];
+        };
+      };
+      /** @description Payout not found */
       404: {
         headers: {
           [name: string]: unknown;

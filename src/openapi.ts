@@ -12,6 +12,7 @@ import { createFeeScheduleSchema } from "./schemas/fee-schedules";
 import { planSchema } from "./schemas/installment-plans";
 import { createIntentSchema, paySchema } from "./schemas/payment-intents";
 import { createPaymentLinkSchema } from "./schemas/payment-links";
+import { createPayoutSchema } from "./schemas/payouts";
 import { providerConfigStatusSchema } from "./schemas/provider-config";
 import { createSettlementPolicySchema } from "./schemas/settlement-policies";
 import {
@@ -2953,5 +2954,104 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: SettlementPolicy } } },
     404: { description: "No active settlement policy" },
+  },
+});
+
+// ─── Payouts ────────────────────────────────────────────────────────────────────
+
+const PayoutItem = registry.register(
+  "PayoutItem",
+  z.object({
+    id: z.string(),
+    ledgerEntryId: z.string(),
+    amountCents: z.number().int(),
+  }),
+);
+
+const Payout = registry.register(
+  "Payout",
+  z.object({
+    id: z.string(),
+    status: z.string(),
+    provider: z.string(),
+    method: z.string(),
+    currency: z.string(),
+    amountCents: z.number().int(),
+    feeCents: z.number().int(),
+    providerTransferId: z.string().nullable(),
+    idempotencyKey: z.string(),
+    items: z.array(PayoutItem),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/payouts",
+  operationId: "listPayouts",
+  summary: "List payouts",
+  tags: ["Payouts"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: z.array(Payout) } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/payouts",
+  operationId: "createPayout",
+  summary: "Snapshot eligible funds into a payout",
+  tags: ["Payouts"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createPayoutSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Created", content: { "application/json": { schema: Payout } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/payouts/{id}",
+  operationId: "getPayout",
+  summary: "Get a payout",
+  tags: ["Payouts"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: Payout } } },
+    404: { description: "Payout not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/payouts/{id}/cancel",
+  operationId: "cancelPayout",
+  summary: "Cancel a payout",
+  tags: ["Payouts"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: Payout } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/payouts/{id}/process",
+  operationId: "processPayout",
+  summary: "Disburse a payout via the provider and settle the ledger",
+  tags: ["Payouts"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: Payout } } },
+    404: { description: "Payout not found" },
   },
 });
