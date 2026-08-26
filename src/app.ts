@@ -13,6 +13,7 @@ import apiKeysRouter from "./routes/apiKeys";
 // ─── Routers ───────────────────────────────────────────────────────────────────────
 import authRouter from "./routes/auth";
 import dashboardRouter from "./routes/dashboard";
+import disputesRouter from "./routes/disputes";
 import exportsRouter from "./routes/exports";
 import feeSchedulesRouter from "./routes/fee-schedules";
 import installmentAgreementsRouter from "./routes/installmentAgreements";
@@ -127,6 +128,7 @@ app.use("/ledger", apiLimiter, ledgerRouter);
 app.use("/fee-schedules", apiLimiter, feeSchedulesRouter);
 app.use("/settlement-policies", apiLimiter, settlementPoliciesRouter);
 app.use("/payouts", apiLimiter, payoutsRouter);
+app.use("/disputes", apiLimiter, disputesRouter);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────────
 app.use("/admin/tenants", apiLimiter, adminTenantRouter);

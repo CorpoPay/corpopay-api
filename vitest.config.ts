@@ -53,6 +53,7 @@ export default defineConfig({
         "src/routes/fee-schedules.ts",
         "src/routes/settlement-policies.ts",
         "src/routes/payouts.ts",
+        "src/routes/disputes.ts",
       ],
       thresholds: {
         // Pure money/billing/encryption/status-maps helpers — 100% line coverage
@@ -70,6 +71,7 @@ export default defineConfig({
         "src/lib/settlement-policy.ts": { lines: 100 },
         "src/lib/settlement-presets.ts": { lines: 100 },
         "src/lib/payout.ts": { lines: 100 },
+        "src/lib/reversals.ts": { lines: 100 },
         "src/lib/validateEnv.ts": { lines: 100 },
         // Calibrated from measured baselines (a small buffer below each
         // measured % so coverage stays green while the suites grow).
@@ -95,6 +97,7 @@ export default defineConfig({
         "src/routes/fee-schedules.ts": { lines: 90 },
         "src/routes/settlement-policies.ts": { lines: 90 },
         "src/routes/payouts.ts": { lines: 90 },
+        "src/routes/disputes.ts": { lines: 90 },
       },
       reporter: ["text", "lcov"],
     },

@@ -8,6 +8,7 @@ import {
   registerSchema,
   resetPasswordSchema,
 } from "./schemas/auth";
+import { createDisputeSchema, resolveDisputeSchema } from "./schemas/disputes";
 import { createFeeScheduleSchema } from "./schemas/fee-schedules";
 import { planSchema } from "./schemas/installment-plans";
 import { createIntentSchema, paySchema } from "./schemas/payment-intents";
@@ -3053,5 +3054,99 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: Payout } } },
     404: { description: "Payout not found" },
+  },
+});
+
+// ─── Disputes / chargebacks ────────────────────────────────────────────────────
+
+const Recovery = registry.register(
+  "Recovery",
+  z.object({
+    id: z.string(),
+    status: z.string(),
+    amountCents: z.number().int(),
+    currency: z.string(),
+    createdAt: z.string(),
+  }),
+);
+
+const Dispute = registry.register(
+  "Dispute",
+  z.object({
+    id: z.string(),
+    status: z.string(),
+    provider: z.string(),
+    providerDisputeId: z.string(),
+    paymentIntentId: z.string().nullable(),
+    amountCents: z.number().int(),
+    feeCents: z.number().int(),
+    currency: z.string(),
+    reason: z.string().nullable(),
+    evidenceDueDate: z.string().nullable(),
+    recovery: Recovery.nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/disputes",
+  operationId: "listDisputes",
+  summary: "List disputes",
+  tags: ["Disputes"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: z.array(Dispute) } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/disputes",
+  operationId: "createDispute",
+  summary: "Record an inbound chargeback/dispute",
+  tags: ["Disputes"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createDisputeSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Created", content: { "application/json": { schema: Dispute } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/disputes/{id}",
+  operationId: "getDispute",
+  summary: "Get a dispute",
+  tags: ["Disputes"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: Dispute } } },
+    404: { description: "Dispute not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/disputes/{id}/resolve",
+  operationId: "resolveDispute",
+  summary: "Resolve a dispute (won/lost)",
+  tags: ["Disputes"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: {
+      content: { "application/json": { schema: resolveDisputeSchema } },
+    },
+  },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: Dispute } } },
+    404: { description: "Dispute not found" },
   },
 });

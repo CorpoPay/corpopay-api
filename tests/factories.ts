@@ -16,6 +16,7 @@ import jwt from "jsonwebtoken";
 import {
   AvailabilityMode,
   BillingInterval,
+  DisputeStatus,
   Environment,
   FeeType,
   InstallmentAgreementStatus,
@@ -27,6 +28,7 @@ import {
   Prisma,
   Provider,
   ProviderConfigStatus,
+  RecoveryStatus,
   RefundStatus,
   ReserveType,
   ReversalFundingPolicy,
@@ -428,6 +430,41 @@ export function makePayoutItem(overrides: Partial<Prisma.PayoutItemUncheckedCrea
     payoutId: "payout-1",
     ledgerEntryId: "ledger-entry-1",
     amount: 100,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Dispute / chargeback ───────────────────────────────────────────────────────
+
+export function makeDispute(overrides: Partial<Prisma.DisputeUncheckedCreateInput> = {}) {
+  const data: Prisma.DisputeUncheckedCreateInput = {
+    id: "dispute-1",
+    tenantId: TENANT_A_ID,
+    paymentIntentId: null,
+    provider: Provider.VPS,
+    providerDisputeId: "dispute-vps-1",
+    status: DisputeStatus.OPEN,
+    amount: 100, // 100.00 MAD
+    feeAmount: 0,
+    currency: "MAD",
+    reason: null,
+    evidenceDueDate: null,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Recovery ───────────────────────────────────────────────────────────────────
+
+export function makeRecovery(overrides: Partial<Prisma.RecoveryUncheckedCreateInput> = {}) {
+  const data: Prisma.RecoveryUncheckedCreateInput = {
+    id: "recovery-1",
+    tenantId: TENANT_A_ID,
+    disputeId: "dispute-1",
+    status: RecoveryStatus.PENDING,
+    amount: 100,
+    currency: "MAD",
     ...overrides,
   };
   return data;

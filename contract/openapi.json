@@ -2726,6 +2726,96 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "Recovery": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "status", "amountCents", "currency", "createdAt"]
+      },
+      "Dispute": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerDisputeId": {
+            "type": "string"
+          },
+          "paymentIntentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "amountCents": {
+            "type": "integer"
+          },
+          "feeCents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "evidenceDueDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "recovery": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Recovery"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "provider",
+          "providerDisputeId",
+          "paymentIntentId",
+          "amountCents",
+          "feeCents",
+          "currency",
+          "reason",
+          "evidenceDueDate",
+          "recovery",
+          "createdAt",
+          "updatedAt"
+        ]
       }
     },
     "parameters": {}
@@ -7793,6 +7883,194 @@
           },
           "404": {
             "description": "Payout not found"
+          }
+        }
+      }
+    },
+    "/disputes": {
+      "get": {
+        "operationId": "listDisputes",
+        "summary": "List disputes",
+        "tags": ["Disputes"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Dispute"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createDispute",
+        "summary": "Record an inbound chargeback/dispute",
+        "tags": ["Disputes"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "providerDisputeId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "provider": {
+                    "type": "string",
+                    "enum": ["NAPS", "VPS", "STRIPE", "PAYPAL", "ADYEN"]
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "feeAmount": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "currency": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 10
+                  },
+                  "reason": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 500
+                  },
+                  "paymentIntentId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "evidenceDueDate": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": ["providerDisputeId", "provider", "amount"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dispute"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/disputes/{id}": {
+      "get": {
+        "operationId": "getDispute",
+        "summary": "Get a dispute",
+        "tags": ["Disputes"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dispute"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dispute not found"
+          }
+        }
+      }
+    },
+    "/disputes/{id}/resolve": {
+      "post": {
+        "operationId": "resolveDispute",
+        "summary": "Resolve a dispute (won/lost)",
+        "tags": ["Disputes"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "type": "string",
+                    "enum": ["WON", "LOST"]
+                  }
+                },
+                "required": ["outcome"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dispute"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dispute not found"
           }
         }
       }

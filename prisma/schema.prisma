@@ -210,6 +210,18 @@ enum PayoutMethod {
   WALLET
 }
 
+enum DisputeStatus {
+  OPEN
+  WON
+  LOST
+}
+
+enum RecoveryStatus {
+  PENDING
+  COLLECTED
+  WAIVED
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -239,6 +251,8 @@ model Tenant {
   feeSchedules          FeeSchedule[]
   settlementPolicies    SettlementPolicy[]
   payouts               Payout[]
+  disputes              Dispute[]
+  recoveries            Recovery[]
 
   @@map("tenants")
 }
@@ -333,6 +347,7 @@ model PaymentIntent {
   webhookEvents         WebhookEvent[]
   subscription          Subscription?         // set when the intent initiated a recurring subscription
   installmentAgreement  InstallmentAgreement? // set when the intent initiated a BNPL agreement
+  disputes              Dispute[]               // chargebacks raised against this intent
 
   @@index([tenantId])
   @@index([providerRef])
@@ -685,4 +700,45 @@ model PayoutItem {
 
   @@index([payoutId])
   @@map("payout_items")
+}
+
+model Dispute {
+  id                String        @id @default(cuid())
+  tenantId          String
+  paymentIntentId   String?
+  provider          Provider
+  providerDisputeId String
+  status            DisputeStatus @default(OPEN)
+  amount            Decimal       @db.Decimal(12, 2) // MAD — gross amount clawed back (centimes at the lib boundary)
+  feeAmount         Decimal       @db.Decimal(12, 2) @default(0) // provider dispute fee
+  currency          String        @default("MAD")
+  reason            String?
+  evidenceDueDate   DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  paymentIntent PaymentIntent? @relation(fields: [paymentIntentId], references: [id], onDelete: SetNull)
+  recovery      Recovery?
+
+  @@unique([tenantId, providerDisputeId])
+  @@index([tenantId, status])
+  @@map("disputes")
+}
+
+model Recovery {
+  id        String         @id @default(cuid())
+  tenantId  String
+  disputeId String         @unique
+  status    RecoveryStatus @default(PENDING)
+  amount    Decimal        @db.Decimal(12, 2) // MAD — the uncovered clawback the tenant owes
+  currency  String         @default("MAD")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("recoveries")
 }
