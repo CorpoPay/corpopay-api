@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.6.0...corpopay-api-v0.7.0) (2026-08-26)
+
+
+### Features
+
+* **settlement:** add payout engine — snapshot eligible funds and settle to providers ([bab9a27](https://github.com/CorpoPay/corpopay-api/commit/bab9a272e973b0d6af87177c336ff7090e37f903))
+
 ## [0.6.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.5.0...corpopay-api-v0.6.0) (2026-08-26)
 
 
