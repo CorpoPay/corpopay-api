@@ -127,6 +127,37 @@ enum BillingInterval {
   CUSTOM
 }
 
+// ─── Ledger / PayFac settlement ───────────────────────────────────────────────
+
+// A tenant's double-entry settlement accounts. Balances are always DERIVED from
+// LedgerEntry rows (never a mutable counter); see src/lib/ledger.ts.
+enum LedgerAccount {
+  CASH      // actual money in CorpoPay's pool attributable to the tenant (asset)
+  PENDING   // captured but not yet settled by the provider (asset)
+  COLLECTED // gross customer funds owed to the tenant (liability)
+  AVAILABLE // subset of collected eligible for payout (liability)
+  RESERVE   // held back against reversals (liability)
+  FEES      // CorpoPay revenue (income)
+  PAID_OUT  // cumulative amount settled to the tenant (contra-liability)
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum LedgerCategory {
+  CAPTURE
+  REFUND
+  FEE
+  SPLIT
+  PAYOUT
+  CHARGEBACK
+  RESERVE_RELEASE
+  ADJUSTMENT
+  DISBURSEMENT
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -152,6 +183,7 @@ model Tenant {
   subscriptions         Subscription[]
   installmentPlans      InstallmentPlan[]
   installmentAgreements InstallmentAgreement[]
+  ledgerEntries         LedgerEntry[]
 
   @@map("tenants")
 }
@@ -484,4 +516,28 @@ model InstallmentCharge {
 
   @@index([agreementId])
   @@map("installment_charges")
+}
+
+// ─── Ledger / PayFac settlement ─────────────────────────────────────────────────
+
+model LedgerEntry {
+  id           String          @id @default(cuid())
+  postingId    String          // groups the debit + credit legs of one double-entry posting
+  tenantId     String
+  account      LedgerAccount
+  direction    LedgerDirection
+  category     LedgerCategory
+  amount       Decimal         @db.Decimal(12, 2) // MAD — centimes at the lib boundary (see src/lib/money.ts)
+  currency     String          @default("MAD")
+  balanceAfter Decimal         @db.Decimal(12, 2) // running balance snapshot for this account (audit; derived balance is authoritative)
+  sourceType   String?
+  sourceId     String?
+  createdAt    DateTime        @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([postingId])
+  @@index([tenantId, account])
+  @@index([tenantId, sourceType, sourceId])
+  @@map("ledger_entries")
 }

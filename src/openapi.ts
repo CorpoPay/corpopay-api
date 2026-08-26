@@ -2776,3 +2776,45 @@ registry.registerPath({
     },
   },
 });
+
+// ─── Ledger ───────────────────────────────────────────────────────────────────
+
+const LedgerEntry = registry.register(
+  "LedgerEntry",
+  z.object({
+    id: z.string(),
+    postingId: z.string(),
+    account: z.string(),
+    direction: z.string(),
+    category: z.string(),
+    amount: Money,
+    balanceAfter: Money,
+    sourceType: z.string().nullable(),
+    sourceId: z.string().nullable(),
+    createdAt: z.string(),
+  }),
+);
+
+const LedgerResponse = registry.register(
+  "LedgerResponse",
+  z.object({
+    balanced: z.boolean(),
+    balances: z.record(z.string(), Money),
+    entries: z.array(LedgerEntry),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/ledger",
+  operationId: "getLedger",
+  summary: "Get the current tenant's settlement ledger (balances + entries)",
+  tags: ["Ledger"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: LedgerResponse } },
+    },
+  },
+});

@@ -44,6 +44,8 @@ export default defineConfig({
         "src/routes/exports.ts",
         "src/routes/dashboard.ts",
         "src/routes/providerConfig.ts",
+        "src/routes/ledger.ts",
+        "src/lib/ledger.ts",
       ],
       thresholds: {
         // Pure money/billing/encryption/status-maps helpers — 100% line coverage
@@ -56,6 +58,7 @@ export default defineConfig({
         "src/lib/mask.ts": { lines: 100 },
         "src/lib/webhook-verify.ts": { lines: 100 },
         "src/lib/webhook-sign.ts": { lines: 100 },
+        "src/lib/ledger.ts": { lines: 100 },
         "src/lib/validateEnv.ts": { lines: 100 },
         // Calibrated from measured baselines (a small buffer below each
         // measured % so coverage stays green while the suites grow).
@@ -77,6 +80,7 @@ export default defineConfig({
         "src/routes/transactions.ts": { lines: 80 },
         "src/routes/users.ts": { lines: 75 },
         "src/routes/admin.ts": { lines: 45 },
+        "src/routes/ledger.ts": { lines: 90 },
       },
       reporter: ["text", "lcov"],
     },

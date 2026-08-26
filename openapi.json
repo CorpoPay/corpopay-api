@@ -2390,6 +2390,97 @@
           }
         },
         "required": ["id", "name"]
+      },
+      "LedgerEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "postingId": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "balanceAfter": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "sourceType": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "postingId",
+          "account",
+          "direction",
+          "category",
+          "amount",
+          "balanceAfter",
+          "sourceType",
+          "sourceId",
+          "createdAt"
+        ]
+      },
+      "LedgerResponse": {
+        "type": "object",
+        "properties": {
+          "balanced": {
+            "type": "boolean"
+          },
+          "balances": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LedgerEntry"
+            }
+          }
+        },
+        "required": ["balanced", "balances", "entries"]
       }
     },
     "parameters": {}
@@ -6933,6 +7024,30 @@
                     }
                   },
                   "required": ["deleted"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger": {
+      "get": {
+        "operationId": "getLedger",
+        "summary": "Get the current tenant's settlement ledger (balances + entries)",
+        "tags": ["Ledger"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerResponse"
                 }
               }
             }
