@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.4.2...corpopay-api-v0.5.0) (2026-08-26)
+
+
+### Features
+
+* **settlement:** add fee + settlement-policy engine with industry presets ([9df5b9d](https://github.com/CorpoPay/corpopay-api/commit/9df5b9d0d1865f20f8c5fa728ae1a4723b79c0e0))
+
 ## [0.4.2](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.4.1...corpopay-api-v0.4.2) (2026-08-26)
 
 
