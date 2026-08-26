@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.3.0...corpopay-api-v0.3.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **ci:** pass base tag as git ref to oasdiff (Docker action can't read /tmp) ([f1241b0](https://github.com/CorpoPay/corpopay-api/commit/f1241b0680d045ceb8610df69c77714aa39e77d3))
+
 ## [0.3.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.2.0...corpopay-api-v0.3.0) (2026-08-26)
 
 
