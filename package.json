@@ -27,7 +27,7 @@
     "format:check": "biome format src prisma",
     "prepare": "husky",
     "openapi:generate": "tsx src/generate-openapi.ts",
-    "contract:generate": "npm run openapi:generate && npx biome format --write openapi.json contract/openapi.json && openapi-typescript contract/openapi.json -o contract/api-types.d.ts && npx biome format --write contract/api-types.d.ts && node scripts/generate-enums.mjs",
+    "contract:generate": "npm run openapi:generate && npx biome format --write openapi.json contract/openapi.json && openapi-typescript contract/openapi.json -o contract/api-types.d.ts && npx biome format --write contract/api-types.d.ts && node scripts/generate-enums.mjs && npx biome format --write contract/enums.ts",
     "migrate:prod": "prisma migrate deploy",
     "test:db": "vitest run --config vitest.db.config.ts"
   },
