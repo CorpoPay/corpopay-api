@@ -38,7 +38,8 @@ for (const raw of schema.split("\n")) {
     continue;
   }
   if (line === "" || line.startsWith("//")) continue;
-  if (/^[A-Z0-9_]+$/.test(line)) current.values.push(line);
+  const value = line.split("//")[0].trim();
+  if (/^[A-Z0-9_]+$/.test(value)) current.values.push(value);
 }
 
 // Group AuditAction values by their stable prefix, in a readable order.
