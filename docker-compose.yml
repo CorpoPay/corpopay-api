@@ -60,6 +60,7 @@ services:
       sh -c "npx prisma migrate deploy &&
              npx prisma generate &&
              npx tsx prisma/seed.ts &&
+             npx tsx prisma/seed-sandbox.ts &&
              npm run dev"
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:4000/health || exit 1"]

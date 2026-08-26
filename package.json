@@ -13,6 +13,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
     "db:reset:demo": "tsx prisma/reset-demo.ts",
+    "db:seed:sandbox": "tsx prisma/seed-sandbox.ts",
+    "db:reset:sandbox": "tsx prisma/reset-sandbox.ts",
     "lint": "biome check src",
     "lint:fix": "biome check --write src",
     "test": "vitest run",
