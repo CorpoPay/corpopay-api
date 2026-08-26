@@ -1,6 +1,6 @@
 {
   "name": "@corpopay/contract",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "CorpoPay API contract — generated OpenAPI types and Prisma enums.",
   "type": "module",
   "license": "MIT",
