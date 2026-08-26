@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "CorpoPay backend API – Express + Prisma + serverless-http",
+  "description": "CorpoPay backend API \u2013 Express + Prisma + serverless-http",
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
     "start": "tsx src/server.ts",
@@ -28,7 +28,8 @@
     "prepare": "husky",
     "openapi:generate": "tsx src/generate-openapi.ts",
     "contract:generate": "npm run openapi:generate && openapi-typescript contract/openapi.json -o contract/api-types.d.ts && node scripts/generate-enums.mjs",
-    "migrate:prod": "prisma migrate deploy"
+    "migrate:prod": "prisma migrate deploy",
+    "test:db": "vitest run --config vitest.db.config.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.4",
@@ -55,6 +56,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@types/aws-lambda": "^8.10.136",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
