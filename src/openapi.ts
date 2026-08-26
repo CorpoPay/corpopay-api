@@ -2,6 +2,8 @@ import { extendZodWithOpenApi, OpenAPIRegistry } from "@asteasolutions/zod-to-op
 import { z } from "zod";
 import { providerHealthSchema, tenantStatusSchema } from "./schemas/admin";
 import { createApiKeySchema } from "./schemas/api-keys";
+import { createFeeScheduleSchema } from "./schemas/fee-schedules";
+import { createSettlementPolicySchema } from "./schemas/settlement-policies";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -2816,5 +2818,140 @@ registry.registerPath({
       description: "OK",
       content: { "application/json": { schema: LedgerResponse } },
     },
+  },
+});
+
+// ─── Fee schedules ─────────────────────────────────────────────────────────────
+
+const FeeSchedule = registry.register(
+  "FeeSchedule",
+  z.object({
+    id: z.string(),
+    version: z.number(),
+    name: z.string().nullable(),
+    feeType: z.string(),
+    flatCents: z.number().int().nullable(),
+    percentageBps: z.number().int().nullable(),
+    perMethodCents: z.record(z.string(), z.number()).nullable(),
+    tiersCents: z.array(z.object({ upToCents: z.number(), percentageBps: z.number() })).nullable(),
+    currency: z.string(),
+    isActive: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/fee-schedules",
+  operationId: "listFeeSchedules",
+  summary: "List fee schedules",
+  tags: ["Fee Schedules"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: z.array(FeeSchedule) } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/fee-schedules",
+  operationId: "createFeeSchedule",
+  summary: "Create a fee schedule",
+  tags: ["Fee Schedules"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createFeeScheduleSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Created", content: { "application/json": { schema: FeeSchedule } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/fee-schedules/active",
+  operationId: "getActiveFeeSchedule",
+  summary: "Get the active fee schedule",
+  tags: ["Fee Schedules"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: FeeSchedule } } },
+    404: { description: "No active fee schedule" },
+  },
+});
+
+// ─── Settlement policies ────────────────────────────────────────────────────────
+
+const SettlementPolicy = registry.register(
+  "SettlementPolicy",
+  z.object({
+    id: z.string(),
+    version: z.number(),
+    name: z.string().nullable(),
+    industry: z.string().nullable(),
+    mcc: z.string().nullable(),
+    availabilityMode: z.string(),
+    availabilityDelayDays: z.number().int().nullable(),
+    reserveType: z.string(),
+    reservePercentageBps: z.number().int().nullable(),
+    reserveHoldDays: z.number().int().nullable(),
+    reserveFixedCents: z.number().int().nullable(),
+    payoutSchedule: z.string(),
+    payoutMinCents: z.number().int().nullable(),
+    reversalFunding: z.string(),
+    allowNegative: z.boolean(),
+    splittingEnabled: z.boolean(),
+    feeScheduleId: z.string().nullable(),
+    isActive: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/settlement-policies",
+  operationId: "listSettlementPolicies",
+  summary: "List settlement policies",
+  tags: ["Settlement Policies"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: z.array(SettlementPolicy) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/settlement-policies",
+  operationId: "createSettlementPolicy",
+  summary: "Create a settlement policy",
+  tags: ["Settlement Policies"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createSettlementPolicySchema } },
+    },
+  },
+  responses: {
+    201: { description: "Created", content: { "application/json": { schema: SettlementPolicy } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/settlement-policies/active",
+  operationId: "getActiveSettlementPolicy",
+  summary: "Get the active settlement policy",
+  tags: ["Settlement Policies"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SettlementPolicy } } },
+    404: { description: "No active settlement policy" },
   },
 });

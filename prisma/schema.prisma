@@ -158,6 +158,42 @@ enum LedgerCategory {
   DISBURSEMENT
 }
 
+enum FeeType {
+  FLAT
+  PERCENTAGE
+  PER_METHOD
+  TIERED
+}
+
+enum AvailabilityMode {
+  IMMEDIATE
+  DELAY
+  ON_FULFILLMENT
+  ON_COLLECTION
+}
+
+enum PayoutSchedule {
+  MANUAL
+  AUTO_DAILY
+  AUTO_WEEKLY
+  AUTO_MONTHLY
+  THRESHOLD
+  INSTANT
+}
+
+enum ReserveType {
+  NONE
+  FIXED
+  ROLLING
+}
+
+enum ReversalFundingPolicy {
+  NET_FROM_AVAILABLE
+  DEBIT_RESERVE
+  INVOICE_TENANT
+  ALLOW_NEGATIVE
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -184,6 +220,8 @@ model Tenant {
   installmentPlans      InstallmentPlan[]
   installmentAgreements InstallmentAgreement[]
   ledgerEntries         LedgerEntry[]
+  feeSchedules          FeeSchedule[]
+  settlementPolicies    SettlementPolicy[]
 
   @@map("tenants")
 }
@@ -540,4 +578,58 @@ model LedgerEntry {
   @@index([tenantId, account])
   @@index([tenantId, sourceType, sourceId])
   @@map("ledger_entries")
+}
+
+model FeeSchedule {
+  id             String   @id @default(cuid())
+  tenantId       String
+  version        Int
+  name           String?
+  feeType        FeeType
+  flatCents      Int?     // fixed fee (centimes) — FLAT and PER_METHOD
+  percentageBps  Int?     // basis points (290 = 2.9%) — PERCENTAGE and TIERED
+  perMethodCents Json?    // { [method]: centimes } — PER_METHOD
+  tiersCents     Json?    // [{ upToCents, percentageBps }] — TIERED
+  currency       String   @default("MAD")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant              Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  settlementPolicies  SettlementPolicy[]
+
+  @@unique([tenantId, version])
+  @@index([tenantId, isActive])
+  @@map("fee_schedules")
+}
+
+model SettlementPolicy {
+  id                    String                @id @default(cuid())
+  tenantId              String
+  version               Int
+  name                  String?
+  industry              String?               // marketplace | saas | retail | travel | escrow | lending | on_demand
+  mcc                   String?               // merchant category code
+  availabilityMode      AvailabilityMode      @default(IMMEDIATE)
+  availabilityDelayDays Int?
+  reserveType           ReserveType           @default(ROLLING)
+  reservePercentageBps  Int?                  // basis points (500 = 5%)
+  reserveHoldDays       Int?                  // e.g. 30
+  reserveFixedCents     Int?
+  payoutSchedule        PayoutSchedule        @default(AUTO_DAILY)
+  payoutMinCents        Int?                  // THRESHOLD
+  reversalFunding       ReversalFundingPolicy @default(NET_FROM_AVAILABLE)
+  allowNegative         Boolean               @default(false)
+  splittingEnabled      Boolean               @default(false)
+  feeScheduleId         String?
+  isActive              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  feeSchedule FeeSchedule? @relation(fields: [feeScheduleId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, version])
+  @@index([tenantId, isActive])
+  @@map("settlement_policies")
 }

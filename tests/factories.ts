@@ -14,15 +14,20 @@
 
 import jwt from "jsonwebtoken";
 import {
+  AvailabilityMode,
   BillingInterval,
   Environment,
+  FeeType,
   InstallmentAgreementStatus,
   PaymentIntentStatus,
   PaymentLinkStatus,
+  PayoutSchedule,
   Prisma,
   Provider,
   ProviderConfigStatus,
   RefundStatus,
+  ReserveType,
+  ReversalFundingPolicy,
   SubscriptionStatus,
   UserRole,
 } from "@/generated/prisma/client";
@@ -339,6 +344,56 @@ export function makeWebhookEvent(overrides: Partial<Prisma.WebhookEventUnchecked
     processingError: null,
     mappedStatus: "SUCCEEDED",
     idempotencyKey: "webhook-idem-1",
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Fee schedule ────────────────────────────────────────────────────────────────
+
+export function makeFeeSchedule(overrides: Partial<Prisma.FeeScheduleUncheckedCreateInput> = {}) {
+  const data: Prisma.FeeScheduleUncheckedCreateInput = {
+    id: "fee-schedule-1",
+    tenantId: TENANT_A_ID,
+    version: 1,
+    name: null,
+    feeType: FeeType.PERCENTAGE,
+    flatCents: null,
+    percentageBps: 290,
+    perMethodCents: null,
+    tiersCents: null,
+    currency: "MAD",
+    isActive: true,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Settlement policy ───────────────────────────────────────────────────────────
+
+export function makeSettlementPolicy(
+  overrides: Partial<Prisma.SettlementPolicyUncheckedCreateInput> = {},
+) {
+  const data: Prisma.SettlementPolicyUncheckedCreateInput = {
+    id: "settlement-policy-1",
+    tenantId: TENANT_A_ID,
+    version: 1,
+    name: null,
+    industry: "saas",
+    mcc: null,
+    availabilityMode: AvailabilityMode.IMMEDIATE,
+    availabilityDelayDays: null,
+    reserveType: ReserveType.NONE,
+    reservePercentageBps: null,
+    reserveHoldDays: null,
+    reserveFixedCents: null,
+    payoutSchedule: PayoutSchedule.AUTO_DAILY,
+    payoutMinCents: null,
+    reversalFunding: ReversalFundingPolicy.NET_FROM_AVAILABLE,
+    allowNegative: false,
+    splittingEnabled: false,
+    feeScheduleId: null,
+    isActive: true,
     ...overrides,
   };
   return data;

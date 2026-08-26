@@ -14,6 +14,7 @@ import apiKeysRouter from "./routes/apiKeys";
 import authRouter from "./routes/auth";
 import dashboardRouter from "./routes/dashboard";
 import exportsRouter from "./routes/exports";
+import feeSchedulesRouter from "./routes/fee-schedules";
 import installmentAgreementsRouter from "./routes/installmentAgreements";
 import installmentPlansRouter, { publicInstallmentPlansRouter } from "./routes/installmentPlans";
 import ledgerRouter from "./routes/ledger";
@@ -21,6 +22,7 @@ import paymentIntentsRouter, { publicPayRouter, publicRelayRouter } from "./rout
 import paymentLinksRouter, { publicCheckoutRouter } from "./routes/paymentLinks";
 import providerConfigRouter, { adminProviderConfigRouter } from "./routes/providerConfig";
 import refundsRouter from "./routes/refunds";
+import settlementPoliciesRouter from "./routes/settlement-policies";
 import simulationRouter from "./routes/simulation";
 import subscriptionsRouter from "./routes/subscriptions";
 import tenantRouter, { adminTenantRouter } from "./routes/tenant";
@@ -121,6 +123,8 @@ app.use("/subscriptions", apiLimiter, subscriptionsRouter);
 app.use("/installment-plans", apiLimiter, installmentPlansRouter);
 app.use("/installment-agreements", apiLimiter, installmentAgreementsRouter);
 app.use("/ledger", apiLimiter, ledgerRouter);
+app.use("/fee-schedules", apiLimiter, feeSchedulesRouter);
+app.use("/settlement-policies", apiLimiter, settlementPoliciesRouter);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────────
 app.use("/admin/tenants", apiLimiter, adminTenantRouter);
