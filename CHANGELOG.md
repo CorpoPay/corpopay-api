@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.4.0...corpopay-api-v0.4.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **contract:** biome-format generated enums.ts in contract:generate ([75335d3](https://github.com/CorpoPay/corpopay-api/commit/75335d3c249aa63f51d8dc7145a0169cea971397))
+
 ## [0.4.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.3.1...corpopay-api-v0.4.0) (2026-08-26)
 
 
