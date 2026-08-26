@@ -83,7 +83,7 @@ jobs:
       - name: Validate Prisma schema
         run: npx prisma validate
 
-  # ── API contract breaking-change gate (openapi-diff, free — replaces Bump.sh) ─
+  # ── API contract breaking-change gate (oasdiff) ───────────────────────────────
   contract-diff:
     runs-on: ubuntu-latest
     steps:
@@ -91,19 +91,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Check API contract for breaking changes
+      - name: Prepare base spec
+        id: base
         run: |
           BASE_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
           if [ -z "$BASE_TAG" ]; then
-            echo "No previous release tag; skipping breaking-change check."
-            exit 0
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            git show "$BASE_TAG:openapi.json" > /tmp/openapi.base.json
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
-          git show "$BASE_TAG:openapi.json" > /tmp/openapi.base.json
-          npx --yes openapi-diff /tmp/openapi.base.json openapi.json
+
+      - name: Check API contract for breaking changes
+        if: steps.base.outputs.skip != 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0
+        with:
+          base: /tmp/openapi.base.json
+          revision: openapi.json
+          fail-on: ERR
 
   # ── Unified quality gate (Dagger) — mirrors `test`; keep `test` until parity ──
   dagger:
