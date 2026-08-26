@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.5.0...corpopay-api-v0.6.0) (2026-08-26)
+
+
+### Features
+
+* **contract:** add fee schedules + settlement policies to OpenAPI contract ([87b11ca](https://github.com/CorpoPay/corpopay-api/commit/87b11caf3a9b626007eda9da933c569a81848493))
+
 ## [0.5.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.4.2...corpopay-api-v0.5.0) (2026-08-26)
 
 
