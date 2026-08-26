@@ -11,7 +11,12 @@
  */
 import { randomUUID } from "node:crypto";
 
-import type { LedgerAccount, LedgerCategory, LedgerDirection } from "@/generated/prisma/client";
+import type {
+  LedgerAccount,
+  LedgerCategory,
+  LedgerDirection,
+  Prisma,
+} from "@/generated/prisma/client";
 
 import {
   computeBalances,
@@ -52,11 +57,11 @@ export interface LedgerView {
 
 /** Current balance of one account (Σ credits − Σ debits), read from stored rows. */
 async function accountBalanceCents(
-  ledgerEntry: typeof prisma.ledgerEntry,
+  client: Prisma.TransactionClient,
   tenantId: string,
   account: LedgerAccount,
 ): Promise<Centimes> {
-  const rows = await ledgerEntry.groupBy({
+  const rows = await client.ledgerEntry.groupBy({
     by: ["direction"],
     where: { tenantId, account },
     _sum: { amount: true },
@@ -76,27 +81,27 @@ async function accountBalanceCents(
  * each leg is `prior balance ± leg delta`. The two legs always touch different
  * accounts (enforced by `posting`), so there is no intra-posting ordering.
  *
- * NOTE: the running-balance snapshot is computed from a read-then-write sum, not
- * a `FOR UPDATE` lock — fine for the sequential writes of the current phase;
- * concurrent posting to the same account is hardened with serializable isolation
- * when the payout engine lands (Phase 3). Derived balance remains authoritative.
+ * Pass an outer `tx` to compose this into a larger transaction (e.g. a payout or
+ * reversal that must move money and flip a status atomically). Without one, it
+ * opens its own transaction.
  */
 export async function postEntry(
   tenantId: string,
   p: LedgerPosting,
+  tx?: Prisma.TransactionClient,
 ): Promise<{ postingId: string; entries: [PostedEntry, PostedEntry] }> {
   posting(p.debit, p.credit, { sourceType: p.sourceType, sourceId: p.sourceId });
   const postingId = randomUUID();
 
-  const entries = await prisma.$transaction(async (tx) => {
+  const write = async (client: Prisma.TransactionClient): Promise<[PostedEntry, PostedEntry]> => {
     const debitAfter = centimes(
-      (await accountBalanceCents(tx.ledgerEntry, tenantId, p.debit.account)) + delta(p.debit),
+      (await accountBalanceCents(client, tenantId, p.debit.account)) + delta(p.debit),
     );
     const creditAfter = centimes(
-      (await accountBalanceCents(tx.ledgerEntry, tenantId, p.credit.account)) + delta(p.credit),
+      (await accountBalanceCents(client, tenantId, p.credit.account)) + delta(p.credit),
     );
 
-    const debitRow = await tx.ledgerEntry.create({
+    const debitRow = await client.ledgerEntry.create({
       data: {
         postingId,
         tenantId,
@@ -110,7 +115,7 @@ export async function postEntry(
         sourceId: p.sourceId,
       },
     });
-    const creditRow = await tx.ledgerEntry.create({
+    const creditRow = await client.ledgerEntry.create({
       data: {
         postingId,
         tenantId,
@@ -143,8 +148,9 @@ export async function postEntry(
         balanceAfterCents: madToCentimes(creditRow.balanceAfter),
       },
     ] as [PostedEntry, PostedEntry];
-  });
+  };
 
+  const entries = tx ? await write(tx) : await prisma.$transaction(write);
   return { postingId, entries };
 }
 

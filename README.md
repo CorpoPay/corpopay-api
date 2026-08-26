@@ -13,6 +13,9 @@ to AWS Lambda (or any Node host). Providers: **VPS/Payzone** (full), **Stripe**
 - **Provider adapters** behind a single `ProviderAdapter` interface
   (`src/adapters/`) — add a PSP without touching any route.
 - **Recurring billing** (subscriptions, dunning) and **BNPL installments**.
+- **PayFac settlement** — a double-entry money ledger (7 accounts), per-tenant fee
+  schedules + settlement policies, payouts, and chargeback/reversal clawback with
+  recoveries.
 - **Webhooks** with synchronous signature verification and idempotent dedup.
 - **Generated OpenAPI contract** (`src/openapi.ts`) — the single source of truth
   shared with the web app.
@@ -118,6 +121,16 @@ Secrets come from environment variables only — never hardcode them.
 | `GET`                   | `/subscriptions` (+ pause/resume/cancel/events)                              |
 | `GET/POST/PATCH/DELETE` | `/installment-plans`                                                         |
 | `GET`                   | `/installment-agreements` (+ `POST /:id/cancel`)                             |
+
+### Settlement (PayFac money movement — `OWNER`)
+
+| Method     | Path                                                                       |
+| ---------- | -------------------------------------------------------------------------- |
+| `GET`      | `/ledger`                                                                  |
+| `GET/POST` | `/fee-schedules` (+ `GET /active`)                                          |
+| `GET/POST` | `/settlement-policies` (+ `GET /active`)                                    |
+| `GET/POST` | `/payouts` (+ `GET /:id`, `POST /:id/cancel`, `POST /:id/process`)         |
+| `GET/POST` | `/disputes` (+ `GET /:id`, `POST /:id/resolve`)                             |
 
 ### Admin (`SUPPORT_ADMIN` / `SUPER_ADMIN`)
 

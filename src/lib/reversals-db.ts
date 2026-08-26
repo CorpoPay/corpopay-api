@@ -91,19 +91,25 @@ export async function resolveDispute(
   id: string,
   outcome: Extract<DisputeStatus, "WON" | "LOST">,
 ): Promise<DisputeWithRecovery> {
-  const dispute = await prisma.dispute.findFirst({ where: { id, tenantId } });
-  if (!dispute) throw new ReversalError("dispute not found");
-  assertTransition(dispute.status, outcome);
-
   if (outcome === "WON") {
-    return prisma.dispute.update({
-      where: { id },
-      data: { status: "WON" },
-      include: { recovery: true },
+    return prisma.$transaction(async (tx) => {
+      const dispute = await tx.dispute.findFirst({ where: { id, tenantId } });
+      if (!dispute) throw new ReversalError("dispute not found");
+      assertTransition(dispute.status, "WON");
+      return tx.dispute.update({
+        where: { id },
+        data: { status: "WON" },
+        include: { recovery: true },
+      });
     });
   }
 
-  // LOST — claw the gross back from the tenant.
+  // LOST — resolve the funding allocation from a consistent read, then execute
+  // the clawback postings + status flip + recovery atomically.
+  const dispute = await prisma.dispute.findFirst({ where: { id, tenantId } });
+  if (!dispute) throw new ReversalError("dispute not found");
+  assertTransition(dispute.status, "LOST");
+
   const grossCents = madToCentimes(dispute.amount);
   const ledger = await getTenantLedger(tenantId);
   const policy = await getActiveSettlementPolicy(tenantId);
@@ -117,45 +123,54 @@ export async function resolveDispute(
     ledger.balances.RESERVE,
   );
 
-  if (allocation.fromAvailable > 0) {
-    await postEntry(
-      tenantId,
-      posting(
-        debit("AVAILABLE", allocation.fromAvailable, "CHARGEBACK"),
-        credit("CASH", allocation.fromAvailable, "CHARGEBACK"),
-        { sourceType: "dispute", sourceId: id },
-      ),
-    );
-  }
-  if (allocation.fromReserve > 0) {
-    await postEntry(
-      tenantId,
-      posting(
-        debit("RESERVE", allocation.fromReserve, "CHARGEBACK"),
-        credit("CASH", allocation.fromReserve, "CHARGEBACK"),
-        { sourceType: "dispute", sourceId: id },
-      ),
-    );
-  }
+  return prisma.$transaction(async (tx) => {
+    // Re-check inside the transaction so a concurrent resolve can't double-claw.
+    const current = await tx.dispute.findFirst({ where: { id, tenantId } });
+    if (!current) throw new ReversalError("dispute not found");
+    assertTransition(current.status, "LOST");
 
-  const disputed = await prisma.dispute.update({
-    where: { id },
-    data: { status: "LOST" },
-    include: { recovery: true },
-  });
-
-  if (allocation.uncovered > 0) {
-    const recovery = await prisma.recovery.create({
-      data: {
+    if (allocation.fromAvailable > 0) {
+      await postEntry(
         tenantId,
-        disputeId: id,
-        status: "PENDING",
-        amount: centimesToMad(allocation.uncovered),
-        currency: "MAD",
-      },
-    });
-    return { ...disputed, recovery };
-  }
+        posting(
+          debit("AVAILABLE", allocation.fromAvailable, "CHARGEBACK"),
+          credit("CASH", allocation.fromAvailable, "CHARGEBACK"),
+          { sourceType: "dispute", sourceId: id },
+        ),
+        tx,
+      );
+    }
+    if (allocation.fromReserve > 0) {
+      await postEntry(
+        tenantId,
+        posting(
+          debit("RESERVE", allocation.fromReserve, "CHARGEBACK"),
+          credit("CASH", allocation.fromReserve, "CHARGEBACK"),
+          { sourceType: "dispute", sourceId: id },
+        ),
+        tx,
+      );
+    }
 
-  return disputed;
+    const disputed = await tx.dispute.update({
+      where: { id },
+      data: { status: "LOST" },
+      include: { recovery: true },
+    });
+
+    if (allocation.uncovered > 0) {
+      const recovery = await tx.recovery.create({
+        data: {
+          tenantId,
+          disputeId: id,
+          status: "PENDING",
+          amount: centimesToMad(allocation.uncovered),
+          currency: "MAD",
+        },
+      });
+      return { ...disputed, recovery };
+    }
+
+    return disputed;
+  });
 }

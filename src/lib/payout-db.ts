@@ -108,32 +108,37 @@ export async function markPayoutFailed(tenantId: string, id: string): Promise<Pa
 }
 
 /**
- * Post the settlement movement (AVAILABLE → PAID_OUT) and mark the payout PAID.
- * The provider transfer must already have succeeded (its `providerTransferId` is
- * recorded here for reconciliation).
+ * Post the settlement movement (AVAILABLE → PAID_OUT) and mark the payout PAID
+ * in a single transaction, so money can never move without the status flipping
+ * (and vice versa). The provider transfer must already have succeeded (its
+ * `providerTransferId` is recorded here for reconciliation).
  */
 export async function markPayoutPaid(
   tenantId: string,
   id: string,
   providerTransferId?: string,
 ): Promise<Payout> {
-  const payout = await prisma.payout.findFirst({ where: { id, tenantId } });
-  if (!payout) throw new PayoutError("payout not found");
-  if (TERMINAL.has(payout.status)) {
-    throw new PayoutError(`payout is already ${payout.status}`);
-  }
+  return prisma.$transaction(async (tx) => {
+    const payout = await tx.payout.findFirst({ where: { id, tenantId } });
+    if (!payout) throw new PayoutError("payout not found");
+    if (TERMINAL.has(payout.status)) {
+      throw new PayoutError(`payout is already ${payout.status}`);
+    }
 
-  const amountCents: Centimes = madToCentimes(payout.amount);
-  await postEntry(
-    tenantId,
-    posting(debit("AVAILABLE", amountCents, "PAYOUT"), credit("PAID_OUT", amountCents, "PAYOUT"), {
-      sourceType: "payout",
-      sourceId: id,
-    }),
-  );
+    const amountCents: Centimes = madToCentimes(payout.amount);
+    await postEntry(
+      tenantId,
+      posting(
+        debit("AVAILABLE", amountCents, "PAYOUT"),
+        credit("PAID_OUT", amountCents, "PAYOUT"),
+        { sourceType: "payout", sourceId: id },
+      ),
+      tx,
+    );
 
-  return prisma.payout.update({
-    where: { id },
-    data: { status: "PAID", providerTransferId: providerTransferId ?? null },
+    return tx.payout.update({
+      where: { id },
+      data: { status: "PAID", providerTransferId: providerTransferId ?? null },
+    });
   });
 }
