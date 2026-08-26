@@ -1,9 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { FeeType } from "@/generated/prisma/client";
+import type { FeeType } from "@/generated/prisma/client";
 
-import { applyBps, computeFee, netAfterFee, type FeeScheduleSpec, type FeeTier } from "./fees";
+import { applyBps, computeFee, type FeeScheduleSpec, type FeeTier, netAfterFee } from "./fees";
 import { centimes } from "./money";
 
 /**

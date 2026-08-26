@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
-
+import { resolvePolicy, validatePolicy } from "./settlement-policy";
 import {
   DEFAULT_PRESET,
   INDUSTRY_KEYS,
   INDUSTRY_PRESETS,
   presetForIndustry,
 } from "./settlement-presets";
-import { resolvePolicy, validatePolicy } from "./settlement-policy";
 
 describe("settlement presets", () => {
   it("resolves a known industry to its preset", () => {

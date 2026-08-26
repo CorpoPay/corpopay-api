@@ -2,18 +2,18 @@ import { extendZodWithOpenApi, OpenAPIRegistry } from "@asteasolutions/zod-to-op
 import { z } from "zod";
 import { providerHealthSchema, tenantStatusSchema } from "./schemas/admin";
 import { createApiKeySchema } from "./schemas/api-keys";
-import { createFeeScheduleSchema } from "./schemas/fee-schedules";
-import { createSettlementPolicySchema } from "./schemas/settlement-policies";
 import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
 } from "./schemas/auth";
+import { createFeeScheduleSchema } from "./schemas/fee-schedules";
 import { planSchema } from "./schemas/installment-plans";
 import { createIntentSchema, paySchema } from "./schemas/payment-intents";
 import { createPaymentLinkSchema } from "./schemas/payment-links";
 import { providerConfigStatusSchema } from "./schemas/provider-config";
+import { createSettlementPolicySchema } from "./schemas/settlement-policies";
 import {
   bnplFireSchema,
   bnplPrepareSchema,

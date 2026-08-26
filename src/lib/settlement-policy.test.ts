@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
-
-import { DEFAULT_PRESET, INDUSTRY_PRESETS } from "./settlement-presets";
+import { centimes } from "./money";
 import {
   availableAfterReserve,
   computeReserve,
   PolicyError,
+  type PolicySpec,
   resolvePolicy,
   validatePolicy,
-  type PolicySpec,
 } from "./settlement-policy";
-import { centimes } from "./money";
+import { DEFAULT_PRESET, INDUSTRY_PRESETS } from "./settlement-presets";
 
 function policy(overrides: Partial<PolicySpec> = {}): PolicySpec {
   return resolvePolicy(DEFAULT_PRESET, overrides as never);

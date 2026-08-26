@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { applyBps, computeFee, FeeError, netAfterFee, type FeeScheduleSpec } from "./fees";
+import { applyBps, computeFee, FeeError, type FeeScheduleSpec, netAfterFee } from "./fees";
 import { centimes } from "./money";
 
 const pct = (percentageBps: number): FeeScheduleSpec => ({
