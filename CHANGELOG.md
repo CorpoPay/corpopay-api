@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.4.1...corpopay-api-v0.4.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **enum-catalog:** parse enum values that carry inline comments ([6d60279](https://github.com/CorpoPay/corpopay-api/commit/6d60279441d47e7ee09b9a4727a8e6f3cf791c2f))
+
 ## [0.4.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.4.0...corpopay-api-v0.4.1) (2026-08-26)
 
 
