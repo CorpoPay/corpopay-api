@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.8.0...corpopay-api-v0.9.0) (2026-08-27)
+
+
+### Features
+
+* **splits:** add multi-party split engine (PayFac Phase 5) ([ae24b91](https://github.com/CorpoPay/corpopay-api/commit/ae24b9143406cfefb009dd1a26d62b65c3f8a6bb))
+
 ## [0.8.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.7.0...corpopay-api-v0.8.0) (2026-08-26)
 
 
