@@ -28,6 +28,8 @@ import {
   Prisma,
   Provider,
   ProviderConfigStatus,
+  ReconciliationMatchStatus,
+  ReconciliationStatus,
   RecoveryStatus,
   RefundStatus,
   ReserveType,
@@ -517,6 +519,44 @@ export function makeSplit(overrides: Partial<Prisma.SplitUncheckedCreateInput> =
     currency: "MAD",
     status: SplitStatus.SETTLED,
     heldUntil: null,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Reconciliation report ─────────────────────────────────────────────────────
+
+export function makeReconciliationReport(
+  overrides: Partial<Prisma.ReconciliationReportUncheckedCreateInput> = {},
+) {
+  const data: Prisma.ReconciliationReportUncheckedCreateInput = {
+    id: "recon-report-1",
+    tenantId: TENANT_A_ID,
+    provider: Provider.VPS,
+    currency: "MAD",
+    periodStart: null,
+    periodEnd: null,
+    status: ReconciliationStatus.PENDING,
+    summary: null,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Reconciliation line ───────────────────────────────────────────────────────
+
+export function makeReconciliationLine(
+  overrides: Partial<Prisma.ReconciliationLineUncheckedCreateInput> = {},
+) {
+  const data: Prisma.ReconciliationLineUncheckedCreateInput = {
+    id: "recon-line-1",
+    reportId: "recon-report-1",
+    reference: "payout-1",
+    amount: 100, // 100.00 MAD
+    currency: "MAD",
+    status: ReconciliationMatchStatus.UNMATCHED,
+    matchedAmount: null,
+    differenceAmount: null,
     ...overrides,
   };
   return data;

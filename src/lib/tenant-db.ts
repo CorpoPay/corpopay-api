@@ -41,6 +41,7 @@ export const TENANT_SCOPED_MODELS = [
   "SplitParty",
   "SplitRule",
   "Split",
+  "ReconciliationReport",
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];

@@ -1633,6 +1633,75 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/reconciliation-reports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List reconciliation reports */
+    get: operations["listReconciliationReports"];
+    put?: never;
+    /** Ingest a provider statement for reconciliation */
+    post: operations["createReconciliationReport"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/reconciliation-reports/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a reconciliation report */
+    get: operations["getReconciliationReport"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/reconciliation-reports/{id}/run": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Run the three-way match against the tenant ledger */
+    post: operations["runReconciliation"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/reconciliation-reports/{id}/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Close a reconciliation report after review */
+    post: operations["resolveReconciliation"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2374,6 +2443,43 @@ export interface components {
       currency: string;
       status: string;
       heldUntil: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+    ReconciliationLine: {
+      id: string;
+      reference: string;
+      amountCents: number;
+      currency: string;
+      status: string;
+      matchedAmountCents: number | null;
+      differenceAmountCents: number | null;
+      createdAt: string;
+    };
+    ReconciliationSummary: {
+      exactCount: number;
+      amountDiffCount: number;
+      missingInternal: {
+        reference: string;
+        amountCents: number;
+      }[];
+      missingExternal: {
+        reference: string;
+        amountCents: number;
+      }[];
+      externalTotalCents: number;
+      internalTotalCents: number;
+      netDifferenceCents: number;
+    };
+    ReconciliationReport: {
+      id: string;
+      provider: string;
+      currency: string;
+      periodStart: string | null;
+      periodEnd: string | null;
+      status: string;
+      summary: components["schemas"]["ReconciliationSummary"] & unknown;
+      lines: components["schemas"]["ReconciliationLine"][];
       createdAt: string;
       updatedAt: string;
     };
@@ -5960,6 +6066,147 @@ export interface operations {
         };
       };
       /** @description Split not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listReconciliationReports: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReconciliationReport"][];
+        };
+      };
+    };
+  };
+  createReconciliationReport: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          /** @enum {string} */
+          provider: "NAPS" | "VPS" | "STRIPE" | "PAYPAL" | "ADYEN";
+          currency?: string | null;
+          periodStart?: string | null;
+          periodEnd?: string | null;
+          lines: {
+            reference: string;
+            amountCents: number;
+          }[];
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReconciliationReport"];
+        };
+      };
+    };
+  };
+  getReconciliationReport: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReconciliationReport"];
+        };
+      };
+      /** @description Reconciliation report not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  runReconciliation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReconciliationReport"];
+        };
+      };
+      /** @description Reconciliation report not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  resolveReconciliation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReconciliationReport"];
+        };
+      };
+      /** @description Reconciliation report not found */
       404: {
         headers: {
           [name: string]: unknown;

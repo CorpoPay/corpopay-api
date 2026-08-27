@@ -242,6 +242,19 @@ enum SplitStatus {
   REVERSED
 }
 
+enum ReconciliationStatus {
+  PENDING
+  MATCHED
+  UNMATCHED
+  RESOLVED
+}
+
+enum ReconciliationMatchStatus {
+  UNMATCHED
+  EXACT
+  AMOUNT_DIFF
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -276,6 +289,7 @@ model Tenant {
   splitParties          SplitParty[]
   splitRules            SplitRule[]
   splits                Split[]
+  reconciliationReports ReconciliationReport[]
 
   @@map("tenants")
 }
@@ -828,3 +842,40 @@ model Split {
   @@map("splits")
 }
 
+// ─── Reconciliation (three-way match: provider reports ↔ ledger ↔ payouts) ──────
+
+model ReconciliationReport {
+  id          String               @id @default(cuid())
+  tenantId    String
+  provider    Provider
+  currency    String               @default("MAD")
+  periodStart DateTime?
+  periodEnd   DateTime?
+  status      ReconciliationStatus @default(PENDING)
+  summary     Json?                 // persisted reconcile result (counts, totals, breaks)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  tenant Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lines  ReconciliationLine[]
+
+  @@index([tenantId, status])
+  @@map("reconciliation_reports")
+}
+
+model ReconciliationLine {
+  id               String                    @id @default(cuid())
+  reportId         String
+  reference        String
+  amount           Decimal                   @db.Decimal(12, 2) // MAD — external (provider) amount
+  currency         String                    @default("MAD")
+  status           ReconciliationMatchStatus @default(UNMATCHED)
+  matchedAmount    Decimal?                  @db.Decimal(12, 2) // internal (ledger) amount matched
+  differenceAmount Decimal?                  @db.Decimal(12, 2) // external − internal (signed)
+  createdAt        DateTime                  @default(now())
+
+  report ReconciliationReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("reconciliation_lines")
+}

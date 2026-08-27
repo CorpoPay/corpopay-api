@@ -264,3 +264,9 @@ export const SplitPartyTypeValues = [
 
 export type SplitStatus = "PENDING" | "SETTLED" | "REVERSED";
 export const SplitStatusValues = ["PENDING", "SETTLED", "REVERSED"] as const;
+
+export type ReconciliationStatus = "PENDING" | "MATCHED" | "UNMATCHED" | "RESOLVED";
+export const ReconciliationStatusValues = ["PENDING", "MATCHED", "UNMATCHED", "RESOLVED"] as const;
+
+export type ReconciliationMatchStatus = "UNMATCHED" | "EXACT" | "AMOUNT_DIFF";
+export const ReconciliationMatchStatusValues = ["UNMATCHED", "EXACT", "AMOUNT_DIFF"] as const;

@@ -2926,6 +2926,165 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "ReconciliationLine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "matchedAmountCents": {
+            "type": "integer",
+            "nullable": true
+          },
+          "differenceAmountCents": {
+            "type": "integer",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reference",
+          "amountCents",
+          "currency",
+          "status",
+          "matchedAmountCents",
+          "differenceAmountCents",
+          "createdAt"
+        ]
+      },
+      "ReconciliationSummary": {
+        "type": "object",
+        "properties": {
+          "exactCount": {
+            "type": "integer"
+          },
+          "amountDiffCount": {
+            "type": "integer"
+          },
+          "missingInternal": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reference": {
+                  "type": "string"
+                },
+                "amountCents": {
+                  "type": "integer"
+                }
+              },
+              "required": ["reference", "amountCents"]
+            }
+          },
+          "missingExternal": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reference": {
+                  "type": "string"
+                },
+                "amountCents": {
+                  "type": "integer"
+                }
+              },
+              "required": ["reference", "amountCents"]
+            }
+          },
+          "externalTotalCents": {
+            "type": "integer"
+          },
+          "internalTotalCents": {
+            "type": "integer"
+          },
+          "netDifferenceCents": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "exactCount",
+          "amountDiffCount",
+          "missingInternal",
+          "missingExternal",
+          "externalTotalCents",
+          "internalTotalCents",
+          "netDifferenceCents"
+        ]
+      },
+      "ReconciliationReport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodEnd": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReconciliationSummary"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationLine"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "currency",
+          "periodStart",
+          "periodEnd",
+          "status",
+          "summary",
+          "lines",
+          "createdAt",
+          "updatedAt"
+        ]
       }
     },
     "parameters": {}
@@ -8680,6 +8839,215 @@
           },
           "404": {
             "description": "Split not found"
+          }
+        }
+      }
+    },
+    "/reconciliation-reports": {
+      "get": {
+        "operationId": "listReconciliationReports",
+        "summary": "List reconciliation reports",
+        "tags": ["Reconciliation"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReconciliationReport"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createReconciliationReport",
+        "summary": "Ingest a provider statement for reconciliation",
+        "tags": ["Reconciliation"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string",
+                    "enum": ["NAPS", "VPS", "STRIPE", "PAYPAL", "ADYEN"]
+                  },
+                  "currency": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 10
+                  },
+                  "periodStart": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "periodEnd": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "reference": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "amountCents": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": ["reference", "amountCents"]
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": ["provider", "lines"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconciliation-reports/{id}": {
+      "get": {
+        "operationId": "getReconciliationReport",
+        "summary": "Get a reconciliation report",
+        "tags": ["Reconciliation"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reconciliation report not found"
+          }
+        }
+      }
+    },
+    "/reconciliation-reports/{id}/run": {
+      "post": {
+        "operationId": "runReconciliation",
+        "summary": "Run the three-way match against the tenant ledger",
+        "tags": ["Reconciliation"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reconciliation report not found"
+          }
+        }
+      }
+    },
+    "/reconciliation-reports/{id}/resolve": {
+      "post": {
+        "operationId": "resolveReconciliation",
+        "summary": "Close a reconciliation report after review",
+        "tags": ["Reconciliation"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reconciliation report not found"
           }
         }
       }

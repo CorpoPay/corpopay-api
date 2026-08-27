@@ -15,6 +15,7 @@ import { createIntentSchema, paySchema } from "./schemas/payment-intents";
 import { createPaymentLinkSchema } from "./schemas/payment-links";
 import { createPayoutSchema } from "./schemas/payouts";
 import { providerConfigStatusSchema } from "./schemas/provider-config";
+import { createReconciliationReportSchema } from "./schemas/reconciliation";
 import { createSettlementPolicySchema } from "./schemas/settlement-policies";
 import {
   bnplFireSchema,
@@ -3367,5 +3368,127 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: Split } } },
     404: { description: "Split not found" },
+  },
+});
+
+// ─── Reconciliation (three-way match) ────────────────────────────────────────
+
+const ReconciliationLine = registry.register(
+  "ReconciliationLine",
+  z.object({
+    id: z.string(),
+    reference: z.string(),
+    amountCents: z.number().int(),
+    currency: z.string(),
+    status: z.string(),
+    matchedAmountCents: z.number().int().nullable(),
+    differenceAmountCents: z.number().int().nullable(),
+    createdAt: z.string(),
+  }),
+);
+
+const ReconciliationSummary = registry.register(
+  "ReconciliationSummary",
+  z.object({
+    exactCount: z.number().int(),
+    amountDiffCount: z.number().int(),
+    missingInternal: z.array(z.object({ reference: z.string(), amountCents: z.number().int() })),
+    missingExternal: z.array(z.object({ reference: z.string(), amountCents: z.number().int() })),
+    externalTotalCents: z.number().int(),
+    internalTotalCents: z.number().int(),
+    netDifferenceCents: z.number().int(),
+  }),
+);
+
+const ReconciliationReport = registry.register(
+  "ReconciliationReport",
+  z.object({
+    id: z.string(),
+    provider: z.string(),
+    currency: z.string(),
+    periodStart: z.string().nullable(),
+    periodEnd: z.string().nullable(),
+    status: z.string(),
+    summary: ReconciliationSummary.nullable(),
+    lines: z.array(ReconciliationLine),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/reconciliation-reports",
+  operationId: "listReconciliationReports",
+  summary: "List reconciliation reports",
+  tags: ["Reconciliation"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: z.array(ReconciliationReport) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/reconciliation-reports",
+  operationId: "createReconciliationReport",
+  summary: "Ingest a provider statement for reconciliation",
+  tags: ["Reconciliation"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createReconciliationReportSchema } },
+    },
+  },
+  responses: {
+    201: {
+      description: "Created",
+      content: { "application/json": { schema: ReconciliationReport } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/reconciliation-reports/{id}",
+  operationId: "getReconciliationReport",
+  summary: "Get a reconciliation report",
+  tags: ["Reconciliation"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: ReconciliationReport } } },
+    404: { description: "Reconciliation report not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/reconciliation-reports/{id}/run",
+  operationId: "runReconciliation",
+  summary: "Run the three-way match against the tenant ledger",
+  tags: ["Reconciliation"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: ReconciliationReport } } },
+    404: { description: "Reconciliation report not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/reconciliation-reports/{id}/resolve",
+  operationId: "resolveReconciliation",
+  summary: "Close a reconciliation report after review",
+  tags: ["Reconciliation"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: ReconciliationReport } } },
+    404: { description: "Reconciliation report not found" },
   },
 });

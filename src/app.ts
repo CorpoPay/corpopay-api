@@ -23,6 +23,7 @@ import paymentIntentsRouter, { publicPayRouter, publicRelayRouter } from "./rout
 import paymentLinksRouter, { publicCheckoutRouter } from "./routes/paymentLinks";
 import payoutsRouter from "./routes/payouts";
 import providerConfigRouter, { adminProviderConfigRouter } from "./routes/providerConfig";
+import reconciliationRouter from "./routes/reconciliation";
 import refundsRouter from "./routes/refunds";
 import settlementPoliciesRouter from "./routes/settlement-policies";
 import simulationRouter from "./routes/simulation";
@@ -133,6 +134,7 @@ app.use("/disputes", apiLimiter, disputesRouter);
 app.use("/split-parties", apiLimiter, splitPartiesRouter);
 app.use("/split-rules", apiLimiter, splitRulesRouter);
 app.use("/splits", apiLimiter, splitsRouter);
+app.use("/reconciliation-reports", apiLimiter, reconciliationRouter);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────────
 app.use("/admin/tenants", apiLimiter, adminTenantRouter);
