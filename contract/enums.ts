@@ -249,3 +249,18 @@ export const DisputeStatusValues = ["OPEN", "WON", "LOST"] as const;
 
 export type RecoveryStatus = "PENDING" | "COLLECTED" | "WAIVED";
 export const RecoveryStatusValues = ["PENDING", "COLLECTED", "WAIVED"] as const;
+
+export type SplitTrigger = "AT_CAPTURE" | "ON_USAGE" | "MANUAL";
+export const SplitTriggerValues = ["AT_CAPTURE", "ON_USAGE", "MANUAL"] as const;
+
+export type SplitPartyType = "PLATFORM" | "SUB_MERCHANT" | "VENDOR" | "AFFILIATE" | "ESCROW";
+export const SplitPartyTypeValues = [
+  "PLATFORM",
+  "SUB_MERCHANT",
+  "VENDOR",
+  "AFFILIATE",
+  "ESCROW",
+] as const;
+
+export type SplitStatus = "PENDING" | "SETTLED" | "REVERSED";
+export const SplitStatusValues = ["PENDING", "SETTLED", "REVERSED"] as const;

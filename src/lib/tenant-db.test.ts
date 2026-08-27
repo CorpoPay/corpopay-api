@@ -29,7 +29,7 @@ describe("isTenantScopedModel", () => {
     expect(isTenantScopedModel("ProviderTransaction")).toBe(false);
   });
 
-  it("lists exactly the sixteen tenant-owned models", () => {
+  it("lists exactly the nineteen tenant-owned models", () => {
     expect(TENANT_SCOPED_MODELS).toEqual([
       "User",
       "ProviderConfig",
@@ -47,6 +47,9 @@ describe("isTenantScopedModel", () => {
       "PayoutItem",
       "Dispute",
       "Recovery",
+      "SplitParty",
+      "SplitRule",
+      "Split",
     ]);
   });
 });

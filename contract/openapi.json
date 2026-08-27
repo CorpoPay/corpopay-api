@@ -2816,6 +2816,116 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "SplitParty": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "slug", "name", "type", "isActive", "createdAt", "updatedAt"]
+      },
+      "SplitRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "shares": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "trigger", "shares", "isActive", "createdAt", "updatedAt"]
+      },
+      "Split": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "splitRuleId": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "partyId": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "heldUntil": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "splitRuleId",
+          "sourceType",
+          "sourceId",
+          "partyId",
+          "amountCents",
+          "currency",
+          "status",
+          "heldUntil",
+          "createdAt",
+          "updatedAt"
+        ]
       }
     },
     "parameters": {}
@@ -8071,6 +8181,505 @@
           },
           "404": {
             "description": "Dispute not found"
+          }
+        }
+      }
+    },
+    "/split-parties": {
+      "get": {
+        "operationId": "listSplitParties",
+        "summary": "List split parties (beneficiaries)",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SplitParty"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSplitParty",
+        "summary": "Create a split party",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "type": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["PLATFORM", "SUB_MERCHANT", "VENDOR", "AFFILIATE", "ESCROW"]
+                  }
+                },
+                "required": ["slug", "name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitParty"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/split-parties/{id}": {
+      "get": {
+        "operationId": "getSplitParty",
+        "summary": "Get a split party",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitParty"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Split party not found"
+          }
+        }
+      }
+    },
+    "/split-parties/{id}/deactivate": {
+      "post": {
+        "operationId": "deactivateSplitParty",
+        "summary": "Deactivate a split party",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitParty"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/split-rules": {
+      "get": {
+        "operationId": "listSplitRules",
+        "summary": "List split rules",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SplitRule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSplitRule",
+        "summary": "Create a split rule",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "trigger": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["AT_CAPTURE", "ON_USAGE", "MANUAL"]
+                  },
+                  "shares": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "partyId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "shareBps": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true,
+                          "maximum": 10000
+                        }
+                      },
+                      "required": ["partyId", "shareBps"]
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": ["name", "shares"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitRule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/split-rules/{id}": {
+      "get": {
+        "operationId": "getSplitRule",
+        "summary": "Get a split rule",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitRule"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Split rule not found"
+          }
+        }
+      }
+    },
+    "/split-rules/{id}/deactivate": {
+      "post": {
+        "operationId": "deactivateSplitRule",
+        "summary": "Deactivate a split rule",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitRule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/splits": {
+      "get": {
+        "operationId": "listSplits",
+        "summary": "List split executions",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Split"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "executeSplit",
+        "summary": "Divide a source amount among beneficiary parties",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sourceType": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "sourceId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "sourceCents": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "splitRuleId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "trigger": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["AT_CAPTURE", "ON_USAGE", "MANUAL"]
+                  },
+                  "shares": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "partyId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "shareBps": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true,
+                          "maximum": 10000
+                        }
+                      },
+                      "required": ["partyId", "shareBps"]
+                    },
+                    "minItems": 1
+                  },
+                  "held": {
+                    "type": "boolean",
+                    "nullable": true
+                  },
+                  "heldUntil": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": ["sourceType", "sourceId", "sourceCents"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Split"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/splits/{id}": {
+      "get": {
+        "operationId": "getSplit",
+        "summary": "Get a split",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Split not found"
+          }
+        }
+      }
+    },
+    "/splits/{id}/release": {
+      "post": {
+        "operationId": "releaseSplit",
+        "summary": "Release a held split (RESERVE → AVAILABLE)",
+        "tags": ["Splits"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Split not found"
           }
         }
       }

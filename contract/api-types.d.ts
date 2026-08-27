@@ -1477,6 +1477,162 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/split-parties": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List split parties (beneficiaries) */
+    get: operations["listSplitParties"];
+    put?: never;
+    /** Create a split party */
+    post: operations["createSplitParty"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/split-parties/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a split party */
+    get: operations["getSplitParty"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/split-parties/{id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Deactivate a split party */
+    post: operations["deactivateSplitParty"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/split-rules": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List split rules */
+    get: operations["listSplitRules"];
+    put?: never;
+    /** Create a split rule */
+    post: operations["createSplitRule"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/split-rules/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a split rule */
+    get: operations["getSplitRule"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/split-rules/{id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Deactivate a split rule */
+    post: operations["deactivateSplitRule"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/splits": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List split executions */
+    get: operations["listSplits"];
+    put?: never;
+    /** Divide a source amount among beneficiary parties */
+    post: operations["executeSplit"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/splits/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a split */
+    get: operations["getSplit"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/splits/{id}/release": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Release a held split (RESERVE → AVAILABLE) */
+    post: operations["releaseSplit"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2185,6 +2341,39 @@ export interface components {
       reason: string | null;
       evidenceDueDate: string | null;
       recovery: components["schemas"]["Recovery"] & unknown;
+      createdAt: string;
+      updatedAt: string;
+    };
+    SplitParty: {
+      id: string;
+      slug: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
+    SplitRule: {
+      id: string;
+      name: string;
+      trigger: string;
+      shares: {
+        [key: string]: unknown;
+      };
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
+    Split: {
+      id: string;
+      splitRuleId: string | null;
+      sourceType: string;
+      sourceId: string;
+      partyId: string;
+      amountCents: number;
+      currency: string;
+      status: string;
+      heldUntil: string | null;
       createdAt: string;
       updatedAt: string;
     };
@@ -5451,6 +5640,326 @@ export interface operations {
         };
       };
       /** @description Dispute not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listSplitParties: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SplitParty"][];
+        };
+      };
+    };
+  };
+  createSplitParty: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          slug: string;
+          name: string;
+          /** @enum {string|null} */
+          type?: "PLATFORM" | "SUB_MERCHANT" | "VENDOR" | "AFFILIATE" | "ESCROW" | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SplitParty"];
+        };
+      };
+    };
+  };
+  getSplitParty: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SplitParty"];
+        };
+      };
+      /** @description Split party not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  deactivateSplitParty: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SplitParty"];
+        };
+      };
+    };
+  };
+  listSplitRules: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SplitRule"][];
+        };
+      };
+    };
+  };
+  createSplitRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          name: string;
+          /** @enum {string|null} */
+          trigger?: "AT_CAPTURE" | "ON_USAGE" | "MANUAL" | null;
+          shares: {
+            partyId: string;
+            shareBps: number;
+          }[];
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SplitRule"];
+        };
+      };
+    };
+  };
+  getSplitRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SplitRule"];
+        };
+      };
+      /** @description Split rule not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  deactivateSplitRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SplitRule"];
+        };
+      };
+    };
+  };
+  listSplits: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Split"][];
+        };
+      };
+    };
+  };
+  executeSplit: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          sourceType: string;
+          sourceId: string;
+          sourceCents: number;
+          splitRuleId?: string | null;
+          /** @enum {string|null} */
+          trigger?: "AT_CAPTURE" | "ON_USAGE" | "MANUAL" | null;
+          shares?:
+            | {
+                partyId: string;
+                shareBps: number;
+              }[]
+            | null;
+          held?: boolean | null;
+          heldUntil?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Split"][];
+        };
+      };
+    };
+  };
+  getSplit: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Split"];
+        };
+      };
+      /** @description Split not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  releaseSplit: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Split"];
+        };
+      };
+      /** @description Split not found */
       404: {
         headers: {
           [name: string]: unknown;

@@ -36,6 +36,7 @@ export interface PostedEntry {
   direction: LedgerDirection;
   amountCents: Centimes;
   balanceAfterCents: Centimes;
+  partyId: string | null;
 }
 
 export interface LedgerView {
@@ -51,6 +52,7 @@ export interface LedgerView {
     balanceAfterCents: Centimes;
     sourceType: string | null;
     sourceId: string | null;
+    partyId: string | null;
     createdAt: Date;
   }>;
 }
@@ -118,6 +120,7 @@ export async function postEntry(
         balanceAfter: centimesToMad(debitAfter),
         sourceType: p.sourceType,
         sourceId: p.sourceId,
+        partyId: p.debit.partyId ?? null,
       },
     });
     const creditRow = await client.ledgerEntry.create({
@@ -132,6 +135,7 @@ export async function postEntry(
         balanceAfter: centimesToMad(creditAfter),
         sourceType: p.sourceType,
         sourceId: p.sourceId,
+        partyId: p.credit.partyId ?? null,
       },
     });
 
@@ -143,6 +147,7 @@ export async function postEntry(
         direction: debitRow.direction,
         amountCents: madToCentimes(debitRow.amount),
         balanceAfterCents: madToCentimes(debitRow.balanceAfter),
+        partyId: debitRow.partyId,
       },
       {
         id: creditRow.id,
@@ -151,6 +156,7 @@ export async function postEntry(
         direction: creditRow.direction,
         amountCents: madToCentimes(creditRow.amount),
         balanceAfterCents: madToCentimes(creditRow.balanceAfter),
+        partyId: creditRow.partyId,
       },
     ] as [PostedEntry, PostedEntry];
   };
@@ -193,6 +199,7 @@ export async function getTenantLedger(tenantId: string): Promise<LedgerView> {
       balanceAfterCents: madToCentimes(row.balanceAfter),
       sourceType: row.sourceType,
       sourceId: row.sourceId,
+      partyId: row.partyId,
       createdAt: row.createdAt,
     })),
   };

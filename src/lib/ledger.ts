@@ -56,6 +56,7 @@ export interface LedgerLeg {
   direction: LedgerDirection;
   amountCents: Centimes;
   category: LedgerCategory;
+  partyId?: string | null;
 }
 
 export interface LedgerPosting {
@@ -77,8 +78,15 @@ export function debit(
   account: LedgerAccount,
   amountCents: Centimes,
   category: LedgerCategory,
+  partyId: string | null = null,
 ): LedgerLeg {
-  return { account, direction: "DEBIT", amountCents, category };
+  return {
+    account,
+    direction: "DEBIT",
+    amountCents,
+    category,
+    ...(partyId != null ? { partyId } : {}),
+  };
 }
 
 /** A credit leg (increases the account's balance). */
@@ -86,8 +94,15 @@ export function credit(
   account: LedgerAccount,
   amountCents: Centimes,
   category: LedgerCategory,
+  partyId: string | null = null,
 ): LedgerLeg {
-  return { account, direction: "CREDIT", amountCents, category };
+  return {
+    account,
+    direction: "CREDIT",
+    amountCents,
+    category,
+    ...(partyId != null ? { partyId } : {}),
+  };
 }
 
 /** Signed contribution of a leg to its account's balance: credit +, debit −. */
@@ -109,8 +124,11 @@ export function posting(
     );
   }
   if (debitLeg.amountCents < 0) throw new LedgerError("amount must be non-negative");
-  if (debitLeg.account === creditLeg.account) {
-    throw new LedgerError("debit and credit accounts must differ");
+  if (
+    debitLeg.account === creditLeg.account &&
+    (debitLeg.partyId ?? null) === (creditLeg.partyId ?? null)
+  ) {
+    throw new LedgerError("debit and credit must differ (account or party)");
   }
   return { debit: debitLeg, credit: creditLeg, ...meta };
 }

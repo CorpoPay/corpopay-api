@@ -72,7 +72,16 @@ describe("posting", () => {
   it("rejects same-account legs", () => {
     expect(() =>
       posting(debit("CASH", centimes(1000), "CAPTURE"), credit("CASH", centimes(1000), "CAPTURE")),
-    ).toThrow("debit and credit accounts must differ");
+    ).toThrow("debit and credit must differ (account or party)");
+  });
+
+  it("allows same-account legs between different parties", () => {
+    expect(() =>
+      posting(
+        debit("AVAILABLE", centimes(1000), "SPLIT"),
+        credit("AVAILABLE", centimes(1000), "SPLIT", "party-1"),
+      ),
+    ).not.toThrow();
   });
 });
 

@@ -222,6 +222,26 @@ enum RecoveryStatus {
   WAIVED
 }
 
+enum SplitTrigger {
+  AT_CAPTURE
+  ON_USAGE
+  MANUAL
+}
+
+enum SplitPartyType {
+  PLATFORM
+  SUB_MERCHANT
+  VENDOR
+  AFFILIATE
+  ESCROW
+}
+
+enum SplitStatus {
+  PENDING
+  SETTLED
+  REVERSED
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -253,6 +273,9 @@ model Tenant {
   payouts               Payout[]
   disputes              Dispute[]
   recoveries            Recovery[]
+  splitParties          SplitParty[]
+  splitRules            SplitRule[]
+  splits                Split[]
 
   @@map("tenants")
 }
@@ -602,13 +625,16 @@ model LedgerEntry {
   balanceAfter Decimal         @db.Decimal(12, 2) // running balance snapshot for this account (audit; derived balance is authoritative)
   sourceType   String?
   sourceId     String?
+  partyId      String?
   createdAt    DateTime        @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  party     SplitParty? @relation(fields: [partyId], references: [id], onDelete: SetNull)
   payoutItem PayoutItem?
 
   @@index([postingId])
   @@index([tenantId, account])
+  @@index([tenantId, partyId, account])
   @@index([tenantId, sourceType, sourceId])
   @@map("ledger_entries")
 }
@@ -742,3 +768,63 @@ model Recovery {
   @@index([tenantId, status])
   @@map("recoveries")
 }
+
+model SplitParty {
+  id        String         @id @default(cuid())
+  tenantId  String
+  slug      String
+  name      String
+  type      SplitPartyType @default(SUB_MERCHANT)
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ledgerEntries LedgerEntry[]
+  splits        Split[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, isActive])
+  @@map("split_parties")
+}
+
+model SplitRule {
+  id        String       @id @default(cuid())
+  tenantId  String
+  name      String
+  trigger   SplitTrigger @default(AT_CAPTURE)
+  shares    Json
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  splits Split[]
+
+  @@index([tenantId, isActive])
+  @@map("split_rules")
+}
+
+model Split {
+  id          String      @id @default(cuid())
+  tenantId    String
+  splitRuleId String?
+  sourceType  String
+  sourceId    String
+  partyId     String
+  amount      Decimal     @db.Decimal(12, 2)
+  currency    String      @default("MAD")
+  status      SplitStatus @default(PENDING)
+  heldUntil   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  splitRule SplitRule? @relation(fields: [splitRuleId], references: [id], onDelete: SetNull)
+  party     SplitParty @relation(fields: [partyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, sourceType, sourceId])
+  @@map("splits")
+}
+

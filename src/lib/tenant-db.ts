@@ -38,6 +38,9 @@ export const TENANT_SCOPED_MODELS = [
   "PayoutItem",
   "Dispute",
   "Recovery",
+  "SplitParty",
+  "SplitRule",
+  "Split",
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];

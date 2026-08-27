@@ -32,6 +32,9 @@ import {
   RefundStatus,
   ReserveType,
   ReversalFundingPolicy,
+  SplitPartyType,
+  SplitStatus,
+  SplitTrigger,
   SubscriptionStatus,
   UserRole,
 } from "@/generated/prisma/client";
@@ -465,6 +468,55 @@ export function makeRecovery(overrides: Partial<Prisma.RecoveryUncheckedCreateIn
     status: RecoveryStatus.PENDING,
     amount: 100,
     currency: "MAD",
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Split party ──────────────────────────────────────────────────────────────
+
+export function makeSplitParty(overrides: Partial<Prisma.SplitPartyUncheckedCreateInput> = {}) {
+  const data: Prisma.SplitPartyUncheckedCreateInput = {
+    id: "split-party-1",
+    tenantId: TENANT_A_ID,
+    slug: "host-1",
+    name: "Host 1",
+    type: SplitPartyType.SUB_MERCHANT,
+    isActive: true,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Split rule ───────────────────────────────────────────────────────────────
+
+export function makeSplitRule(overrides: Partial<Prisma.SplitRuleUncheckedCreateInput> = {}) {
+  const data: Prisma.SplitRuleUncheckedCreateInput = {
+    id: "split-rule-1",
+    tenantId: TENANT_A_ID,
+    name: "Marketplace split",
+    trigger: SplitTrigger.AT_CAPTURE,
+    shares: [{ partyId: "split-party-1", shareBps: 8000 }],
+    isActive: true,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Split ────────────────────────────────────────────────────────────────────
+
+export function makeSplit(overrides: Partial<Prisma.SplitUncheckedCreateInput> = {}) {
+  const data: Prisma.SplitUncheckedCreateInput = {
+    id: "split-1",
+    tenantId: TENANT_A_ID,
+    splitRuleId: "split-rule-1",
+    sourceType: "payment_intent",
+    sourceId: "intent-1",
+    partyId: "split-party-1",
+    amount: 80,
+    currency: "MAD",
+    status: SplitStatus.SETTLED,
+    heldUntil: null,
     ...overrides,
   };
   return data;

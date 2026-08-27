@@ -22,6 +22,11 @@ import {
   prepareSchema,
   startSchema,
 } from "./schemas/simulation";
+import {
+  createSplitPartySchema,
+  createSplitRuleSchema,
+  executeSplitSchema,
+} from "./schemas/splits";
 import { updateTenantSchema } from "./schemas/tenant";
 import { changeRoleSchema, inviteSchema } from "./schemas/users";
 
@@ -3148,5 +3153,219 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: Dispute } } },
     404: { description: "Dispute not found" },
+  },
+});
+
+// ─── Splits (multi-party division) ─────────────────────────────────────────────
+
+const SplitParty = registry.register(
+  "SplitParty",
+  z.object({
+    id: z.string(),
+    slug: z.string(),
+    name: z.string(),
+    type: z.string(),
+    isActive: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+const SplitRule = registry.register(
+  "SplitRule",
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    trigger: z.string(),
+    shares: Json,
+    isActive: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+const Split = registry.register(
+  "Split",
+  z.object({
+    id: z.string(),
+    splitRuleId: z.string().nullable(),
+    sourceType: z.string(),
+    sourceId: z.string(),
+    partyId: z.string(),
+    amountCents: z.number().int(),
+    currency: z.string(),
+    status: z.string(),
+    heldUntil: z.string().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/split-parties",
+  operationId: "listSplitParties",
+  summary: "List split parties (beneficiaries)",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: z.array(SplitParty) } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/split-parties",
+  operationId: "createSplitParty",
+  summary: "Create a split party",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createSplitPartySchema } },
+    },
+  },
+  responses: {
+    201: { description: "Created", content: { "application/json": { schema: SplitParty } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/split-parties/{id}",
+  operationId: "getSplitParty",
+  summary: "Get a split party",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SplitParty } } },
+    404: { description: "Split party not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/split-parties/{id}/deactivate",
+  operationId: "deactivateSplitParty",
+  summary: "Deactivate a split party",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SplitParty } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/split-rules",
+  operationId: "listSplitRules",
+  summary: "List split rules",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: z.array(SplitRule) } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/split-rules",
+  operationId: "createSplitRule",
+  summary: "Create a split rule",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createSplitRuleSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Created", content: { "application/json": { schema: SplitRule } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/split-rules/{id}",
+  operationId: "getSplitRule",
+  summary: "Get a split rule",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SplitRule } } },
+    404: { description: "Split rule not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/split-rules/{id}/deactivate",
+  operationId: "deactivateSplitRule",
+  summary: "Deactivate a split rule",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SplitRule } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/splits",
+  operationId: "listSplits",
+  summary: "List split executions",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: z.array(Split) } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/splits",
+  operationId: "executeSplit",
+  summary: "Divide a source amount among beneficiary parties",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: executeSplitSchema } },
+    },
+  },
+  responses: {
+    201: { description: "Created", content: { "application/json": { schema: z.array(Split) } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/splits/{id}",
+  operationId: "getSplit",
+  summary: "Get a split",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: Split } } },
+    404: { description: "Split not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/splits/{id}/release",
+  operationId: "releaseSplit",
+  summary: "Release a held split (RESERVE → AVAILABLE)",
+  tags: ["Splits"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: Split } } },
+    404: { description: "Split not found" },
   },
 });
