@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.9.0...corpopay-api-v0.10.0) (2026-08-27)
+
+
+### Features
+
+* **reconciliation:** add three-way settlement reconciliation engine (PayFac Phase 6) ([18b88ee](https://github.com/CorpoPay/corpopay-api/commit/18b88eed78a5e24fc5663ddc8f9f5a52800010e8))
+
 ## [0.9.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.8.0...corpopay-api-v0.9.0) (2026-08-27)
 
 
