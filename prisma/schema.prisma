@@ -255,6 +255,12 @@ enum ReconciliationMatchStatus {
   AMOUNT_DIFF
 }
 
+enum SettlementStatementStatus {
+  DRAFT
+  FINALIZED
+  VOID
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -290,6 +296,7 @@ model Tenant {
   splitRules            SplitRule[]
   splits                Split[]
   reconciliationReports ReconciliationReport[]
+  settlementStatements  SettlementStatement[]
 
   @@map("tenants")
 }
@@ -878,4 +885,42 @@ model ReconciliationLine {
 
   @@index([reportId])
   @@map("reconciliation_lines")
+}
+
+// ─── Settlement statements (invoicing data — the tenant sends the email) ───────
+
+model SettlementStatement {
+  id             String                    @id @default(cuid())
+  tenantId       String
+  periodStart    DateTime
+  periodEnd      DateTime
+  currency       String                    @default("MAD")
+  status         SettlementStatementStatus @default(DRAFT)
+  openingBalance Decimal                   @db.Decimal(12, 2) // AVAILABLE balance before the period
+  closingBalance Decimal                   @db.Decimal(12, 2) // AVAILABLE balance after the period
+  netAmount      Decimal                   @db.Decimal(12, 2) // closing − opening (signed)
+  finalizedAt    DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  tenant Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items  SettlementStatementItem[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, periodEnd])
+  @@map("settlement_statements")
+}
+
+model SettlementStatementItem {
+  id          String          @id @default(cuid())
+  statementId String
+  category    LedgerCategory
+  amount      Decimal         @db.Decimal(12, 2) // gross volume for this category (centimes at boundary)
+  entryCount  Int             @default(0) // number of postings in this category
+  createdAt   DateTime        @default(now())
+
+  statement SettlementStatement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@index([statementId])
+  @@map("settlement_statement_items")
 }

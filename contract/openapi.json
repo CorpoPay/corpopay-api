@@ -3085,6 +3085,83 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "SettlementStatementItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer"
+          },
+          "entryCount": {
+            "type": "integer"
+          }
+        },
+        "required": ["id", "category", "amountCents", "entryCount"]
+      },
+      "SettlementStatement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string"
+          },
+          "periodEnd": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "openingBalanceCents": {
+            "type": "integer"
+          },
+          "closingBalanceCents": {
+            "type": "integer"
+          },
+          "netCents": {
+            "type": "integer"
+          },
+          "finalizedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettlementStatementItem"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "periodStart",
+          "periodEnd",
+          "currency",
+          "status",
+          "openingBalanceCents",
+          "closingBalanceCents",
+          "netCents",
+          "finalizedAt",
+          "items",
+          "createdAt",
+          "updatedAt"
+        ]
       }
     },
     "parameters": {}
@@ -9048,6 +9125,192 @@
           },
           "404": {
             "description": "Reconciliation report not found"
+          }
+        }
+      }
+    },
+    "/settlement-statements": {
+      "get": {
+        "operationId": "listSettlementStatements",
+        "summary": "List settlement statements",
+        "tags": ["Settlement Statements"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettlementStatement"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSettlementStatement",
+        "summary": "Snapshot the tenant ledger into a settlement statement",
+        "tags": ["Settlement Statements"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "periodStart": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "periodEnd": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "currency": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 10
+                  }
+                },
+                "required": ["periodStart", "periodEnd"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementStatement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settlement-statements/{id}": {
+      "get": {
+        "operationId": "getSettlementStatement",
+        "summary": "Get a settlement statement",
+        "tags": ["Settlement Statements"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementStatement"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Settlement statement not found"
+          }
+        }
+      }
+    },
+    "/settlement-statements/{id}/finalize": {
+      "post": {
+        "operationId": "finalizeSettlementStatement",
+        "summary": "Lock a settlement statement (immutable)",
+        "tags": ["Settlement Statements"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementStatement"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Settlement statement not found"
+          }
+        }
+      }
+    },
+    "/settlement-statements/{id}/void": {
+      "post": {
+        "operationId": "voidSettlementStatement",
+        "summary": "Void a settlement statement generated in error",
+        "tags": ["Settlement Statements"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementStatement"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Settlement statement not found"
           }
         }
       }

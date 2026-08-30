@@ -20,6 +20,7 @@ import {
   Environment,
   FeeType,
   InstallmentAgreementStatus,
+  LedgerCategory,
   PaymentIntentStatus,
   PaymentLinkStatus,
   PayoutMethod,
@@ -34,6 +35,7 @@ import {
   RefundStatus,
   ReserveType,
   ReversalFundingPolicy,
+  SettlementStatementStatus,
   SplitPartyType,
   SplitStatus,
   SplitTrigger,
@@ -557,6 +559,43 @@ export function makeReconciliationLine(
     status: ReconciliationMatchStatus.UNMATCHED,
     matchedAmount: null,
     differenceAmount: null,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Settlement statement ──────────────────────────────────────────────────────
+
+export function makeSettlementStatement(
+  overrides: Partial<Prisma.SettlementStatementUncheckedCreateInput> = {},
+) {
+  const data: Prisma.SettlementStatementUncheckedCreateInput = {
+    id: "statement-1",
+    tenantId: TENANT_A_ID,
+    periodStart: new Date("2026-01-01T00:00:00Z"),
+    periodEnd: new Date("2026-02-01T00:00:00Z"),
+    currency: "MAD",
+    status: SettlementStatementStatus.DRAFT,
+    openingBalance: 0,
+    closingBalance: 100,
+    netAmount: 100,
+    finalizedAt: null,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Settlement statement item ─────────────────────────────────────────────────
+
+export function makeSettlementStatementItem(
+  overrides: Partial<Prisma.SettlementStatementItemUncheckedCreateInput> = {},
+) {
+  const data: Prisma.SettlementStatementItemUncheckedCreateInput = {
+    id: "statement-item-1",
+    statementId: "statement-1",
+    category: LedgerCategory.CAPTURE,
+    amount: 100,
+    entryCount: 1,
     ...overrides,
   };
   return data;

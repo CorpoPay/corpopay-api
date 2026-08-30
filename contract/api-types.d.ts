@@ -1702,6 +1702,75 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/settlement-statements": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List settlement statements */
+    get: operations["listSettlementStatements"];
+    put?: never;
+    /** Snapshot the tenant ledger into a settlement statement */
+    post: operations["createSettlementStatement"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/settlement-statements/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a settlement statement */
+    get: operations["getSettlementStatement"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/settlement-statements/{id}/finalize": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Lock a settlement statement (immutable) */
+    post: operations["finalizeSettlementStatement"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/settlement-statements/{id}/void": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Void a settlement statement generated in error */
+    post: operations["voidSettlementStatement"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2480,6 +2549,26 @@ export interface components {
       status: string;
       summary: components["schemas"]["ReconciliationSummary"] & unknown;
       lines: components["schemas"]["ReconciliationLine"][];
+      createdAt: string;
+      updatedAt: string;
+    };
+    SettlementStatementItem: {
+      id: string;
+      category: string;
+      amountCents: number;
+      entryCount: number;
+    };
+    SettlementStatement: {
+      id: string;
+      periodStart: string;
+      periodEnd: string;
+      currency: string;
+      status: string;
+      openingBalanceCents: number;
+      closingBalanceCents: number;
+      netCents: number;
+      finalizedAt: string | null;
+      items: components["schemas"]["SettlementStatementItem"][];
       createdAt: string;
       updatedAt: string;
     };
@@ -6207,6 +6296,141 @@ export interface operations {
         };
       };
       /** @description Reconciliation report not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listSettlementStatements: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementStatement"][];
+        };
+      };
+    };
+  };
+  createSettlementStatement: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          periodStart: string | null;
+          periodEnd: string | null;
+          currency?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementStatement"];
+        };
+      };
+    };
+  };
+  getSettlementStatement: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementStatement"];
+        };
+      };
+      /** @description Settlement statement not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  finalizeSettlementStatement: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementStatement"];
+        };
+      };
+      /** @description Settlement statement not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  voidSettlementStatement: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementStatement"];
+        };
+      };
+      /** @description Settlement statement not found */
       404: {
         headers: {
           [name: string]: unknown;

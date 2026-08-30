@@ -28,6 +28,7 @@ import refundsRouter from "./routes/refunds";
 import settlementPoliciesRouter from "./routes/settlement-policies";
 import simulationRouter from "./routes/simulation";
 import { splitPartiesRouter, splitRulesRouter, splitsRouter } from "./routes/splits";
+import statementsRouter from "./routes/statements";
 import subscriptionsRouter from "./routes/subscriptions";
 import tenantRouter, { adminTenantRouter } from "./routes/tenant";
 import transactionsRouter from "./routes/transactions";
@@ -135,6 +136,7 @@ app.use("/split-parties", apiLimiter, splitPartiesRouter);
 app.use("/split-rules", apiLimiter, splitRulesRouter);
 app.use("/splits", apiLimiter, splitsRouter);
 app.use("/reconciliation-reports", apiLimiter, reconciliationRouter);
+app.use("/settlement-statements", apiLimiter, statementsRouter);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────────
 app.use("/admin/tenants", apiLimiter, adminTenantRouter);

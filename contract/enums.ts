@@ -270,3 +270,6 @@ export const ReconciliationStatusValues = ["PENDING", "MATCHED", "UNMATCHED", "R
 
 export type ReconciliationMatchStatus = "UNMATCHED" | "EXACT" | "AMOUNT_DIFF";
 export const ReconciliationMatchStatusValues = ["UNMATCHED", "EXACT", "AMOUNT_DIFF"] as const;
+
+export type SettlementStatementStatus = "DRAFT" | "FINALIZED" | "VOID";
+export const SettlementStatementStatusValues = ["DRAFT", "FINALIZED", "VOID"] as const;

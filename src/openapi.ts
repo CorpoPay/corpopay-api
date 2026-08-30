@@ -28,6 +28,7 @@ import {
   createSplitRuleSchema,
   executeSplitSchema,
 } from "./schemas/splits";
+import { createSettlementStatementSchema } from "./schemas/statements";
 import { updateTenantSchema } from "./schemas/tenant";
 import { changeRoleSchema, inviteSchema } from "./schemas/users";
 
@@ -3490,5 +3491,112 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: ReconciliationReport } } },
     404: { description: "Reconciliation report not found" },
+  },
+});
+
+// ─── Settlement statements (invoicing data) ──────────────────────────────────
+
+const SettlementStatementItem = registry.register(
+  "SettlementStatementItem",
+  z.object({
+    id: z.string(),
+    category: z.string(),
+    amountCents: z.number().int(),
+    entryCount: z.number().int(),
+  }),
+);
+
+const SettlementStatement = registry.register(
+  "SettlementStatement",
+  z.object({
+    id: z.string(),
+    periodStart: z.string(),
+    periodEnd: z.string(),
+    currency: z.string(),
+    status: z.string(),
+    openingBalanceCents: z.number().int(),
+    closingBalanceCents: z.number().int(),
+    netCents: z.number().int(),
+    finalizedAt: z.string().nullable(),
+    items: z.array(SettlementStatementItem),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/settlement-statements",
+  operationId: "listSettlementStatements",
+  summary: "List settlement statements",
+  tags: ["Settlement Statements"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: z.array(SettlementStatement) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/settlement-statements",
+  operationId: "createSettlementStatement",
+  summary: "Snapshot the tenant ledger into a settlement statement",
+  tags: ["Settlement Statements"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: createSettlementStatementSchema } },
+    },
+  },
+  responses: {
+    201: {
+      description: "Created",
+      content: { "application/json": { schema: SettlementStatement } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/settlement-statements/{id}",
+  operationId: "getSettlementStatement",
+  summary: "Get a settlement statement",
+  tags: ["Settlement Statements"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SettlementStatement } } },
+    404: { description: "Settlement statement not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/settlement-statements/{id}/finalize",
+  operationId: "finalizeSettlementStatement",
+  summary: "Lock a settlement statement (immutable)",
+  tags: ["Settlement Statements"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SettlementStatement } } },
+    404: { description: "Settlement statement not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/settlement-statements/{id}/void",
+  operationId: "voidSettlementStatement",
+  summary: "Void a settlement statement generated in error",
+  tags: ["Settlement Statements"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SettlementStatement } } },
+    404: { description: "Settlement statement not found" },
   },
 });
