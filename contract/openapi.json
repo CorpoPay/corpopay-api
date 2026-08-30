@@ -3162,6 +3162,173 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "MerchantOnboarding": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "legalName": {
+            "type": "string",
+            "nullable": true
+          },
+          "entityType": {
+            "type": "string",
+            "nullable": true
+          },
+          "registrationNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "nullable": true
+          },
+          "contactEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "industry": {
+            "type": "string",
+            "nullable": true
+          },
+          "mcc": {
+            "type": "string",
+            "nullable": true
+          },
+          "riskTier": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "status",
+          "legalName",
+          "entityType",
+          "registrationNumber",
+          "country",
+          "businessAddress",
+          "website",
+          "contactEmail",
+          "industry",
+          "mcc",
+          "riskTier",
+          "submittedAt",
+          "reviewerId",
+          "reviewNotes",
+          "rejectionReason",
+          "approvedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "OnboardingPolicySpec": {
+        "type": "object",
+        "properties": {
+          "industry": {
+            "type": "string",
+            "nullable": true
+          },
+          "mcc": {
+            "type": "string",
+            "nullable": true
+          },
+          "availabilityMode": {
+            "type": "string"
+          },
+          "availabilityDelayDays": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reserveType": {
+            "type": "string"
+          },
+          "reservePercentageBps": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reserveHoldDays": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reserveFixedCents": {
+            "type": "integer",
+            "nullable": true
+          },
+          "payoutSchedule": {
+            "type": "string"
+          },
+          "payoutMinCents": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reversalFunding": {
+            "type": "string"
+          },
+          "allowNegative": {
+            "type": "boolean"
+          },
+          "splittingEnabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "industry",
+          "mcc",
+          "availabilityMode",
+          "availabilityDelayDays",
+          "reserveType",
+          "reservePercentageBps",
+          "reserveHoldDays",
+          "reserveFixedCents",
+          "payoutSchedule",
+          "payoutMinCents",
+          "reversalFunding",
+          "allowNegative",
+          "splittingEnabled"
+        ]
       }
     },
     "parameters": {}
@@ -9311,6 +9478,308 @@
           },
           "404": {
             "description": "Settlement statement not found"
+          }
+        }
+      }
+    },
+    "/onboarding": {
+      "get": {
+        "operationId": "getOnboarding",
+        "summary": "Get the tenant's own onboarding application",
+        "tags": ["Onboarding"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantOnboarding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Onboarding not found"
+          }
+        }
+      },
+      "put": {
+        "operationId": "upsertOnboarding",
+        "summary": "Create or update the tenant's draft onboarding",
+        "tags": ["Onboarding"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "legalName": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "entityType": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "registrationNumber": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "country": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 2,
+                    "maxLength": 2
+                  },
+                  "businessAddress": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "website": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uri"
+                  },
+                  "contactEmail": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "email"
+                  },
+                  "industry": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "mcc": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 10
+                  },
+                  "riskTier": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["LOW", "MEDIUM", "HIGH"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantOnboarding"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/onboarding/submit": {
+      "post": {
+        "operationId": "submitOnboarding",
+        "summary": "Submit the tenant's onboarding application for review",
+        "tags": ["Onboarding"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantOnboarding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Onboarding not found"
+          }
+        }
+      }
+    },
+    "/onboarding/{tenantId}/approve": {
+      "post": {
+        "operationId": "approveOnboarding",
+        "summary": "Approve a submitted onboarding and resolve its policy preset",
+        "tags": ["Onboarding"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "tenantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/MerchantOnboarding"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "policySpec": {
+                          "$ref": "#/components/schemas/OnboardingPolicySpec"
+                        }
+                      },
+                      "required": ["policySpec"]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Onboarding not found"
+          }
+        }
+      }
+    },
+    "/onboarding/{tenantId}/reject": {
+      "post": {
+        "operationId": "rejectOnboarding",
+        "summary": "Reject a submitted onboarding",
+        "tags": ["Onboarding"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "tenantId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": ["reason"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantOnboarding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Onboarding not found"
+          }
+        }
+      }
+    },
+    "/onboarding/{tenantId}/request-info": {
+      "post": {
+        "operationId": "requestInfoOnboarding",
+        "summary": "Request more information from the merchant",
+        "tags": ["Onboarding"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "tenantId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notes": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": ["notes"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantOnboarding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Onboarding not found"
           }
         }
       }

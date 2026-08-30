@@ -69,6 +69,7 @@ export function buildMockPrisma(): MockPrisma {
     reconciliationLine: makeModel(),
     settlementStatement: makeModel(),
     settlementStatementItem: makeModel(),
+    merchantOnboarding: makeModel(),
     providerHealth: makeModel(),
     $transaction: vi.fn(async (arg: unknown) => {
       if (Array.isArray(arg)) return Promise.all(arg);

@@ -43,6 +43,7 @@ export const TENANT_SCOPED_MODELS = [
   "Split",
   "ReconciliationReport",
   "SettlementStatement",
+  "MerchantOnboarding",
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];

@@ -11,6 +11,11 @@ import {
 import { createDisputeSchema, resolveDisputeSchema } from "./schemas/disputes";
 import { createFeeScheduleSchema } from "./schemas/fee-schedules";
 import { planSchema } from "./schemas/installment-plans";
+import {
+  rejectOnboardingSchema,
+  requestInfoOnboardingSchema,
+  upsertOnboardingSchema,
+} from "./schemas/onboarding";
 import { createIntentSchema, paySchema } from "./schemas/payment-intents";
 import { createPaymentLinkSchema } from "./schemas/payment-links";
 import { createPayoutSchema } from "./schemas/payouts";
@@ -3598,5 +3603,148 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: SettlementStatement } } },
     404: { description: "Settlement statement not found" },
+  },
+});
+
+// ─── Onboarding / KYC / KYB (PayFac) ─────────────────────────────────────────
+
+const MerchantOnboarding = registry.register(
+  "MerchantOnboarding",
+  z.object({
+    id: z.string(),
+    tenantId: z.string(),
+    status: z.string(),
+    legalName: z.string().nullable(),
+    entityType: z.string().nullable(),
+    registrationNumber: z.string().nullable(),
+    country: z.string().nullable(),
+    businessAddress: z.string().nullable(),
+    website: z.string().nullable(),
+    contactEmail: z.string().nullable(),
+    industry: z.string().nullable(),
+    mcc: z.string().nullable(),
+    riskTier: z.string(),
+    submittedAt: z.string().nullable(),
+    reviewerId: z.string().nullable(),
+    reviewNotes: z.string().nullable(),
+    rejectionReason: z.string().nullable(),
+    approvedAt: z.string().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+const OnboardingPolicySpec = registry.register(
+  "OnboardingPolicySpec",
+  z.object({
+    industry: z.string().nullable(),
+    mcc: z.string().nullable(),
+    availabilityMode: z.string(),
+    availabilityDelayDays: z.number().int().nullable(),
+    reserveType: z.string(),
+    reservePercentageBps: z.number().int().nullable(),
+    reserveHoldDays: z.number().int().nullable(),
+    reserveFixedCents: z.number().int().nullable(),
+    payoutSchedule: z.string(),
+    payoutMinCents: z.number().int().nullable(),
+    reversalFunding: z.string(),
+    allowNegative: z.boolean(),
+    splittingEnabled: z.boolean(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/onboarding",
+  operationId: "getOnboarding",
+  summary: "Get the tenant's own onboarding application",
+  tags: ["Onboarding"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: MerchantOnboarding } } },
+    404: { description: "Onboarding not found" },
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/onboarding",
+  operationId: "upsertOnboarding",
+  summary: "Create or update the tenant's draft onboarding",
+  tags: ["Onboarding"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: upsertOnboardingSchema } } },
+  },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: MerchantOnboarding } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/onboarding/submit",
+  operationId: "submitOnboarding",
+  summary: "Submit the tenant's onboarding application for review",
+  tags: ["Onboarding"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: MerchantOnboarding } } },
+    404: { description: "Onboarding not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/onboarding/{tenantId}/approve",
+  operationId: "approveOnboarding",
+  summary: "Approve a submitted onboarding and resolve its policy preset",
+  tags: ["Onboarding"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ tenantId: z.string() }) },
+  responses: {
+    200: {
+      description: "OK",
+      content: {
+        "application/json": {
+          schema: MerchantOnboarding.extend({ policySpec: OnboardingPolicySpec }),
+        },
+      },
+    },
+    404: { description: "Onboarding not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/onboarding/{tenantId}/reject",
+  operationId: "rejectOnboarding",
+  summary: "Reject a submitted onboarding",
+  tags: ["Onboarding"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ tenantId: z.string() }),
+    body: { content: { "application/json": { schema: rejectOnboardingSchema } } },
+  },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: MerchantOnboarding } } },
+    404: { description: "Onboarding not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/onboarding/{tenantId}/request-info",
+  operationId: "requestInfoOnboarding",
+  summary: "Request more information from the merchant",
+  tags: ["Onboarding"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ tenantId: z.string() }),
+    body: { content: { "application/json": { schema: requestInfoOnboardingSchema } } },
+  },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: MerchantOnboarding } } },
+    404: { description: "Onboarding not found" },
   },
 });

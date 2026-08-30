@@ -261,6 +261,20 @@ enum SettlementStatementStatus {
   VOID
 }
 
+enum OnboardingStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  NEEDS_INFO
+}
+
+enum RiskTier {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -297,6 +311,7 @@ model Tenant {
   splits                Split[]
   reconciliationReports ReconciliationReport[]
   settlementStatements  SettlementStatement[]
+  merchantOnboarding    MerchantOnboarding?
 
   @@map("tenants")
 }
@@ -923,4 +938,37 @@ model SettlementStatementItem {
 
   @@index([statementId])
   @@map("settlement_statement_items")
+}
+
+// ─── Onboarding / KYC / KYB (PayFac — the last gate before public GA) ───────────
+
+model MerchantOnboarding {
+  id                 String           @id @default(cuid())
+  tenantId           String           @unique
+  status             OnboardingStatus @default(DRAFT)
+  // KYC / KYB identity (the merchant's own answers)
+  legalName          String?
+  entityType         String?          // sole_proprietor | llc | corporation | partnership | ...
+  registrationNumber String?
+  country            String?          // ISO 3166-1 alpha-2
+  businessAddress    String?
+  website            String?
+  contactEmail       String?
+  // Industry + risk — `industry` is the signal that defaults the policy preset.
+  industry           String?          // marketplace | saas | retail | travel | escrow | lending | on_demand
+  mcc                String?          // merchant category code
+  riskTier           RiskTier         @default(MEDIUM)
+  // Review
+  submittedAt        DateTime?
+  reviewerId         String?
+  reviewNotes        String?
+  rejectionReason    String?
+  approvedAt         DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("merchant_onboardings")
 }

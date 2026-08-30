@@ -19,6 +19,7 @@ import feeSchedulesRouter from "./routes/fee-schedules";
 import installmentAgreementsRouter from "./routes/installmentAgreements";
 import installmentPlansRouter, { publicInstallmentPlansRouter } from "./routes/installmentPlans";
 import ledgerRouter from "./routes/ledger";
+import onboardingRouter, { adminOnboardingRouter } from "./routes/onboarding";
 import paymentIntentsRouter, { publicPayRouter, publicRelayRouter } from "./routes/paymentIntents";
 import paymentLinksRouter, { publicCheckoutRouter } from "./routes/paymentLinks";
 import payoutsRouter from "./routes/payouts";
@@ -128,6 +129,7 @@ app.use("/subscriptions", apiLimiter, subscriptionsRouter);
 app.use("/installment-plans", apiLimiter, installmentPlansRouter);
 app.use("/installment-agreements", apiLimiter, installmentAgreementsRouter);
 app.use("/ledger", apiLimiter, ledgerRouter);
+app.use("/onboarding", apiLimiter, onboardingRouter);
 app.use("/fee-schedules", apiLimiter, feeSchedulesRouter);
 app.use("/settlement-policies", apiLimiter, settlementPoliciesRouter);
 app.use("/payouts", apiLimiter, payoutsRouter);
@@ -142,6 +144,7 @@ app.use("/settlement-statements", apiLimiter, statementsRouter);
 app.use("/admin/tenants", apiLimiter, adminTenantRouter);
 app.use("/admin/tenants/:id/provider-configs", apiLimiter, adminProviderConfigRouter);
 app.use("/admin/simulation", apiLimiter, simulationRouter);
+app.use("/admin/onboarding", apiLimiter, adminOnboardingRouter);
 app.use("/admin", apiLimiter, adminRouter);
 
 // ─── Inngest job handler (POST /api/inngest) ─────────────────────────────────────

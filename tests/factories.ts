@@ -21,6 +21,7 @@ import {
   FeeType,
   InstallmentAgreementStatus,
   LedgerCategory,
+  OnboardingStatus,
   PaymentIntentStatus,
   PaymentLinkStatus,
   PayoutMethod,
@@ -35,6 +36,7 @@ import {
   RefundStatus,
   ReserveType,
   ReversalFundingPolicy,
+  RiskTier,
   SettlementStatementStatus,
   SplitPartyType,
   SplitStatus,
@@ -596,6 +598,35 @@ export function makeSettlementStatementItem(
     category: LedgerCategory.CAPTURE,
     amount: 100,
     entryCount: 1,
+    ...overrides,
+  };
+  return data;
+}
+
+// ─── Merchant onboarding ───────────────────────────────────────────────────────
+
+export function makeMerchantOnboarding(
+  overrides: Partial<Prisma.MerchantOnboardingUncheckedCreateInput> = {},
+) {
+  const data: Prisma.MerchantOnboardingUncheckedCreateInput = {
+    id: "onboarding-1",
+    tenantId: TENANT_A_ID,
+    status: OnboardingStatus.DRAFT,
+    legalName: "Demo Merchant SARL",
+    entityType: "llc",
+    registrationNumber: "REG-12345",
+    country: "MA",
+    businessAddress: "Casablanca, Morocco",
+    website: "https://demo.example.com",
+    contactEmail: "owner@demo.ma",
+    industry: "retail",
+    mcc: "5999",
+    riskTier: RiskTier.MEDIUM,
+    submittedAt: null,
+    reviewerId: null,
+    reviewNotes: null,
+    rejectionReason: null,
+    approvedAt: null,
     ...overrides,
   };
   return data;

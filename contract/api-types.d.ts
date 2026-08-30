@@ -1771,6 +1771,92 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/onboarding": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the tenant's own onboarding application */
+    get: operations["getOnboarding"];
+    /** Create or update the tenant's draft onboarding */
+    put: operations["upsertOnboarding"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/onboarding/submit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Submit the tenant's onboarding application for review */
+    post: operations["submitOnboarding"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/onboarding/{tenantId}/approve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Approve a submitted onboarding and resolve its policy preset */
+    post: operations["approveOnboarding"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/onboarding/{tenantId}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reject a submitted onboarding */
+    post: operations["rejectOnboarding"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/onboarding/{tenantId}/request-info": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Request more information from the merchant */
+    post: operations["requestInfoOnboarding"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2571,6 +2657,43 @@ export interface components {
       items: components["schemas"]["SettlementStatementItem"][];
       createdAt: string;
       updatedAt: string;
+    };
+    MerchantOnboarding: {
+      id: string;
+      tenantId: string;
+      status: string;
+      legalName: string | null;
+      entityType: string | null;
+      registrationNumber: string | null;
+      country: string | null;
+      businessAddress: string | null;
+      website: string | null;
+      contactEmail: string | null;
+      industry: string | null;
+      mcc: string | null;
+      riskTier: string;
+      submittedAt: string | null;
+      reviewerId: string | null;
+      reviewNotes: string | null;
+      rejectionReason: string | null;
+      approvedAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+    OnboardingPolicySpec: {
+      industry: string | null;
+      mcc: string | null;
+      availabilityMode: string;
+      availabilityDelayDays: number | null;
+      reserveType: string;
+      reservePercentageBps: number | null;
+      reserveHoldDays: number | null;
+      reserveFixedCents: number | null;
+      payoutSchedule: string;
+      payoutMinCents: number | null;
+      reversalFunding: string;
+      allowNegative: boolean;
+      splittingEnabled: boolean;
     };
   };
   responses: never;
@@ -6431,6 +6554,199 @@ export interface operations {
         };
       };
       /** @description Settlement statement not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MerchantOnboarding"];
+        };
+      };
+      /** @description Onboarding not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  upsertOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          legalName?: string | null;
+          entityType?: string | null;
+          registrationNumber?: string | null;
+          country?: string | null;
+          businessAddress?: string | null;
+          /** Format: uri */
+          website?: string | null;
+          /** Format: email */
+          contactEmail?: string | null;
+          industry?: string | null;
+          mcc?: string | null;
+          /** @enum {string|null} */
+          riskTier?: "LOW" | "MEDIUM" | "HIGH" | null;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MerchantOnboarding"];
+        };
+      };
+    };
+  };
+  submitOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MerchantOnboarding"];
+        };
+      };
+      /** @description Onboarding not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  approveOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tenantId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MerchantOnboarding"] & {
+            policySpec: components["schemas"]["OnboardingPolicySpec"];
+          };
+        };
+      };
+      /** @description Onboarding not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  rejectOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tenantId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          reason: string;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MerchantOnboarding"];
+        };
+      };
+      /** @description Onboarding not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  requestInfoOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tenantId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          notes: string;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MerchantOnboarding"];
+        };
+      };
+      /** @description Onboarding not found */
       404: {
         headers: {
           [name: string]: unknown;

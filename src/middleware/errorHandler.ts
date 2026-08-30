@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
+import { OnboardingError } from "../lib/onboarding";
 
 export class AppError extends Error {
   constructor(
@@ -24,6 +25,11 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
       code: "VALIDATION_ERROR",
       details: err.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
     });
+    return;
+  }
+
+  if (err instanceof OnboardingError) {
+    res.status(err.statusCode).json({ error: err.message, code: err.code });
     return;
   }
 

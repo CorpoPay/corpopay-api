@@ -273,3 +273,15 @@ export const ReconciliationMatchStatusValues = ["UNMATCHED", "EXACT", "AMOUNT_DI
 
 export type SettlementStatementStatus = "DRAFT" | "FINALIZED" | "VOID";
 export const SettlementStatementStatusValues = ["DRAFT", "FINALIZED", "VOID"] as const;
+
+export type OnboardingStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "NEEDS_INFO";
+export const OnboardingStatusValues = [
+  "DRAFT",
+  "SUBMITTED",
+  "APPROVED",
+  "REJECTED",
+  "NEEDS_INFO",
+] as const;
+
+export type RiskTier = "LOW" | "MEDIUM" | "HIGH";
+export const RiskTierValues = ["LOW", "MEDIUM", "HIGH"] as const;
