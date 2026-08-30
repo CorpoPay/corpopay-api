@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.10.0...corpopay-api-v0.11.0) (2026-08-30)
+
+
+### Features
+
+* **settlement:** add settlement statements for tenant invoicing (PayFac Phase 7) ([69d0dcd](https://github.com/CorpoPay/corpopay-api/commit/69d0dcd648bcf5990a27e0b8b3515f93a1c99f4a))
+
 ## [0.10.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.9.0...corpopay-api-v0.10.0) (2026-08-27)
 
 
