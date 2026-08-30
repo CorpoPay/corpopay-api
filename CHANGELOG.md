@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.11.0...corpopay-api-v0.12.0) (2026-08-30)
+
+
+### Features
+
+* **onboarding:** add merchant onboarding/KYC/KYB gate defaulting the policy preset (PayFac Phase 8) ([bfb86b9](https://github.com/CorpoPay/corpopay-api/commit/bfb86b9a7685e67606f6c0757c8530697634d40c))
+
 ## [0.11.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.10.0...corpopay-api-v0.11.0) (2026-08-30)
 
 
