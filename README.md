@@ -142,6 +142,7 @@ Secrets come from environment variables only — never hardcode them.
 | `GET`      | `/admin/webhooks`                      |
 | `GET/PUT`  | `/admin/provider-health`               |
 | `GET/POST` | `/admin/simulation`                    |
+| `POST`     | `/admin/payouts/:id/execute` (manual payout) |
 
 ## Tech stack
 
