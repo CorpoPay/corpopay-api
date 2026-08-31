@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.12.0...corpopay-api-v0.13.0) (2026-08-31)
+
+
+### Features
+
+* **platform:** complete PayFac demo seed and add manual payout execution ([073b038](https://github.com/CorpoPay/corpopay-api/commit/073b038d2e5de142307a7d584347fe69d800d0df))
+
 ## [0.12.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.11.0...corpopay-api-v0.12.0) (2026-08-30)
 
 
