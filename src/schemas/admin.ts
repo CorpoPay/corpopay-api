@@ -8,3 +8,8 @@ export const providerHealthSchema = z.object({
 export const tenantStatusSchema = z.object({
   status: z.enum(["ACTIVE", "DISABLED"]),
 });
+
+/** Manual-payout execution (Morocco model): the admin confirms a bank transfer. */
+export const manualPayoutSchema = z.object({
+  externalReference: z.string().min(1).max(200),
+});

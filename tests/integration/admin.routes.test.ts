@@ -95,4 +95,72 @@ describe("admin routes", () => {
     expect(res.status).toBe(200);
     expect(mockUpsertHealth).toHaveBeenCalled();
   });
+
+  it("executes a manual payout without calling a provider", async () => {
+    prisma.payout.findUnique.mockResolvedValue({
+      id: "payout-1",
+      tenantId: "tenant-b",
+      status: "DRAFT",
+      amount: "100.00",
+    });
+    prisma.payout.findFirst.mockResolvedValue({
+      id: "payout-1",
+      tenantId: "tenant-b",
+      status: "DRAFT",
+      amount: "100.00",
+    });
+    prisma.ledgerEntry.groupBy.mockResolvedValue([]);
+    prisma.ledgerEntry.create.mockResolvedValue({
+      id: "le-1",
+      postingId: "posting-1",
+      account: "AVAILABLE",
+      direction: "DEBIT",
+      amount: "100.00",
+      balanceAfter: "-100.00",
+    });
+    prisma.payout.update.mockResolvedValue({
+      id: "payout-1",
+      status: "PAID",
+      providerTransferId: "bank-tr-001",
+    });
+
+    const res = await request(app)
+      .post("/admin/payouts/payout-1/execute")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ externalReference: "bank-tr-001" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("PAID");
+    expect(res.body.providerTransferId).toBe("bank-tr-001");
+    expect(prisma.payout.update).toHaveBeenCalled();
+  });
+
+  it("returns 404 when executing a missing payout", async () => {
+    prisma.payout.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .post("/admin/payouts/missing/execute")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ externalReference: "bank-tr-001" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe("PAYOUT_NOT_FOUND");
+  });
+
+  it("returns 409 when the payout is already paid", async () => {
+    prisma.payout.findUnique.mockResolvedValue({
+      id: "payout-1",
+      tenantId: "tenant-b",
+      status: "PAID",
+      amount: "100.00",
+    });
+
+    const res = await request(app)
+      .post("/admin/payouts/payout-1/execute")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ externalReference: "bank-tr-001" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("PAYOUT_ALREADY_PAID");
+  });
 });

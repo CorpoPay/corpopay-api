@@ -20,6 +20,26 @@ import { DEMO_TENANT_ID, demoWebhookEvents } from "./seed-demo-data";
 async function truncateDemoTenant(prisma: PrismaClient): Promise<void> {
   const tenantId = DEMO_TENANT_ID;
 
+  // PayFac settlement leaves first (PayoutItem → LedgerEntry is `Restrict`, so
+  // items must go before their ledger entries; Recovery → Dispute is `Cascade`).
+  await prisma.payoutItem.deleteMany({ where: { payout: { tenantId } } });
+  await prisma.recovery.deleteMany({ where: { dispute: { tenantId } } });
+  await prisma.split.deleteMany({ where: { tenantId } });
+  await prisma.reconciliationLine.deleteMany({ where: { report: { tenantId } } });
+  await prisma.settlementStatementItem.deleteMany({ where: { statement: { tenantId } } });
+  await prisma.ledgerEntry.deleteMany({ where: { tenantId } });
+
+  // PayFac settlement parents.
+  await prisma.payout.deleteMany({ where: { tenantId } });
+  await prisma.dispute.deleteMany({ where: { tenantId } });
+  await prisma.reconciliationReport.deleteMany({ where: { tenantId } });
+  await prisma.settlementStatement.deleteMany({ where: { tenantId } });
+  await prisma.splitParty.deleteMany({ where: { tenantId } });
+  await prisma.splitRule.deleteMany({ where: { tenantId } });
+  await prisma.settlementPolicy.deleteMany({ where: { tenantId } });
+  await prisma.feeSchedule.deleteMany({ where: { tenantId } });
+  await prisma.merchantOnboarding.deleteMany({ where: { tenantId } });
+
   // Children first — models that reference a parent which references the tenant.
   await prisma.billingEvent.deleteMany({ where: { subscription: { tenantId } } });
   await prisma.installmentCharge.deleteMany({ where: { agreement: { tenantId } } });

@@ -833,3 +833,703 @@ export function demoWebhookEvents(): Prisma.WebhookEventUncheckedCreateInput[] {
     },
   ];
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PayFac settlement layer (Phases 3–8) — the money-movement entities.
+//
+// The demo tenant is a Moroccan marketplace with a manual-payout model: VPS/
+// Payzone settles gross, Stripe Connect is international-only, so the platform
+// admin pays the tenant out by bank transfer (see `POST /admin/payouts/:id/execute`
+// in `src/routes/admin.ts`). The fee schedule (2.9%), rolling reserve (5%) and
+// MANUAL payout schedule below are explicit tenant overrides of the marketplace
+// preset, matching the deterministic ledger story in `demoLedgerEntries()`.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Fee schedule ───────────────────────────────────────────────────────────────
+
+export function demoFeeSchedules(): Prisma.FeeScheduleUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-fee-v1",
+      tenantId: DEMO_TENANT_ID,
+      version: 1,
+      name: "Standard 2.9%",
+      feeType: "PERCENTAGE",
+      flatCents: null,
+      percentageBps: 290, // 2.9%
+      perMethodCents: null,
+      tiersCents: null,
+      currency: "MAD",
+      isActive: true,
+      createdAt: demoDate(0),
+    },
+  ];
+}
+
+// ─── Settlement policy ──────────────────────────────────────────────────────────
+
+export function demoSettlementPolicies(): Prisma.SettlementPolicyUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-policy-v1",
+      tenantId: DEMO_TENANT_ID,
+      version: 1,
+      name: "Morocco manual payout",
+      industry: "marketplace",
+      mcc: "5262",
+      availabilityMode: "DELAY",
+      availabilityDelayDays: 2,
+      reserveType: "ROLLING",
+      reservePercentageBps: 500, // 5%
+      reserveHoldDays: 30,
+      reserveFixedCents: null,
+      payoutSchedule: "MANUAL",
+      payoutMinCents: null,
+      reversalFunding: "NET_FROM_AVAILABLE",
+      allowNegative: false,
+      splittingEnabled: true,
+      feeScheduleId: "demo-fee-v1",
+      isActive: true,
+      createdAt: demoDate(0),
+    },
+  ];
+}
+
+// ─── Merchant onboarding (KYC/KYB gate) ────────────────────────────────────────
+
+export function demoMerchantOnboardings(): Prisma.MerchantOnboardingUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-onboarding",
+      tenantId: DEMO_TENANT_ID,
+      status: "APPROVED",
+      legalName: "Demo Merchant SARL",
+      entityType: "corporation",
+      registrationNumber: "MA-000123",
+      country: "MA",
+      businessAddress: "Boulevard Zerktouni, Casablanca",
+      website: "https://demo.ma",
+      contactEmail: "compliance@demo.ma",
+      industry: "marketplace",
+      mcc: "5262",
+      riskTier: "MEDIUM",
+      submittedAt: demoDate(1),
+      reviewerId: "demo-user-admin",
+      reviewNotes: "Auto-approved demo tenant.",
+      rejectionReason: null,
+      approvedAt: demoDate(2),
+      createdAt: demoDate(1),
+    },
+  ];
+}
+
+// ─── Ledger (double-entry) ─────────────────────────────────────────────────────
+// A balanced, deterministic money story exercising every account and the
+// settlement lifecycle end-to-end (capture → settle → fee → reserve → release →
+// payout → split → refund → chargeback). `balanceAfter` is computed as the
+// running balance per account, so the audit snapshot is correct, not just
+// plausible. Amounts are centimes here and written to the MAD `Decimal(12,2)`
+// columns below.
+
+interface DemoLedgerLeg {
+  id: string;
+  account: Prisma.LedgerEntryUncheckedCreateInput["account"];
+  direction: Prisma.LedgerEntryUncheckedCreateInput["direction"];
+  amountCents: number;
+  partyId?: string | null;
+}
+
+interface DemoLedgerPosting {
+  postingId: string;
+  category: Prisma.LedgerEntryUncheckedCreateInput["category"];
+  sourceType: string | null;
+  sourceId: string | null;
+  debit: DemoLedgerLeg;
+  credit: DemoLedgerLeg;
+}
+
+export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
+  const postings: DemoLedgerPosting[] = [
+    // Capture #1 — 250.00 MAD (demo-intent-succeeded).
+    {
+      postingId: "demo-posting-capture-a",
+      category: "CAPTURE",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-succeeded",
+      debit: {
+        id: "demo-ledger-pending-a-dr",
+        account: "PENDING",
+        direction: "DEBIT",
+        amountCents: 25000,
+      },
+      credit: {
+        id: "demo-ledger-collected-a-cr",
+        account: "COLLECTED",
+        direction: "CREDIT",
+        amountCents: 25000,
+      },
+    },
+    // Settle: provider released the capture (PENDING → CASH).
+    {
+      postingId: "demo-posting-settle-a",
+      category: "ADJUSTMENT",
+      sourceType: null,
+      sourceId: null,
+      debit: {
+        id: "demo-ledger-cash-a-dr",
+        account: "CASH",
+        direction: "DEBIT",
+        amountCents: 25000,
+      },
+      credit: {
+        id: "demo-ledger-pending-a-cr",
+        account: "PENDING",
+        direction: "CREDIT",
+        amountCents: 25000,
+      },
+    },
+    // Fee 2.9% = 725c.
+    {
+      postingId: "demo-posting-fee-a",
+      category: "FEE",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-succeeded",
+      debit: {
+        id: "demo-ledger-fee-a-dr",
+        account: "COLLECTED",
+        direction: "DEBIT",
+        amountCents: 725,
+      },
+      credit: {
+        id: "demo-ledger-fees-a-cr",
+        account: "FEES",
+        direction: "CREDIT",
+        amountCents: 725,
+      },
+    },
+    // Rolling reserve 5% = 1250c.
+    {
+      postingId: "demo-posting-reserve-a",
+      category: "ADJUSTMENT",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-succeeded",
+      debit: {
+        id: "demo-ledger-reserve-a-dr",
+        account: "COLLECTED",
+        direction: "DEBIT",
+        amountCents: 1250,
+      },
+      credit: {
+        id: "demo-ledger-reserve-a-cr",
+        account: "RESERVE",
+        direction: "CREDIT",
+        amountCents: 1250,
+      },
+    },
+    // Release net (25000 − 725 − 1250 = 23025) → AVAILABLE.
+    {
+      postingId: "demo-posting-release-a",
+      category: "ADJUSTMENT",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-succeeded",
+      debit: {
+        id: "demo-ledger-collected-release-a-dr",
+        account: "COLLECTED",
+        direction: "DEBIT",
+        amountCents: 23025,
+      },
+      credit: {
+        id: "demo-ledger-ava-a-cr",
+        account: "AVAILABLE",
+        direction: "CREDIT",
+        amountCents: 23025,
+      },
+    },
+    // Capture #2 — 199.00 MAD (demo-intent-refunded-full).
+    {
+      postingId: "demo-posting-capture-b",
+      category: "CAPTURE",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-refunded-full",
+      debit: {
+        id: "demo-ledger-pending-b-dr",
+        account: "PENDING",
+        direction: "DEBIT",
+        amountCents: 19900,
+      },
+      credit: {
+        id: "demo-ledger-collected-b-cr",
+        account: "COLLECTED",
+        direction: "CREDIT",
+        amountCents: 19900,
+      },
+    },
+    {
+      postingId: "demo-posting-settle-b",
+      category: "ADJUSTMENT",
+      sourceType: null,
+      sourceId: null,
+      debit: {
+        id: "demo-ledger-cash-b-dr",
+        account: "CASH",
+        direction: "DEBIT",
+        amountCents: 19900,
+      },
+      credit: {
+        id: "demo-ledger-pending-b-cr",
+        account: "PENDING",
+        direction: "CREDIT",
+        amountCents: 19900,
+      },
+    },
+    // Fee 2.9% = 577c (rounded).
+    {
+      postingId: "demo-posting-fee-b",
+      category: "FEE",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-refunded-full",
+      debit: {
+        id: "demo-ledger-fee-b-dr",
+        account: "COLLECTED",
+        direction: "DEBIT",
+        amountCents: 577,
+      },
+      credit: {
+        id: "demo-ledger-fees-b-cr",
+        account: "FEES",
+        direction: "CREDIT",
+        amountCents: 577,
+      },
+    },
+    // Reserve 5% = 995c.
+    {
+      postingId: "demo-posting-reserve-b",
+      category: "ADJUSTMENT",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-refunded-full",
+      debit: {
+        id: "demo-ledger-reserve-b-dr",
+        account: "COLLECTED",
+        direction: "DEBIT",
+        amountCents: 995,
+      },
+      credit: {
+        id: "demo-ledger-reserve-b-cr",
+        account: "RESERVE",
+        direction: "CREDIT",
+        amountCents: 995,
+      },
+    },
+    // Release net (19900 − 577 − 995 = 18328) → AVAILABLE.
+    {
+      postingId: "demo-posting-release-b",
+      category: "ADJUSTMENT",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-refunded-full",
+      debit: {
+        id: "demo-ledger-collected-release-b-dr",
+        account: "COLLECTED",
+        direction: "DEBIT",
+        amountCents: 18328,
+      },
+      credit: {
+        id: "demo-ledger-ava-b-cr",
+        account: "AVAILABLE",
+        direction: "CREDIT",
+        amountCents: 18328,
+      },
+    },
+    // Payout (PAID) — drains cycle A's AVAILABLE 230.25 MAD.
+    {
+      postingId: "demo-posting-payout-a",
+      category: "PAYOUT",
+      sourceType: "payout",
+      sourceId: "demo-payout-paid",
+      debit: {
+        id: "demo-ledger-payout-a-dr",
+        account: "AVAILABLE",
+        direction: "DEBIT",
+        amountCents: 23025,
+      },
+      credit: {
+        id: "demo-ledger-paidout-cr",
+        account: "PAID_OUT",
+        direction: "CREDIT",
+        amountCents: 23025,
+      },
+    },
+    // Split — 50.00 MAD to the marketplace party (ON_USAGE: AVAILABLE → party AVAILABLE).
+    {
+      postingId: "demo-posting-split",
+      category: "SPLIT",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-succeeded",
+      debit: {
+        id: "demo-ledger-split-dr",
+        account: "AVAILABLE",
+        direction: "DEBIT",
+        amountCents: 5000,
+      },
+      credit: {
+        id: "demo-ledger-split-party-cr",
+        account: "AVAILABLE",
+        direction: "CREDIT",
+        amountCents: 5000,
+        partyId: "demo-party-marketplace",
+      },
+    },
+    // Refund — 25.00 MAD partial (reversal-funded from AVAILABLE).
+    {
+      postingId: "demo-posting-refund",
+      category: "REFUND",
+      sourceType: "refund",
+      sourceId: "demo-refund-partial",
+      debit: {
+        id: "demo-ledger-refund-dr",
+        account: "AVAILABLE",
+        direction: "DEBIT",
+        amountCents: 2500,
+      },
+      credit: {
+        id: "demo-ledger-refund-cash-cr",
+        account: "CASH",
+        direction: "CREDIT",
+        amountCents: 2500,
+      },
+    },
+    // Chargeback — 30.00 MAD dispute lost.
+    {
+      postingId: "demo-posting-chargeback",
+      category: "CHARGEBACK",
+      sourceType: "dispute",
+      sourceId: "demo-dispute-1",
+      debit: {
+        id: "demo-ledger-chargeback-dr",
+        account: "AVAILABLE",
+        direction: "DEBIT",
+        amountCents: 3000,
+      },
+      credit: {
+        id: "demo-ledger-chargeback-cash-cr",
+        account: "CASH",
+        direction: "CREDIT",
+        amountCents: 3000,
+      },
+    },
+  ];
+
+  const balances = new Map<string, number>();
+  const rows: Prisma.LedgerEntryUncheckedCreateInput[] = [];
+  postings.forEach((posting, index) => {
+    // Fixed, increasing timestamp per posting (chronological money movement,
+    // no `Date.now()` — keeps the seed deterministic and statement-windowable).
+    const createdAt = demoDate(10 + index);
+    for (const leg of [posting.debit, posting.credit]) {
+      const key = `${leg.account}:${leg.partyId ?? ""}`;
+      const delta = leg.direction === "CREDIT" ? leg.amountCents : -leg.amountCents;
+      const after = (balances.get(key) ?? 0) + delta;
+      balances.set(key, after);
+      rows.push({
+        id: leg.id,
+        postingId: posting.postingId,
+        tenantId: DEMO_TENANT_ID,
+        account: leg.account,
+        direction: leg.direction,
+        category: posting.category,
+        amount: leg.amountCents / 100,
+        currency: "MAD",
+        balanceAfter: after / 100,
+        sourceType: posting.sourceType,
+        sourceId: posting.sourceId,
+        partyId: leg.partyId ?? null,
+        createdAt,
+      });
+    }
+  });
+  return rows;
+}
+
+// ─── Payouts + items ────────────────────────────────────────────────────────────
+// `demo-payout-paid` drained cycle A (230.25 MAD); `demo-payout-draft` snapshots
+// cycle B's AVAILABLE (183.28 MAD) but has not moved money yet.
+
+export function demoPayouts(): Prisma.PayoutUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-payout-paid",
+      tenantId: DEMO_TENANT_ID,
+      amount: 230.25,
+      currency: "MAD",
+      status: "PAID",
+      provider: "VPS",
+      providerTransferId: "bank-tr-demo-001",
+      feeAmount: 0,
+      method: "BANK_TRANSFER",
+      idempotencyKey: "demo-payout-paid-key",
+      createdAt: demoDate(20),
+    },
+    {
+      id: "demo-payout-draft",
+      tenantId: DEMO_TENANT_ID,
+      amount: 183.28,
+      currency: "MAD",
+      status: "DRAFT",
+      provider: "VPS",
+      providerTransferId: null,
+      feeAmount: 0,
+      method: "BANK_TRANSFER",
+      idempotencyKey: "demo-payout-draft-key",
+      createdAt: demoDate(21),
+    },
+  ];
+}
+
+export function demoPayoutItems(): Prisma.PayoutItemUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-payout-item-paid",
+      payoutId: "demo-payout-paid",
+      ledgerEntryId: "demo-ledger-ava-a-cr",
+      amount: 230.25,
+    },
+    {
+      id: "demo-payout-item-draft",
+      payoutId: "demo-payout-draft",
+      ledgerEntryId: "demo-ledger-ava-b-cr",
+      amount: 183.28,
+    },
+  ];
+}
+
+// ─── Dispute + recovery ─────────────────────────────────────────────────────────
+
+export function demoDisputes(): Prisma.DisputeUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-dispute-1",
+      tenantId: DEMO_TENANT_ID,
+      paymentIntentId: "demo-intent-succeeded",
+      provider: "VPS",
+      providerDisputeId: "dp_demo_001",
+      status: "LOST",
+      amount: 30.0,
+      feeAmount: 0,
+      currency: "MAD",
+      reason: "Product not received",
+      evidenceDueDate: demoDate(28),
+      createdAt: demoDate(22),
+    },
+  ];
+}
+
+export function demoRecoveries(): Prisma.RecoveryUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-recovery-1",
+      tenantId: DEMO_TENANT_ID,
+      disputeId: "demo-dispute-1",
+      status: "PENDING", // the uncovered clawback the tenant owes
+      amount: 30.0,
+      currency: "MAD",
+      createdAt: demoDate(22),
+    },
+  ];
+}
+
+// ─── Splits: parties + rule + executed split ────────────────────────────────────
+
+export function demoSplitParties(): Prisma.SplitPartyUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-party-marketplace",
+      tenantId: DEMO_TENANT_ID,
+      slug: "marketplace",
+      name: "Marketplace Co.",
+      type: "SUB_MERCHANT",
+      isActive: true,
+      createdAt: demoDate(0),
+    },
+    {
+      id: "demo-party-vendor",
+      tenantId: DEMO_TENANT_ID,
+      slug: "vendor",
+      name: "Vendor SARL",
+      type: "VENDOR",
+      isActive: true,
+      createdAt: demoDate(0),
+    },
+  ];
+}
+
+export function demoSplitRules(): Prisma.SplitRuleUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-split-rule-1",
+      tenantId: DEMO_TENANT_ID,
+      name: "Marketplace 50/50",
+      trigger: "ON_USAGE",
+      shares: [{ partyId: "demo-party-marketplace", shareBps: 5000 }],
+      isActive: true,
+      createdAt: demoDate(0),
+    },
+  ];
+}
+
+export function demoSplits(): Prisma.SplitUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-split-1",
+      tenantId: DEMO_TENANT_ID,
+      splitRuleId: "demo-split-rule-1",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-succeeded",
+      partyId: "demo-party-marketplace",
+      amount: 50.0,
+      currency: "MAD",
+      status: "SETTLED",
+      heldUntil: null,
+      createdAt: demoDate(19),
+    },
+  ];
+}
+
+// ─── Reconciliation (three-way match) ───────────────────────────────────────────
+
+export function demoReconciliationReports(): Prisma.ReconciliationReportUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-recon-report-1",
+      tenantId: DEMO_TENANT_ID,
+      provider: "VPS",
+      currency: "MAD",
+      periodStart: demoDate(1),
+      periodEnd: demoDate(30),
+      status: "MATCHED",
+      summary: { matched: 2, unmatched: 1, breaks: 0, externalCents: 45900, internalCents: 45900 },
+      createdAt: demoDate(30),
+    },
+  ];
+}
+
+export function demoReconciliationLines(): Prisma.ReconciliationLineUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-recon-line-1",
+      reportId: "demo-recon-report-1",
+      reference: "vps-tx-succeeded",
+      amount: 250.0,
+      currency: "MAD",
+      status: "EXACT",
+      matchedAmount: 250.0,
+      differenceAmount: 0,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-recon-line-2",
+      reportId: "demo-recon-report-1",
+      reference: "vps-tx-refunded-full",
+      amount: 199.0,
+      currency: "MAD",
+      status: "EXACT",
+      matchedAmount: 199.0,
+      differenceAmount: 0,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-recon-line-3",
+      reportId: "demo-recon-report-1",
+      reference: "vps-tx-orphan",
+      amount: 10.0,
+      currency: "MAD",
+      status: "UNMATCHED",
+      matchedAmount: null,
+      differenceAmount: null,
+      createdAt: demoDate(30),
+    },
+  ];
+}
+
+// ─── Settlement statement (invoicing data — the tenant sends the email) ─────────
+
+export function demoSettlementStatements(): Prisma.SettlementStatementUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-statement-1",
+      tenantId: DEMO_TENANT_ID,
+      periodStart: demoDate(1),
+      periodEnd: demoDate(30),
+      currency: "MAD",
+      status: "FINALIZED",
+      openingBalance: 0,
+      // AVAILABLE running balance at period end (matches `getTenantLedger`).
+      closingBalance: 128.28,
+      netAmount: 128.28,
+      finalizedAt: demoDate(30),
+      createdAt: demoDate(30),
+    },
+  ];
+}
+
+export function demoSettlementStatementItems(): Prisma.SettlementStatementItemUncheckedCreateInput[] {
+  // One item per LedgerCategory present in the window, sorted alphabetically and
+  // carrying the category's gross DEBIT volume + posting count — the same shape
+  // `buildStatement` emits.
+  return [
+    {
+      id: "demo-statement-item-adjustment",
+      statementId: "demo-statement-1",
+      category: "ADJUSTMENT",
+      amount: 884.98,
+      entryCount: 6,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-statement-item-capture",
+      statementId: "demo-statement-1",
+      category: "CAPTURE",
+      amount: 449.0,
+      entryCount: 2,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-statement-item-chargeback",
+      statementId: "demo-statement-1",
+      category: "CHARGEBACK",
+      amount: 30.0,
+      entryCount: 1,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-statement-item-fee",
+      statementId: "demo-statement-1",
+      category: "FEE",
+      amount: 13.02,
+      entryCount: 2,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-statement-item-payout",
+      statementId: "demo-statement-1",
+      category: "PAYOUT",
+      amount: 230.25,
+      entryCount: 1,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-statement-item-refund",
+      statementId: "demo-statement-1",
+      category: "REFUND",
+      amount: 25.0,
+      entryCount: 1,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-statement-item-split",
+      statementId: "demo-statement-1",
+      category: "SPLIT",
+      amount: 50.0,
+      entryCount: 1,
+      createdAt: demoDate(30),
+    },
+  ];
+}

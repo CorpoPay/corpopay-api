@@ -15,10 +15,10 @@
  * same way `prisma/seed.ts` does.
  */
 
+import crypto from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import {
   PrismaClient,
   type PrismaClient as PrismaClientType,
@@ -28,14 +28,29 @@ import {
   DEMO_TENANT_ID,
   demoApiKeys,
   demoBillingEvents,
+  demoDisputes,
+  demoFeeSchedules,
   demoInstallmentAgreement,
   demoInstallmentCharges,
   demoInstallmentPlans,
+  demoLedgerEntries,
+  demoMerchantOnboardings,
   demoPaymentIntents,
   demoPaymentLinks,
+  demoPayoutItems,
+  demoPayouts,
   demoProviderConfigs,
   demoProviderTransactions,
+  demoReconciliationLines,
+  demoReconciliationReports,
+  demoRecoveries,
   demoRefunds,
+  demoSettlementPolicies,
+  demoSettlementStatementItems,
+  demoSettlementStatements,
+  demoSplitParties,
+  demoSplitRules,
+  demoSplits,
   demoSubscriptions,
   demoTenant,
   demoUsers,
@@ -237,6 +252,156 @@ export async function seedDemoData(prisma: PrismaClientType): Promise<void> {
     });
   }
   console.log(`✅ ${demoWebhookEvents().length} webhook events upserted.`);
+
+  // ── PayFac settlement layer ────────────────────────────────────────────────
+  // Insert order follows FK dependencies: fee schedule → policy; split parties
+  // → ledger (partyId) → split; payout + ledger → payout item; dispute → recovery;
+  // report → line; statement → item.
+
+  for (const fee of demoFeeSchedules()) {
+    await prisma.feeSchedule.upsert({
+      where: { tenantId_version: { tenantId: DEMO_TENANT_ID, version: fee.version } },
+      create: fee,
+      update: { name: fee.name, feeType: fee.feeType, percentageBps: fee.percentageBps },
+    });
+  }
+  console.log(`✅ ${demoFeeSchedules().length} fee schedule(s) upserted.`);
+
+  for (const policy of demoSettlementPolicies()) {
+    await prisma.settlementPolicy.upsert({
+      where: { tenantId_version: { tenantId: DEMO_TENANT_ID, version: policy.version } },
+      create: policy,
+      update: { name: policy.name, payoutSchedule: policy.payoutSchedule },
+    });
+  }
+  console.log(`✅ ${demoSettlementPolicies().length} settlement polic(ies) upserted.`);
+
+  for (const onboarding of demoMerchantOnboardings()) {
+    await prisma.merchantOnboarding.upsert({
+      where: { tenantId: DEMO_TENANT_ID },
+      create: onboarding,
+      update: { status: onboarding.status },
+    });
+  }
+  console.log(`✅ ${demoMerchantOnboardings().length} merchant onboarding(s) upserted.`);
+
+  for (const party of demoSplitParties()) {
+    await prisma.splitParty.upsert({
+      where: { tenantId_slug: { tenantId: DEMO_TENANT_ID, slug: party.slug } },
+      create: party,
+      update: { name: party.name },
+    });
+  }
+  console.log(`✅ ${demoSplitParties().length} split part(ies) upserted.`);
+
+  for (const rule of demoSplitRules()) {
+    await prisma.splitRule.upsert({
+      where: { id: rule.id },
+      create: rule,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoSplitRules().length} split rule(s) upserted.`);
+
+  for (const entry of demoLedgerEntries()) {
+    await prisma.ledgerEntry.upsert({
+      where: { id: entry.id },
+      create: entry,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoLedgerEntries().length} ledger entries upserted.`);
+
+  for (const split of demoSplits()) {
+    await prisma.split.upsert({
+      where: { id: split.id },
+      create: split,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoSplits().length} split(s) upserted.`);
+
+  for (const payout of demoPayouts()) {
+    await prisma.payout.upsert({
+      where: {
+        tenantId_idempotencyKey: {
+          tenantId: DEMO_TENANT_ID,
+          idempotencyKey: payout.idempotencyKey,
+        },
+      },
+      create: payout,
+      update: { status: payout.status },
+    });
+  }
+  console.log(`✅ ${demoPayouts().length} payout(s) upserted.`);
+
+  for (const item of demoPayoutItems()) {
+    await prisma.payoutItem.upsert({
+      where: { id: item.id },
+      create: item,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoPayoutItems().length} payout item(s) upserted.`);
+
+  for (const dispute of demoDisputes()) {
+    await prisma.dispute.upsert({
+      where: {
+        tenantId_providerDisputeId: {
+          tenantId: DEMO_TENANT_ID,
+          providerDisputeId: dispute.providerDisputeId,
+        },
+      },
+      create: dispute,
+      update: { status: dispute.status },
+    });
+  }
+  console.log(`✅ ${demoDisputes().length} dispute(s) upserted.`);
+
+  for (const recovery of demoRecoveries()) {
+    await prisma.recovery.upsert({
+      where: { disputeId: recovery.disputeId },
+      create: recovery,
+      update: { status: recovery.status },
+    });
+  }
+  console.log(`✅ ${demoRecoveries().length} recover(ies) upserted.`);
+
+  for (const report of demoReconciliationReports()) {
+    await prisma.reconciliationReport.upsert({
+      where: { id: report.id },
+      create: report,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoReconciliationReports().length} reconciliation report(s) upserted.`);
+
+  for (const line of demoReconciliationLines()) {
+    await prisma.reconciliationLine.upsert({
+      where: { id: line.id },
+      create: line,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoReconciliationLines().length} reconciliation line(s) upserted.`);
+
+  for (const statement of demoSettlementStatements()) {
+    await prisma.settlementStatement.upsert({
+      where: { id: statement.id },
+      create: statement,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoSettlementStatements().length} settlement statement(s) upserted.`);
+
+  for (const item of demoSettlementStatementItems()) {
+    await prisma.settlementStatementItem.upsert({
+      where: { id: item.id },
+      create: item,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoSettlementStatementItems().length} settlement statement item(s) upserted.`);
 
   console.log("✅ Demo seed complete.");
 }

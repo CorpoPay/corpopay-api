@@ -8,10 +8,11 @@ import { Provider } from "@/generated/prisma/client";
 import type { VpsCredentials } from "../adapters/types";
 import { VpsAdapter } from "../adapters/vps.adapter";
 import { decryptCredentials } from "../lib/encryption";
+import { markPayoutPaid } from "../lib/payout-db";
 import { prisma } from "../lib/prisma";
 import { requireAdmin, requireAuth, requireSuperAdmin } from "../middleware/auth";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
-import { providerHealthSchema } from "../schemas/admin";
+import { manualPayoutSchema, providerHealthSchema } from "../schemas/admin";
 
 const router = Router();
 
@@ -199,6 +200,35 @@ router.put(
     });
 
     res.json(record);
+  }),
+);
+
+// ─── POST /admin/payouts/:id/execute ────────────────────────────────────────
+// Manual-payout execution (Morocco model): VPS/Payzone settles gross but has no
+// disbursement API, so a CorpoPay admin performs the bank transfer out-of-band
+// and records it here. Marks the payout PAID and posts the AVAILABLE → PAID_OUT
+// ledger movement WITHOUT calling any provider.
+
+router.post(
+  "/payouts/:id/execute",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { externalReference } = manualPayoutSchema.parse(req.body);
+
+    const payout = await prisma.payout.findUnique({ where: { id: req.params.id } });
+    if (!payout) throw new AppError(404, "PAYOUT_NOT_FOUND", "Payout not found");
+    if (payout.status === "PAID") {
+      throw new AppError(409, "PAYOUT_ALREADY_PAID", "Payout already paid");
+    }
+
+    const updated = await markPayoutPaid(payout.tenantId, payout.id, externalReference);
+    res.json({
+      id: updated.id,
+      status: updated.status,
+      providerTransferId: updated.providerTransferId,
+      externalReference,
+    });
   }),
 );
 
