@@ -61,7 +61,7 @@ These are the things reviewers will check first:
    ```bash
    npm run contract:generate
    ```
-   The web repo consumes the generated types via the published `@corpopay/contract` package.
+   The web repo consumes the generated types via a vendored copy of `contract/` (kept in sync by its CI `contract:sync` drift gate).
 
 ## Pull request process
 
