@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Provider } from "@/generated/prisma/client";
-import { SafeUrl } from "./common";
+import { SafeRedirectUrl, SafeUrl } from "./common";
 
 export const createIntentSchema = z.object({
   provider: z.nativeEnum(Provider),
@@ -8,10 +8,10 @@ export const createIntentSchema = z.object({
   currency: z.string().default("MAD"),
   reference: z.string().min(1).max(100), // M-1: cap length
   description: z.string().min(1).max(500), // M-1: cap length
-  returnUrl: SafeUrl, // H-6: SSRF guard
-  successUrl: SafeUrl.optional(),
-  cancelUrl: SafeUrl.optional(),
-  failureUrl: SafeUrl.optional(),
+  returnUrl: SafeRedirectUrl, // H-6: browser redirect — allows localhost for local dev
+  successUrl: SafeRedirectUrl.optional(),
+  cancelUrl: SafeRedirectUrl.optional(),
+  failureUrl: SafeRedirectUrl.optional(),
   webhookUrl: SafeUrl.optional(), // overrides default callback URL
   customerEmail: z.string().email().optional(),
   customerName: z.string().optional(),

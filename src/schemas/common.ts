@@ -22,6 +22,28 @@ function safeUrl(val: string): boolean {
   }
 }
 
+// Loopback hosts that may use plain HTTP — used for browser *redirect* URLs
+// (returnUrl / successUrl / cancelUrl / failureUrl) so merchants can test their
+// integration against a local `next dev` / tunnel. Server-side callback URLs
+// (webhookUrl, notifyWebhookUrl) keep the stricter SafeUrl above.
+const LOOPBACK_HOSTNAME = /^(localhost|127\.\d+\.\d+\.\d+|\[?::1\]?)$/i;
+
+function safeRedirectUrl(val: string): boolean {
+  try {
+    const u = new URL(val);
+    if (u.protocol === "https:") return !PRIVATE_HOSTNAME.test(u.hostname);
+    // Plain HTTP is allowed only for loopback (local development).
+    if (u.protocol === "http:") return LOOPBACK_HOSTNAME.test(u.hostname);
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export const SafeUrl = z.string().url().refine(safeUrl, {
   message: "URL must be HTTPS and not a private/loopback address",
+});
+
+export const SafeRedirectUrl = z.string().url().refine(safeRedirectUrl, {
+  message: "URL must be HTTPS (or HTTP on localhost for local development)",
 });
