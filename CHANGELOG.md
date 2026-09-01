@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.13.0...corpopay-api-v0.14.0) (2026-09-01)
+
+
+### Features
+
+* **admin:** add cross-tenant settlement lists and complete contract ([314a7cc](https://github.com/CorpoPay/corpopay-api/commit/314a7ccc6926afd52ebe3e82ce8d748af50ee12e))
+
 ## [0.13.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.12.0...corpopay-api-v0.13.0) (2026-08-31)
 
 
