@@ -9626,7 +9626,7 @@
         }
       }
     },
-    "/onboarding/{tenantId}/approve": {
+    "/admin/onboarding/{tenantId}/approve": {
       "post": {
         "operationId": "approveOnboarding",
         "summary": "Approve a submitted onboarding and resolve its policy preset",
@@ -9676,7 +9676,7 @@
         }
       }
     },
-    "/onboarding/{tenantId}/reject": {
+    "/admin/onboarding/{tenantId}/reject": {
       "post": {
         "operationId": "rejectOnboarding",
         "summary": "Reject a submitted onboarding",
@@ -9730,7 +9730,7 @@
         }
       }
     },
-    "/onboarding/{tenantId}/request-info": {
+    "/admin/onboarding/{tenantId}/request-info": {
       "post": {
         "operationId": "requestInfoOnboarding",
         "summary": "Request more information from the merchant",
@@ -9780,6 +9780,597 @@
           },
           "404": {
             "description": "Onboarding not found"
+          }
+        }
+      }
+    },
+    "/admin/payouts/{id}/execute": {
+      "post": {
+        "operationId": "adminExecutePayout",
+        "summary": "Record a manual payout as paid",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "externalReference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": ["externalReference"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "providerTransferId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "externalReference": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "status", "providerTransferId", "externalReference"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payout not found"
+          }
+        }
+      }
+    },
+    "/admin/payouts": {
+      "get": {
+        "operationId": "adminListPayouts",
+        "summary": "List payouts across all tenants",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/Payout"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "tenantId": {
+                                "type": "string"
+                              },
+                              "tenantName": {
+                                "type": "string"
+                              },
+                              "tenantSlug": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["tenantId", "tenantName", "tenantSlug"]
+                          }
+                        ]
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/onboarding": {
+      "get": {
+        "operationId": "adminListOnboarding",
+        "summary": "List onboarding applications across all tenants",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/MerchantOnboarding"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "tenantName": {
+                                "type": "string"
+                              },
+                              "tenantSlug": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["tenantName", "tenantSlug"]
+                          }
+                        ]
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/disputes": {
+      "get": {
+        "operationId": "adminListDisputes",
+        "summary": "List disputes across all tenants",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/Dispute"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "tenantId": {
+                                "type": "string"
+                              },
+                              "tenantName": {
+                                "type": "string"
+                              },
+                              "tenantSlug": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["tenantId", "tenantName", "tenantSlug"]
+                          }
+                        ]
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/reconciliation-reports": {
+      "get": {
+        "operationId": "adminListReconciliationReports",
+        "summary": "List reconciliation reports across all tenants",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "type": "string"
+                          },
+                          "tenantName": {
+                            "type": "string"
+                          },
+                          "tenantSlug": {
+                            "type": "string"
+                          },
+                          "provider": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "periodStart": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "periodEnd": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "object",
+                            "nullable": true,
+                            "additionalProperties": {
+                              "nullable": true
+                            }
+                          },
+                          "lineCount": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "tenantId",
+                          "tenantName",
+                          "tenantSlug",
+                          "provider",
+                          "currency",
+                          "periodStart",
+                          "periodEnd",
+                          "status",
+                          "summary",
+                          "lineCount",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/settlement-statements": {
+      "get": {
+        "operationId": "adminListSettlementStatements",
+        "summary": "List settlement statements across all tenants",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "type": "string"
+                          },
+                          "tenantName": {
+                            "type": "string"
+                          },
+                          "tenantSlug": {
+                            "type": "string"
+                          },
+                          "periodStart": {
+                            "type": "string"
+                          },
+                          "periodEnd": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "openingBalanceCents": {
+                            "type": "integer"
+                          },
+                          "closingBalanceCents": {
+                            "type": "integer"
+                          },
+                          "netCents": {
+                            "type": "integer"
+                          },
+                          "finalizedAt": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "itemCount": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "tenantId",
+                          "tenantName",
+                          "tenantSlug",
+                          "periodStart",
+                          "periodEnd",
+                          "currency",
+                          "status",
+                          "openingBalanceCents",
+                          "closingBalanceCents",
+                          "netCents",
+                          "finalizedAt",
+                          "itemCount",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
           }
         }
       }

@@ -1,6 +1,6 @@
 import { extendZodWithOpenApi, OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-import { providerHealthSchema, tenantStatusSchema } from "./schemas/admin";
+import { manualPayoutSchema, providerHealthSchema, tenantStatusSchema } from "./schemas/admin";
 import { createApiKeySchema } from "./schemas/api-keys";
 import {
   forgotPasswordSchema,
@@ -3696,7 +3696,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/onboarding/{tenantId}/approve",
+  path: "/admin/onboarding/{tenantId}/approve",
   operationId: "approveOnboarding",
   summary: "Approve a submitted onboarding and resolve its policy preset",
   tags: ["Onboarding"],
@@ -3717,7 +3717,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/onboarding/{tenantId}/reject",
+  path: "/admin/onboarding/{tenantId}/reject",
   operationId: "rejectOnboarding",
   summary: "Reject a submitted onboarding",
   tags: ["Onboarding"],
@@ -3734,7 +3734,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/onboarding/{tenantId}/request-info",
+  path: "/admin/onboarding/{tenantId}/request-info",
   operationId: "requestInfoOnboarding",
   summary: "Request more information from the merchant",
   tags: ["Onboarding"],
@@ -3746,5 +3746,199 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: MerchantOnboarding } } },
     404: { description: "Onboarding not found" },
+  },
+});
+
+// ─── Admin settlement surface (cross-tenant) ───────────────────────────────────
+
+// Manual-payout execution (Morocco model): CorpoPay admin confirms the bank
+// transfer out-of-band and marks the payout PAID (no provider disbursement API).
+registry.registerPath({
+  method: "post",
+  path: "/admin/payouts/{id}/execute",
+  operationId: "adminExecutePayout",
+  summary: "Record a manual payout as paid",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { "application/json": { schema: manualPayoutSchema } } },
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: {
+        "application/json": {
+          schema: z.object({
+            id: z.string(),
+            status: z.string(),
+            providerTransferId: z.string().nullable(),
+            externalReference: z.string(),
+          }),
+        },
+      },
+    },
+    404: { description: "Payout not found" },
+  },
+});
+
+const AdminPayoutItem = Payout.extend({
+  tenantId: z.string(),
+  tenantName: z.string(),
+  tenantSlug: z.string(),
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/admin/payouts",
+  operationId: "adminListPayouts",
+  summary: "List payouts across all tenants",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      status: z.string().optional(),
+      page: z.string().optional(),
+      limit: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: pageOf(AdminPayoutItem) } },
+    },
+  },
+});
+
+const AdminOnboardingItem = MerchantOnboarding.extend({
+  tenantName: z.string(),
+  tenantSlug: z.string(),
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/admin/onboarding",
+  operationId: "adminListOnboarding",
+  summary: "List onboarding applications across all tenants",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      status: z.string().optional(),
+      page: z.string().optional(),
+      limit: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: pageOf(AdminOnboardingItem) } },
+    },
+  },
+});
+
+const AdminDisputeItem = Dispute.extend({
+  tenantId: z.string(),
+  tenantName: z.string(),
+  tenantSlug: z.string(),
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/admin/disputes",
+  operationId: "adminListDisputes",
+  summary: "List disputes across all tenants",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      status: z.string().optional(),
+      page: z.string().optional(),
+      limit: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: pageOf(AdminDisputeItem) } },
+    },
+  },
+});
+
+const AdminReconciliationItem = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  tenantName: z.string(),
+  tenantSlug: z.string(),
+  provider: z.string(),
+  currency: z.string(),
+  periodStart: z.string().nullable(),
+  periodEnd: z.string().nullable(),
+  status: z.string(),
+  summary: z.record(z.unknown()).nullable(),
+  lineCount: z.number().int(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/admin/reconciliation-reports",
+  operationId: "adminListReconciliationReports",
+  summary: "List reconciliation reports across all tenants",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      status: z.string().optional(),
+      page: z.string().optional(),
+      limit: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: pageOf(AdminReconciliationItem) } },
+    },
+  },
+});
+
+const AdminStatementItem = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  tenantName: z.string(),
+  tenantSlug: z.string(),
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  currency: z.string(),
+  status: z.string(),
+  openingBalanceCents: z.number().int(),
+  closingBalanceCents: z.number().int(),
+  netCents: z.number().int(),
+  finalizedAt: z.string().nullable(),
+  itemCount: z.number().int(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/admin/settlement-statements",
+  operationId: "adminListSettlementStatements",
+  summary: "List settlement statements across all tenants",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      status: z.string().optional(),
+      page: z.string().optional(),
+      limit: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: pageOf(AdminStatementItem) } },
+    },
   },
 });

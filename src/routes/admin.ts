@@ -8,6 +8,7 @@ import { Provider } from "@/generated/prisma/client";
 import type { VpsCredentials } from "../adapters/types";
 import { VpsAdapter } from "../adapters/vps.adapter";
 import { decryptCredentials } from "../lib/encryption";
+import { madToCentimes } from "../lib/money";
 import { markPayoutPaid } from "../lib/payout-db";
 import { prisma } from "../lib/prisma";
 import { requireAdmin, requireAuth, requireSuperAdmin } from "../middleware/auth";
@@ -228,6 +229,259 @@ router.post(
       status: updated.status,
       providerTransferId: updated.providerTransferId,
       externalReference,
+    });
+  }),
+);
+
+// ─── Admin settlement read surface (cross-tenant) ───────────────────────────────
+
+/** Shared list pagination: page/limit from query, bounded and 1-indexed. */
+function parseAdminPagination(req: { query: Record<string, unknown> }) {
+  const { page = "1", limit = "20" } = req.query as Record<string, string>;
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+  return { skip: (pageNum - 1) * limitNum, take: limitNum, page: pageNum, limit: limitNum };
+}
+
+// GET /admin/payouts — cross-tenant payout list (the manual-payout review queue).
+router.get(
+  "/payouts",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { status } = req.query as { status?: string };
+    const { skip, take, page, limit } = parseAdminPagination(req);
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    const [rows, total] = await Promise.all([
+      prisma.payout.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: { tenant: { select: { name: true, slug: true } }, items: true },
+      }),
+      prisma.payout.count({ where }),
+    ]);
+    res.json({
+      data: rows.map((p) => ({
+        id: p.id,
+        tenantId: p.tenantId,
+        tenantName: p.tenant.name,
+        tenantSlug: p.tenant.slug,
+        status: p.status,
+        provider: p.provider,
+        method: p.method,
+        currency: p.currency,
+        amountCents: madToCentimes(p.amount),
+        feeCents: madToCentimes(p.feeAmount),
+        providerTransferId: p.providerTransferId,
+        idempotencyKey: p.idempotencyKey,
+        items: p.items.map((item) => ({
+          id: item.id,
+          ledgerEntryId: item.ledgerEntryId,
+          amountCents: madToCentimes(item.amount),
+        })),
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+    });
+  }),
+);
+
+// GET /admin/onboarding — cross-tenant onboarding review queue.
+router.get(
+  "/onboarding",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { status } = req.query as { status?: string };
+    const { skip, take, page, limit } = parseAdminPagination(req);
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    const [rows, total] = await Promise.all([
+      prisma.merchantOnboarding.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { updatedAt: "desc" },
+        include: { tenant: { select: { name: true, slug: true } } },
+      }),
+      prisma.merchantOnboarding.count({ where }),
+    ]);
+    res.json({
+      data: rows.map((o) => ({
+        id: o.id,
+        tenantId: o.tenantId,
+        tenantName: o.tenant.name,
+        tenantSlug: o.tenant.slug,
+        status: o.status,
+        legalName: o.legalName,
+        entityType: o.entityType,
+        registrationNumber: o.registrationNumber,
+        country: o.country,
+        businessAddress: o.businessAddress,
+        website: o.website,
+        contactEmail: o.contactEmail,
+        industry: o.industry,
+        mcc: o.mcc,
+        riskTier: o.riskTier,
+        submittedAt: o.submittedAt,
+        reviewerId: o.reviewerId,
+        reviewNotes: o.reviewNotes,
+        rejectionReason: o.rejectionReason,
+        approvedAt: o.approvedAt,
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+    });
+  }),
+);
+
+// GET /admin/disputes — cross-tenant dispute list.
+router.get(
+  "/disputes",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { status } = req.query as { status?: string };
+    const { skip, take, page, limit } = parseAdminPagination(req);
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    const [rows, total] = await Promise.all([
+      prisma.dispute.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: { tenant: { select: { name: true, slug: true } }, recovery: true },
+      }),
+      prisma.dispute.count({ where }),
+    ]);
+    res.json({
+      data: rows.map((d) => ({
+        id: d.id,
+        tenantId: d.tenantId,
+        tenantName: d.tenant.name,
+        tenantSlug: d.tenant.slug,
+        status: d.status,
+        provider: d.provider,
+        providerDisputeId: d.providerDisputeId,
+        paymentIntentId: d.paymentIntentId,
+        amountCents: madToCentimes(d.amount),
+        feeCents: madToCentimes(d.feeAmount),
+        currency: d.currency,
+        reason: d.reason,
+        evidenceDueDate: d.evidenceDueDate,
+        recovery: d.recovery
+          ? {
+              id: d.recovery.id,
+              status: d.recovery.status,
+              amountCents: madToCentimes(d.recovery.amount),
+              currency: d.recovery.currency,
+              createdAt: d.recovery.createdAt,
+            }
+          : null,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+    });
+  }),
+);
+
+// GET /admin/reconciliation-reports — cross-tenant reconciliation list.
+router.get(
+  "/reconciliation-reports",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { status } = req.query as { status?: string };
+    const { skip, take, page, limit } = parseAdminPagination(req);
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    const [rows, total] = await Promise.all([
+      prisma.reconciliationReport.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: { tenant: { select: { name: true, slug: true } }, lines: true },
+      }),
+      prisma.reconciliationReport.count({ where }),
+    ]);
+    res.json({
+      data: rows.map((r) => ({
+        id: r.id,
+        tenantId: r.tenantId,
+        tenantName: r.tenant.name,
+        tenantSlug: r.tenant.slug,
+        provider: r.provider,
+        currency: r.currency,
+        periodStart: r.periodStart,
+        periodEnd: r.periodEnd,
+        status: r.status,
+        summary: r.summary,
+        lineCount: r.lines.length,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+    });
+  }),
+);
+
+// GET /admin/settlement-statements — cross-tenant statements list.
+router.get(
+  "/settlement-statements",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { status } = req.query as { status?: string };
+    const { skip, take, page, limit } = parseAdminPagination(req);
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    const [rows, total] = await Promise.all([
+      prisma.settlementStatement.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: { tenant: { select: { name: true, slug: true } }, items: true },
+      }),
+      prisma.settlementStatement.count({ where }),
+    ]);
+    res.json({
+      data: rows.map((s) => ({
+        id: s.id,
+        tenantId: s.tenantId,
+        tenantName: s.tenant.name,
+        tenantSlug: s.tenant.slug,
+        periodStart: s.periodStart,
+        periodEnd: s.periodEnd,
+        currency: s.currency,
+        status: s.status,
+        openingBalanceCents: madToCentimes(s.openingBalance),
+        closingBalanceCents: madToCentimes(s.closingBalance),
+        netCents: madToCentimes(s.netAmount),
+        finalizedAt: s.finalizedAt,
+        itemCount: s.items.length,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+      })),
+      total,
+      page,
+      limit,
     });
   }),
 );

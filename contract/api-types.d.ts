@@ -1806,7 +1806,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/onboarding/{tenantId}/approve": {
+  "/admin/onboarding/{tenantId}/approve": {
     parameters: {
       query?: never;
       header?: never;
@@ -1823,7 +1823,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/onboarding/{tenantId}/reject": {
+  "/admin/onboarding/{tenantId}/reject": {
     parameters: {
       query?: never;
       header?: never;
@@ -1840,7 +1840,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/onboarding/{tenantId}/request-info": {
+  "/admin/onboarding/{tenantId}/request-info": {
     parameters: {
       query?: never;
       header?: never;
@@ -1851,6 +1851,108 @@ export interface paths {
     put?: never;
     /** Request more information from the merchant */
     post: operations["requestInfoOnboarding"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/admin/payouts/{id}/execute": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Record a manual payout as paid */
+    post: operations["adminExecutePayout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/admin/payouts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List payouts across all tenants */
+    get: operations["adminListPayouts"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/admin/onboarding": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List onboarding applications across all tenants */
+    get: operations["adminListOnboarding"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/admin/disputes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List disputes across all tenants */
+    get: operations["adminListDisputes"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/admin/reconciliation-reports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List reconciliation reports across all tenants */
+    get: operations["adminListReconciliationReports"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/admin/settlement-statements": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List settlement statements across all tenants */
+    get: operations["adminListSettlementStatements"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -6752,6 +6854,234 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  adminExecutePayout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          externalReference: string;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            id: string;
+            status: string;
+            providerTransferId: string | null;
+            externalReference: string;
+          };
+        };
+      };
+      /** @description Payout not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  adminListPayouts: {
+    parameters: {
+      query?: {
+        status?: string;
+        page?: string;
+        limit?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            data: (components["schemas"]["Payout"] & {
+              tenantId: string;
+              tenantName: string;
+              tenantSlug: string;
+            })[];
+            total: number;
+            page: number;
+            limit: number;
+          };
+        };
+      };
+    };
+  };
+  adminListOnboarding: {
+    parameters: {
+      query?: {
+        status?: string;
+        page?: string;
+        limit?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            data: (components["schemas"]["MerchantOnboarding"] & {
+              tenantName: string;
+              tenantSlug: string;
+            })[];
+            total: number;
+            page: number;
+            limit: number;
+          };
+        };
+      };
+    };
+  };
+  adminListDisputes: {
+    parameters: {
+      query?: {
+        status?: string;
+        page?: string;
+        limit?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            data: (components["schemas"]["Dispute"] & {
+              tenantId: string;
+              tenantName: string;
+              tenantSlug: string;
+            })[];
+            total: number;
+            page: number;
+            limit: number;
+          };
+        };
+      };
+    };
+  };
+  adminListReconciliationReports: {
+    parameters: {
+      query?: {
+        status?: string;
+        page?: string;
+        limit?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            data: {
+              id: string;
+              tenantId: string;
+              tenantName: string;
+              tenantSlug: string;
+              provider: string;
+              currency: string;
+              periodStart: string | null;
+              periodEnd: string | null;
+              status: string;
+              summary: {
+                [key: string]: unknown;
+              } | null;
+              lineCount: number;
+              createdAt: string;
+              updatedAt: string;
+            }[];
+            total: number;
+            page: number;
+            limit: number;
+          };
+        };
+      };
+    };
+  };
+  adminListSettlementStatements: {
+    parameters: {
+      query?: {
+        status?: string;
+        page?: string;
+        limit?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            data: {
+              id: string;
+              tenantId: string;
+              tenantName: string;
+              tenantSlug: string;
+              periodStart: string;
+              periodEnd: string;
+              currency: string;
+              status: string;
+              openingBalanceCents: number;
+              closingBalanceCents: number;
+              netCents: number;
+              finalizedAt: string | null;
+              itemCount: number;
+              createdAt: string;
+              updatedAt: string;
+            }[];
+            total: number;
+            page: number;
+            limit: number;
+          };
+        };
       };
     };
   };
