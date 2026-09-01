@@ -18,6 +18,16 @@ const mockFindWebhook = prisma.webhookEvent.findMany as ReturnType<typeof vi.fn>
 const mockCountWebhook = prisma.webhookEvent.count as ReturnType<typeof vi.fn>;
 const mockFindHealth = prisma.providerHealth.findMany as ReturnType<typeof vi.fn>;
 const mockUpsertHealth = prisma.providerHealth.upsert as ReturnType<typeof vi.fn>;
+const mockFindPayouts = prisma.payout.findMany as ReturnType<typeof vi.fn>;
+const mockCountPayouts = prisma.payout.count as ReturnType<typeof vi.fn>;
+const mockFindOnboarding = prisma.merchantOnboarding.findMany as ReturnType<typeof vi.fn>;
+const mockCountOnboarding = prisma.merchantOnboarding.count as ReturnType<typeof vi.fn>;
+const mockFindDisputes = prisma.dispute.findMany as ReturnType<typeof vi.fn>;
+const mockCountDisputes = prisma.dispute.count as ReturnType<typeof vi.fn>;
+const mockFindReconciliation = prisma.reconciliationReport.findMany as ReturnType<typeof vi.fn>;
+const mockCountReconciliation = prisma.reconciliationReport.count as ReturnType<typeof vi.fn>;
+const mockFindStatements = prisma.settlementStatement.findMany as ReturnType<typeof vi.fn>;
+const mockCountStatements = prisma.settlementStatement.count as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -28,6 +38,16 @@ beforeEach(() => {
   mockFindHealth.mockResolvedValue([]);
   mockUpsertHealth.mockResolvedValue({});
   prisma.providerTransaction.findFirst.mockResolvedValue(null);
+  mockFindPayouts.mockResolvedValue([]);
+  mockCountPayouts.mockResolvedValue(0);
+  mockFindOnboarding.mockResolvedValue([]);
+  mockCountOnboarding.mockResolvedValue(0);
+  mockFindDisputes.mockResolvedValue([]);
+  mockCountDisputes.mockResolvedValue(0);
+  mockFindReconciliation.mockResolvedValue([]);
+  mockCountReconciliation.mockResolvedValue(0);
+  mockFindStatements.mockResolvedValue([]);
+  mockCountStatements.mockResolvedValue(0);
 });
 
 describe("admin routes", () => {
@@ -162,5 +182,157 @@ describe("admin routes", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.code).toBe("PAYOUT_ALREADY_PAID");
+  });
+
+  it("lists payouts across tenants", async () => {
+    mockFindPayouts.mockResolvedValue([
+      {
+        id: "payout-1",
+        tenantId: "tenant-a",
+        tenant: { name: "Demo", slug: "demo" },
+        status: "DRAFT",
+        provider: "VPS",
+        method: "BANK_TRANSFER",
+        currency: "MAD",
+        amount: "100.00",
+        feeAmount: "1.00",
+        providerTransferId: null,
+        idempotencyKey: "ik-1",
+        items: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    mockCountPayouts.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get("/admin/payouts")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].tenantSlug).toBe("demo");
+    expect(res.body.total).toBe(1);
+  });
+
+  it("lists onboarding applications across tenants", async () => {
+    mockFindOnboarding.mockResolvedValue([
+      {
+        id: "ob-1",
+        tenantId: "tenant-a",
+        tenant: { name: "Demo", slug: "demo" },
+        status: "SUBMITTED",
+        legalName: "Demo SARL",
+        entityType: null,
+        registrationNumber: null,
+        country: "MA",
+        businessAddress: null,
+        website: null,
+        contactEmail: null,
+        industry: "retail",
+        mcc: null,
+        riskTier: "MEDIUM",
+        submittedAt: new Date(),
+        reviewerId: null,
+        reviewNotes: null,
+        rejectionReason: null,
+        approvedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    mockCountOnboarding.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get("/admin/onboarding")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].legalName).toBe("Demo SARL");
+  });
+
+  it("lists disputes across tenants", async () => {
+    mockFindDisputes.mockResolvedValue([
+      {
+        id: "dispute-1",
+        tenantId: "tenant-a",
+        tenant: { name: "Demo", slug: "demo" },
+        status: "OPEN",
+        provider: "VPS",
+        providerDisputeId: "pd-1",
+        paymentIntentId: null,
+        amount: "50.00",
+        feeAmount: "0.00",
+        currency: "MAD",
+        reason: null,
+        evidenceDueDate: null,
+        recovery: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    mockCountDisputes.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get("/admin/disputes")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].providerDisputeId).toBe("pd-1");
+  });
+
+  it("lists reconciliation reports across tenants", async () => {
+    mockFindReconciliation.mockResolvedValue([
+      {
+        id: "rec-1",
+        tenantId: "tenant-a",
+        tenant: { name: "Demo", slug: "demo" },
+        provider: "VPS",
+        currency: "MAD",
+        periodStart: null,
+        periodEnd: null,
+        status: "PENDING",
+        summary: null,
+        lines: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    mockCountReconciliation.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get("/admin/reconciliation-reports")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].lineCount).toBe(0);
+  });
+
+  it("lists settlement statements across tenants", async () => {
+    mockFindStatements.mockResolvedValue([
+      {
+        id: "stmt-1",
+        tenantId: "tenant-a",
+        tenant: { name: "Demo", slug: "demo" },
+        periodStart: new Date(),
+        periodEnd: new Date(),
+        currency: "MAD",
+        status: "DRAFT",
+        openingBalance: "0.00",
+        closingBalance: "100.00",
+        netAmount: "100.00",
+        finalizedAt: null,
+        items: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    mockCountStatements.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get("/admin/settlement-statements")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].netCents).toBe(10000);
   });
 });
