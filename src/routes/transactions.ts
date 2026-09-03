@@ -191,6 +191,13 @@ router.get(
         detail: "Customer opened checkout",
       });
     }
+    if (intent.status === "AUTHORIZED") {
+      timeline.push({
+        type: "AUTHORIZED",
+        timestamp: intent.updatedAt,
+        detail: "Payment authorized — funds held awaiting capture",
+      });
+    }
     intent.webhookEvents.forEach((wh) => {
       timeline.push({
         type: "WEBHOOK_RECEIVED",

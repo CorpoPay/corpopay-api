@@ -2,8 +2,15 @@ import { describe, expect, it } from "vitest";
 import { mapStripeStatus, NAPS_STATUS_MAP, VPS_STATUS_MAP } from "./status-maps";
 
 describe("VPS_STATUS_MAP", () => {
-  it.each(["AUTHORISED", "AUTHORIZED", "REDIRECTED", "PENDING_3DS", "CHALLENGE_REQUIRED"])(
-    "maps %s → REQUIRES_ACTION",
+  it.each(["AUTHORISED", "AUTHORIZED", "AUTHORIZATION", "PREAUTHORIZED", "PRE_AUTHORIZED"])(
+    "maps %s → AUTHORIZED",
+    (status) => {
+      expect(VPS_STATUS_MAP[status]).toBe("AUTHORIZED");
+    },
+  );
+
+  it.each(["REDIRECTED", "PENDING_3DS", "CHALLENGE_REQUIRED", "CHALLENGED"])(
+    "maps %s → REQUIRES_ACTION (3DS intermediate)",
     (status) => {
       expect(VPS_STATUS_MAP[status]).toBe("REQUIRES_ACTION");
     },
@@ -55,7 +62,7 @@ describe("mapStripeStatus", () => {
     ["requires_action", "REQUIRES_ACTION"],
     ["requires_payment_method", "REQUIRES_ACTION"],
     ["processing", "PROCESSING"],
-    ["requires_capture", "PROCESSING"],
+    ["requires_capture", "AUTHORIZED"],
     ["canceled", "CANCELED"],
   ])("maps Stripe PaymentIntent %s → %s", (stripeStatus, internal) => {
     expect(mapStripeStatus(stripeStatus)).toBe(internal);

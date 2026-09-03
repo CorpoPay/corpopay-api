@@ -145,6 +145,7 @@ describe("StripeAdapter.mapStatusToInternal", () => {
   it.each([
     ["succeeded", "SUCCEEDED"],
     ["requires_action", "REQUIRES_ACTION"],
+    ["requires_capture", "AUTHORIZED"],
     ["processing", "PROCESSING"],
     ["canceled", "CANCELED"],
   ])("maps %s → %s", (stripe, internal) => {

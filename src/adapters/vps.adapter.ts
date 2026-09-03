@@ -225,14 +225,16 @@ export class VpsAdapter implements ProviderAdapter {
 
     // Accept any terminal-success status from VPS for a SETTLE command.
     // The canonical response is CHARGED but sandbox may return CAPTURED/PAID/SETTLED.
+    // Standardized capture contract (shared with Stripe): report success + the
+    // mapped internal status instead of throwing — the route decides the HTTP error.
     const SETTLE_SUCCESS = ["CHARGED", "CAPTURED", "PAID", "SETTLED", "SETTLEMENT", "COMPLETED"];
-    if (!SETTLE_SUCCESS.includes((raw.status ?? "").toUpperCase())) {
-      throw new Error(
-        `VPS capture failed: provider returned status "${raw.status}" — ${raw.message ?? ""}`,
-      );
-    }
+    const ok = SETTLE_SUCCESS.includes((raw.status ?? "").toUpperCase());
 
-    return { success: true, rawResponse: raw as Record<string, unknown> };
+    return {
+      success: ok,
+      status: this.mapStatusToInternal((raw.status ?? "UNKNOWN") as string),
+      rawResponse: raw as Record<string, unknown>,
+    };
   }
 
   // ── cancelPayment (AUTH_REVERSAL) ─────────────────────────────────────────────
@@ -244,13 +246,15 @@ export class VpsAdapter implements ProviderAdapter {
   ): Promise<CancelResult> {
     const raw = await this.runCommand(providerRef, amount, "AUTH_REVERSAL");
 
-    if (raw.status !== "AUTH_REVERSED") {
-      throw new Error(
-        `VPS cancel failed: provider returned status "${raw.status}" — ${raw.message ?? ""}`,
-      );
-    }
+    // Standardized void/cancel contract (shared with Stripe): report success +
+    // the mapped internal status instead of throwing.
+    const ok = (raw.status ?? "").toUpperCase() === "AUTH_REVERSED";
 
-    return { success: true, rawResponse: raw as Record<string, unknown> };
+    return {
+      success: ok,
+      status: this.mapStatusToInternal((raw.status ?? "UNKNOWN") as string),
+      rawResponse: raw as Record<string, unknown>,
+    };
   }
 
   // ── refund (REFUND) ───────────────────────────────────────────────────────────

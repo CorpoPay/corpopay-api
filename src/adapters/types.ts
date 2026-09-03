@@ -92,6 +92,8 @@ export interface CreateCheckoutParams {
    * (returning a hosted redirect URL).  All other providers ignore this field.
    */
   walletMode?: "apple_pay" | "google_pay";
+  /** Stripe only: "hosted" = redirect to Stripe checkout, "element" = in-page (PaymentElement). */
+  checkoutMode?: "hosted" | "element";
 }
 
 export interface ChargeRenewalResult {
@@ -140,12 +142,22 @@ export interface RefundResult {
 
 export interface CaptureResult {
   success: boolean;
+  /**
+   * The resulting internal PaymentIntentStatus after capture. Adapters should
+   * map their provider response through mapStatusToInternal() and set this, so
+   * the capture route can persist the provider's actual outcome instead of
+   * hard-coding SUCCEEDED (async-settle providers can return PROCESSING here).
+   * Defaults to SUCCEEDED at the call site when omitted.
+   */
+  status?: PaymentIntentStatus;
   rawRequest?: Record<string, unknown>;
   rawResponse: Record<string, unknown>;
 }
 
 export interface CancelResult {
   success: boolean;
+  /** The resulting internal PaymentIntentStatus after void/cancel (usually CANCELED). */
+  status?: PaymentIntentStatus;
   rawRequest?: Record<string, unknown>;
   rawResponse: Record<string, unknown>;
 }

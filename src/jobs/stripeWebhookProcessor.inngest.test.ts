@@ -88,6 +88,7 @@ describe("stripeWebhookProcessor", () => {
   });
 
   it.each([
+    ["payment_intent.amount_capturable_updated", "AUTHORIZED"],
     ["payment_intent.payment_failed", "FAILED"],
     ["payment_intent.canceled", "CANCELED"],
   ])("maps %s → %s", async (eventType, status) => {

@@ -1159,12 +1159,12 @@ router.get(
       if (IS_AUTHORISED) {
         await prisma.paymentIntent.update({
           where: { id: intent.id },
-          data: { status: "REQUIRES_ACTION" },
+          data: { status: "AUTHORIZED" },
         });
 
         return res.json({
           intentId: intent.id,
-          status: "REQUIRES_ACTION",
+          status: "AUTHORIZED",
           providerRef: intent.providerRef,
           terminal: false,
           authorized: true,
@@ -1223,12 +1223,8 @@ router.post(
       include: { paymentLink: { select: { amount: true, currency: true } } },
     });
     if (!intent) throw new AppError(404, "NOT_FOUND", "Intent not found");
-    if (intent.status !== "REQUIRES_ACTION") {
-      throw new AppError(
-        400,
-        "WRONG_STATE",
-        `Intent is ${intent.status}, expected REQUIRES_ACTION`,
-      );
+    if (intent.status !== "AUTHORIZED") {
+      throw new AppError(400, "WRONG_STATE", `Intent is ${intent.status}, expected AUTHORIZED`);
     }
     if (!intent.providerRef) {
       throw new AppError(400, "NO_PROVIDER_REF", "No providerRef — PayWall has not been completed");
@@ -1274,12 +1270,8 @@ router.post(
       include: { paymentLink: { select: { amount: true, currency: true } } },
     });
     if (!intent) throw new AppError(404, "NOT_FOUND", "Intent not found");
-    if (intent.status !== "REQUIRES_ACTION") {
-      throw new AppError(
-        400,
-        "WRONG_STATE",
-        `Intent is ${intent.status}, expected REQUIRES_ACTION`,
-      );
+    if (intent.status !== "AUTHORIZED") {
+      throw new AppError(400, "WRONG_STATE", `Intent is ${intent.status}, expected AUTHORIZED`);
     }
     if (!intent.providerRef) {
       throw new AppError(400, "NO_PROVIDER_REF", "No providerRef — PayWall has not been completed");

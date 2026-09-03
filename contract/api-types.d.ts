@@ -2163,6 +2163,8 @@ export interface components {
       };
       /** @enum {string} */
       walletMode?: "apple_pay" | "google_pay";
+      /** @enum {string} */
+      checkoutMode?: "hosted" | "element";
     };
     CreateIntentResponse: {
       intentId: string;

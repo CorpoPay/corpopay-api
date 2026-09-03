@@ -23,6 +23,7 @@ export const PaymentLinkStatusValues = ["ACTIVE", "PAID", "EXPIRED", "CANCELED"]
 export type PaymentIntentStatus =
   | "CREATED"
   | "REQUIRES_ACTION"
+  | "AUTHORIZED"
   | "PROCESSING"
   | "SUCCEEDED"
   | "FAILED"
@@ -31,6 +32,7 @@ export type PaymentIntentStatus =
 export const PaymentIntentStatusValues = [
   "CREATED",
   "REQUIRES_ACTION",
+  "AUTHORIZED",
   "PROCESSING",
   "SUCCEEDED",
   "FAILED",

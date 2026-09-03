@@ -2,8 +2,8 @@
  * Merchant POST /payment-intents              – create a payment intent directly (no Payment Link required)
  * Merchant GET  /payment-intents/:id          – get intent detail
  * Merchant GET  /payment-intents/:id/status   – poll latest status from provider
- * Merchant POST /payment-intents/:id/capture  – capture a pre-authorised payment (VPS only)
- * Merchant POST /payment-intents/:id/cancel   – void/cancel a pre-authorised payment (VPS only)
+ * Merchant POST /payment-intents/:id/capture  – capture a pre-authorised payment (any pre-auth provider)
+ * Merchant POST /payment-intents/:id/cancel   – void/cancel a pre-authorised payment (any pre-auth provider)
  * Public   POST /public/checkout/:slug/pay    – creates a PaymentIntent from a Payment Link and redirects
  */
 import { Router } from "express";
@@ -184,6 +184,7 @@ router.post(
       isPreauth: body.isPreauth,
       correlationId: intent.correlationId,
       walletMode: body.walletMode,
+      checkoutMode: body.checkoutMode,
     });
 
     await prisma.$transaction([
@@ -208,6 +209,7 @@ router.post(
             currency: body.currency,
             reference: body.reference,
             description: body.description,
+            isPreauth: body.isPreauth ?? false,
           },
         },
       }),
@@ -366,8 +368,10 @@ router.get(
 
 // ── POST /payment-intents/:id/capture ─────────────────────────────────────────
 //
-// Settle a pre-authorised payment. Only applicable for VPS pre-auth flow
-// (doFundsAuthOnly: true). Intent must be in REQUIRES_ACTION status.
+// Settle a pre-authorised payment. Works for any provider that supports pre-auth
+// (VPS doFundsAuthOnly, Stripe capture_method=manual, future adapters). The intent
+// must be in AUTHORIZED status — the shared "authorized, awaiting capture"
+// state both providers map into via status-maps.ts.
 
 router.post(
   "/:id/capture",
@@ -375,12 +379,12 @@ router.post(
   requireMerchant,
   asyncHandler(async (req, res) => {
     const db = forTenant(req.user!.tenantId);
-    // C-1: Atomic status transition REQUIRES_ACTION → PROCESSING is the race-condition gate.
+    // C-1: Atomic status transition AUTHORIZED → PROCESSING is the race-condition gate.
     // If two capture requests arrive simultaneously, only one updateMany returns count=1.
     const locked = await db.paymentIntent.updateMany({
       where: {
         id: req.params.id,
-        status: "REQUIRES_ACTION",
+        status: "AUTHORIZED",
       },
       data: { status: "PROCESSING" },
     });
@@ -407,7 +411,7 @@ router.post(
       // Revert the lock on unexpected bad state
       await prisma.paymentIntent.updateMany({
         where: { id: intent.id },
-        data: { status: "REQUIRES_ACTION" },
+        data: { status: "AUTHORIZED" },
       });
       throw new AppError(
         400,
@@ -435,17 +439,26 @@ router.post(
     if (!amount) {
       await prisma.paymentIntent.updateMany({
         where: { id: intent.id },
-        data: { status: "REQUIRES_ACTION" },
+        data: { status: "AUTHORIZED" },
       });
       throw new AppError(400, "MISSING_AMOUNT", "Cannot determine amount to capture");
     }
 
     const result = await adapter.capturePayment(intent.providerRef, amount, currency);
 
+    if (!result.success) {
+      // Revert the lock so the merchant can retry — the provider rejected capture.
+      await prisma.paymentIntent.updateMany({
+        where: { id: intent.id },
+        data: { status: "AUTHORIZED" },
+      });
+      throw new AppError(502, "CAPTURE_FAILED", "Provider rejected the capture request.");
+    }
+
     await prisma.$transaction([
       prisma.paymentIntent.update({
         where: { id: intent.id },
-        data: { status: "SUCCEEDED" },
+        data: { status: result.status ?? "SUCCEEDED" },
       }),
       prisma.providerTransaction.create({
         data: {
@@ -468,8 +481,8 @@ router.post(
 
 // ── POST /payment-intents/:id/cancel ──────────────────────────────────────────
 //
-// Void/reverse a pre-authorised payment (AUTH_REVERSAL). Intent must be in
-// REQUIRES_ACTION status.
+// Void/reverse a pre-authorised payment (VPS AUTH_REVERSAL, Stripe paymentIntents.cancel,
+// future adapters). Intent must be in AUTHORIZED status.
 
 router.post(
   "/:id/cancel",
@@ -477,11 +490,11 @@ router.post(
   requireMerchant,
   asyncHandler(async (req, res) => {
     const db = forTenant(req.user!.tenantId);
-    // C-1: Atomic status transition REQUIRES_ACTION → PROCESSING is the race-condition gate.
+    // C-1: Atomic status transition AUTHORIZED → PROCESSING is the race-condition gate.
     const locked = await db.paymentIntent.updateMany({
       where: {
         id: req.params.id,
-        status: "REQUIRES_ACTION",
+        status: "AUTHORIZED",
       },
       data: { status: "PROCESSING" },
     });
@@ -506,7 +519,7 @@ router.post(
     if (!intent.providerRef) {
       await prisma.paymentIntent.updateMany({
         where: { id: intent.id },
-        data: { status: "REQUIRES_ACTION" },
+        data: { status: "AUTHORIZED" },
       });
       throw new AppError(400, "MISSING_PROVIDER_REF", "Intent has no provider reference to cancel");
     }
@@ -528,10 +541,19 @@ router.post(
 
     const result = await adapter.cancelPayment(intent.providerRef, amount, currency);
 
+    if (!result.success) {
+      // Revert the lock so the merchant can retry — the provider rejected void.
+      await prisma.paymentIntent.updateMany({
+        where: { id: intent.id },
+        data: { status: "AUTHORIZED" },
+      });
+      throw new AppError(502, "CANCEL_FAILED", "Provider rejected the cancellation request.");
+    }
+
     await prisma.$transaction([
       prisma.paymentIntent.update({
         where: { id: intent.id },
-        data: { status: "CANCELED" },
+        data: { status: result.status ?? "CANCELED" },
       }),
       prisma.providerTransaction.create({
         data: {

@@ -9,12 +9,12 @@ import type { PaymentIntentStatus } from "@/generated/prisma/client";
 
 /** VPS / Payzone reported status → CorpoPay internal status. */
 export const VPS_STATUS_MAP: Record<string, PaymentIntentStatus> = {
-  // Pre-auth / authorized — awaiting SETTLE
-  AUTHORISED: "REQUIRES_ACTION",
-  AUTHORIZED: "REQUIRES_ACTION",
-  AUTHORIZATION: "REQUIRES_ACTION",
-  PREAUTHORIZED: "REQUIRES_ACTION",
-  PRE_AUTHORIZED: "REQUIRES_ACTION",
+  // Pre-auth / authorized — funds held, awaiting merchant SETTLE (capture)
+  AUTHORISED: "AUTHORIZED",
+  AUTHORIZED: "AUTHORIZED",
+  AUTHORIZATION: "AUTHORIZED",
+  PREAUTHORIZED: "AUTHORIZED",
+  PRE_AUTHORIZED: "AUTHORIZED",
   // 3DS intermediate — redirect customer
   REDIRECTED: "REQUIRES_ACTION",
   AUTHORIZE_PENDING: "REQUIRES_ACTION",
@@ -57,7 +57,10 @@ const STRIPE_STATUS_MAP: Record<string, PaymentIntentStatus> = {
   requires_payment_method: "REQUIRES_ACTION",
   requires_source: "REQUIRES_ACTION",
   processing: "PROCESSING",
-  requires_capture: "PROCESSING",
+  // Manual-capture (pre-auth) PaymentIntent: funds are authorized and on hold,
+  // awaiting the merchant's capture. Maps to AUTHORIZED — the distinct internal
+  // state that `/capture` and `/cancel` gate on (VPS AUTHORISED maps here too).
+  requires_capture: "AUTHORIZED",
   requires_confirmation: "PROCESSING",
   canceled: "CANCELED",
   cancelled: "CANCELED",

@@ -21,6 +21,7 @@ export const createIntentSchema = z.object({
   isPreauth: z.boolean().optional(),
   metadata: z.record(z.unknown()).optional(),
   walletMode: z.enum(["apple_pay", "google_pay"]).optional(),
+  checkoutMode: z.enum(["hosted", "element"]).optional(),
 });
 
 export const paySchema = z.object({

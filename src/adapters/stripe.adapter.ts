@@ -97,8 +97,12 @@ export class StripeAdapter implements ProviderAdapter {
     const resolvedSuccessUrl = successUrl ?? returnUrl;
     const resolvedCancelUrl = cancelUrl ?? returnUrl;
 
-    // ── Wallet mode: return a PaymentIntent clientSecret for ExpressCheckoutElement ──
-    if (params.walletMode === "apple_pay" || params.walletMode === "google_pay") {
+    // ── In-page element modes (card PaymentElement / Apple Pay / Google Pay) ──
+    if (
+      params.checkoutMode === "element" ||
+      params.walletMode === "apple_pay" ||
+      params.walletMode === "google_pay"
+    ) {
       return this.createPaymentIntent(params);
     }
 
@@ -216,6 +220,7 @@ export class StripeAdapter implements ProviderAdapter {
 
     return {
       success: pi.status === "succeeded",
+      status: this.mapStatusToInternal(pi.status),
       rawRequest,
       rawResponse: pi as unknown as Record<string, unknown>,
     };
@@ -236,6 +241,7 @@ export class StripeAdapter implements ProviderAdapter {
 
     return {
       success: pi.status === "canceled",
+      status: this.mapStatusToInternal(pi.status),
       rawRequest,
       rawResponse: pi as unknown as Record<string, unknown>,
     };

@@ -232,12 +232,14 @@ describe("VpsAdapter.mapStatusToInternal", () => {
 
   // ── REQUIRES_ACTION (pre-auth / 3DS) ─────────────────────────────────────
 
+  it.each(["AUTHORISED", "AUTHORIZED", "AUTHORIZATION", "PREAUTHORIZED", "PRE_AUTHORIZED"])(
+    "maps %s → AUTHORIZED",
+    (status) => {
+      expect(adapter.mapStatusToInternal(status)).toBe("AUTHORIZED");
+    },
+  );
+
   it.each([
-    "AUTHORISED",
-    "AUTHORIZED",
-    "AUTHORIZATION",
-    "PREAUTHORIZED",
-    "PRE_AUTHORIZED",
     "REDIRECTED",
     "AUTHORIZE_PENDING",
     "AUTHORIZATION_PENDING",
@@ -245,7 +247,7 @@ describe("VpsAdapter.mapStatusToInternal", () => {
     "CHALLENGED",
     "PENDING_3DS",
     "THREE_DS_PENDING",
-  ])("maps %s → REQUIRES_ACTION", (status) => {
+  ])("maps %s → REQUIRES_ACTION (3DS intermediate)", (status) => {
     expect(adapter.mapStatusToInternal(status)).toBe("REQUIRES_ACTION");
   });
 
@@ -291,8 +293,8 @@ describe("VpsAdapter.mapStatusToInternal", () => {
     expect(adapter.mapStatusToInternal("charged")).toBe("SUCCEEDED");
   });
 
-  it("is case-insensitive — mixed-case Authorised → REQUIRES_ACTION", () => {
-    expect(adapter.mapStatusToInternal("Authorised")).toBe("REQUIRES_ACTION");
+  it("is case-insensitive — mixed-case Authorised → AUTHORIZED", () => {
+    expect(adapter.mapStatusToInternal("Authorised")).toBe("AUTHORIZED");
   });
 
   // ── Unknown status ────────────────────────────────────────────────────────

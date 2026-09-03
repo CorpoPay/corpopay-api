@@ -54,6 +54,7 @@ enum PaymentLinkStatus {
 enum PaymentIntentStatus {
   CREATED
   REQUIRES_ACTION
+  AUTHORIZED
   PROCESSING
   SUCCEEDED
   FAILED

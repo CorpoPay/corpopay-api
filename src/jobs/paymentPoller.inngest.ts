@@ -64,6 +64,19 @@ export const paymentPoller = inngest.createFunction(
       const terminal = ["SUCCEEDED", "FAILED", "CANCELED", "REFUNDED"];
       if (terminal.includes(intent.status)) break;
 
+      // ── Pre-auth (manual capture) guard ────────────────────────────────────
+      // Pre-auth intents are authorized + put on hold and await an explicit
+      // merchant capture (POST /payment-intents/:id/capture) or void (/cancel).
+      // "Authorized, awaiting capture" is a legitimate long-lived state — NOT an
+      // abandoned checkout — so the poller must never force-fail it. The
+      // payment_intent.amount_capturable_updated webhook (Stripe) / AUTHORISED
+      // poll (VPS) drives the REQUIRES_ACTION transition; the capture route
+      // resolves it.
+      const isPreauth = (intent.metadata as { isPreauth?: boolean } | null)?.isPreauth === true;
+      if (isPreauth) {
+        continue;
+      }
+
       // ── Timeout: mark the intent as FAILED ────────────────────────────────
       if (Date.now() - started >= maxDuration) {
         await step.run("mark-timeout-failed", async () =>

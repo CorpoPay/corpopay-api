@@ -7,6 +7,7 @@
  * Stripe event types handled:
  *   checkout.session.completed     → payment succeeded via Checkout
  *   payment_intent.succeeded       → payment captured (direct PI flow / manual capture)
+ *   payment_intent.amount_capturable_updated → AUTHORIZED (pre-auth, funds on hold)
  *   payment_intent.payment_failed  → payment declined or errored
  *   payment_intent.canceled        → payment intent voided
  *   charge.refunded                → full or partial refund issued
@@ -73,6 +74,7 @@ function extractCorrelationId(obj: Record<string, unknown>): string | null {
 type InternalStatus =
   | "CREATED"
   | "REQUIRES_ACTION"
+  | "AUTHORIZED"
   | "PROCESSING"
   | "SUCCEEDED"
   | "FAILED"
@@ -177,6 +179,19 @@ export const stripeWebhookProcessor = inngest.createFunction(
       if (!providerTransactionId && obj["payment_intent"]) {
         // providerRef already stored as pi_xxx — the charge can be retrieved
         // later via queryTransactionStatus if needed. Not critical for status update.
+      }
+    } else if (eventType === "payment_intent.amount_capturable_updated") {
+      // ── Pre-auth authorized, awaiting capture ──────────────────────────────
+      // Stripe fires this when a manual-capture PaymentIntent (isPreauth) is
+      // authorized and funds are placed on hold (status `requires_capture`).
+      // This is the "settle me" signal — exactly like VPS AUTHORISED. The
+      // merchant captures via POST /payment-intents/:id/capture.
+      newStatus = "AUTHORIZED";
+      processingNote = `Stripe event: ${eventType}`;
+
+      const pi = extractPaymentIntent(obj);
+      if (pi) {
+        providerTransactionId = (pi["latest_charge"] as string | undefined) ?? null;
       }
     } else if (eventType === "payment_intent.payment_failed") {
       // ── Payment failed ─────────────────────────────────────────────────────
@@ -328,7 +343,15 @@ export const stripeWebhookProcessor = inngest.createFunction(
 
     // ── Step 7: Fire notification for terminal transitions ────────────────────
 
-    const notifiableStatuses: InternalStatus[] = ["SUCCEEDED", "FAILED", "CANCELED", "REFUNDED"];
+    // AUTHORIZED is included for parity with the VPS/NAPS processor: a pre-auth
+    // authorization is a significant, notifiable transition (funds on hold).
+    const notifiableStatuses: InternalStatus[] = [
+      "AUTHORIZED",
+      "SUCCEEDED",
+      "FAILED",
+      "CANCELED",
+      "REFUNDED",
+    ];
 
     if (updated && notifiableStatuses.includes(newStatus!)) {
       await step.sendEvent("send-payment-notification", {

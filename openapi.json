@@ -733,6 +733,10 @@
           "walletMode": {
             "type": "string",
             "enum": ["apple_pay", "google_pay"]
+          },
+          "checkoutMode": {
+            "type": "string",
+            "enum": ["hosted", "element"]
           }
         },
         "required": ["provider", "amount", "reference", "description", "returnUrl"]
