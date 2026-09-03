@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.15.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.14.0...corpopay-api-v0.15.0) (2026-09-03)
+
+
+### Features
+
+* **api:** in-page Stripe checkout + standardized pre-auth capture ([ccced14](https://github.com/CorpoPay/corpopay-api/commit/ccced14604ab4b61d587f5fc0a44f0744c071c69))
+
+
+### Bug Fixes
+
+* **api:** allow localhost redirect URLs for local dev testing ([350b68d](https://github.com/CorpoPay/corpopay-api/commit/350b68d24bd5aeca2e9c589f1416d2229cbeb21a))
+
 ## [0.14.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.13.0...corpopay-api-v0.14.0) (2026-09-01)
 
 
