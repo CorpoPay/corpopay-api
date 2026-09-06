@@ -150,6 +150,7 @@ router.post(
         redirectUrl: existingRedirectUrl,
         providerData: existingPd,
         stripeData: existingStripeData,
+        riskVerdict: existing.riskVerdict ?? null,
         idempotent: true,
       });
     }
@@ -264,6 +265,7 @@ router.post(
       // Populated for Stripe wallet flows only (walletMode = apple_pay | google_pay).
       // Contains clientSecret + publishableKey for ExpressCheckoutElement.
       stripeData: result.stripeData ?? null,
+      riskVerdict: risk.verdict,
     });
   }),
 );

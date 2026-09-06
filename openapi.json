@@ -779,6 +779,10 @@
           },
           "idempotent": {
             "type": "boolean"
+          },
+          "riskVerdict": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -787,7 +791,8 @@
           "checkoutUrl",
           "redirectUrl",
           "providerData",
-          "stripeData"
+          "stripeData",
+          "riskVerdict"
         ]
       },
       "IntentStatusResponse": {
@@ -970,6 +975,10 @@
             "type": "string",
             "nullable": true
           },
+          "riskVerdict": {
+            "type": "string",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string"
           },
@@ -991,6 +1000,7 @@
           "description",
           "hasRefund",
           "refundStatus",
+          "riskVerdict",
           "createdAt",
           "updatedAt"
         ]
@@ -1038,6 +1048,10 @@
             "additionalProperties": {
               "nullable": true
             }
+          },
+          "riskVerdict": {
+            "type": "string",
+            "nullable": true
           },
           "createdAt": {
             "type": "string"
@@ -1272,6 +1286,7 @@
           "providerData",
           "customerIp",
           "metadata",
+          "riskVerdict",
           "createdAt",
           "updatedAt",
           "paymentLink",
@@ -1326,6 +1341,10 @@
             "additionalProperties": {
               "nullable": true
             }
+          },
+          "riskVerdict": {
+            "type": "string",
+            "nullable": true
           },
           "createdAt": {
             "type": "string"
@@ -1476,6 +1495,7 @@
           "providerData",
           "customerIp",
           "metadata",
+          "riskVerdict",
           "createdAt",
           "updatedAt",
           "paymentLink",
@@ -10372,6 +10392,183 @@
                     }
                   },
                   "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/risk-decisions": {
+      "get": {
+        "operationId": "adminListRiskDecisions",
+        "summary": "List enforcement risk-flagged intents across all tenants",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "verdict",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "type": "string"
+                          },
+                          "tenantName": {
+                            "type": "string"
+                          },
+                          "tenantSlug": {
+                            "type": "string"
+                          },
+                          "verdict": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "provider": {
+                            "type": "string"
+                          },
+                          "correlationId": {
+                            "type": "string"
+                          },
+                          "paymentLinkId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "tenantId",
+                          "tenantName",
+                          "tenantSlug",
+                          "verdict",
+                          "provider",
+                          "correlationId",
+                          "paymentLinkId",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/risk-decisions/{id}/resolve": {
+      "post": {
+        "operationId": "adminResolveRiskDecision",
+        "summary": "Override an enforcement risk verdict",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "verdict": {
+                    "type": "string",
+                    "enum": ["ALLOW", "BLOCK"]
+                  }
+                },
+                "required": ["verdict"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "verdict": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "verdict", "updatedAt"]
                 }
               }
             }

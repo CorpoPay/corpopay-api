@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { centimes, centimesToMad } from "../lib/money";
-import { prisma } from "../lib/prisma";
 import { forTenant } from "../lib/tenant-db";
 import { requireAuth, requireMerchant } from "../middleware/auth";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
@@ -102,6 +101,7 @@ router.get(
           description,
           hasRefund: i.refunds.length > 0,
           refundStatus: i.refunds[0]?.status ?? null,
+          riskVerdict: i.riskVerdict,
           createdAt: i.createdAt,
           updatedAt: i.updatedAt,
         };

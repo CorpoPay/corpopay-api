@@ -311,6 +311,7 @@ const CreateIntentResponse = registry.register(
       })
       .nullable(),
     idempotent: z.boolean().optional(),
+    riskVerdict: z.string().nullable(),
   }),
 );
 
@@ -380,6 +381,7 @@ const Transaction = registry.register(
     description: z.string().nullable(),
     hasRefund: z.boolean(),
     refundStatus: z.string().nullable(),
+    riskVerdict: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
   }),
@@ -398,6 +400,7 @@ const TransactionDetail = registry.register(
     providerData: NullableJson,
     customerIp: z.string().nullable(),
     metadata: NullableJson,
+    riskVerdict: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
     paymentLink: z
@@ -472,6 +475,7 @@ const PaymentIntentDetail = registry.register(
     providerData: NullableJson,
     customerIp: z.string().nullable(),
     metadata: NullableJson,
+    riskVerdict: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
     paymentLink: z
@@ -3939,6 +3943,76 @@ registry.registerPath({
     200: {
       description: "OK",
       content: { "application/json": { schema: pageOf(AdminStatementItem) } },
+    },
+  },
+});
+
+// ─── Admin risk review queue (enforcement) ─────────────────────────────────────
+
+const AdminRiskDecisionItem = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  tenantName: z.string(),
+  tenantSlug: z.string(),
+  verdict: z.string().nullable(),
+  provider: z.string(),
+  correlationId: z.string(),
+  paymentLinkId: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/admin/risk-decisions",
+  operationId: "adminListRiskDecisions",
+  summary: "List enforcement risk-flagged intents across all tenants",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      verdict: z.string().optional(),
+      page: z.string().optional(),
+      limit: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: pageOf(AdminRiskDecisionItem) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/admin/risk-decisions/{id}/resolve",
+  operationId: "adminResolveRiskDecision",
+  summary: "Override an enforcement risk verdict",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ verdict: z.enum(["ALLOW", "BLOCK"]) }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: {
+        "application/json": {
+          schema: z.object({
+            id: z.string(),
+            verdict: z.string().nullable(),
+            updatedAt: z.string(),
+          }),
+        },
+      },
     },
   },
 });
