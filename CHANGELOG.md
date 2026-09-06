@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.18.0...corpopay-api-v0.19.0) (2026-09-06)
+
+
+### Features
+
+* **risk:** add pre-payment enforcement with scorer seam and admin review ([7e72354](https://github.com/CorpoPay/corpopay-api/commit/7e7235426ec07a63608807d7c728a183eac24bb8))
+
 ## [0.18.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.17.0...corpopay-api-v0.18.0) (2026-09-06)
 
 
