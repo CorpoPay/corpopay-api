@@ -37,6 +37,7 @@ import {
   ReserveType,
   ReversalFundingPolicy,
   RiskTier,
+  RiskVerdict,
   SettlementStatementStatus,
   SplitPartyType,
   SplitStatus,
@@ -627,6 +628,20 @@ export function makeMerchantOnboarding(
     reviewNotes: null,
     rejectionReason: null,
     approvedAt: null,
+    ...overrides,
+  };
+  return data;
+}
+// ─── Risk decision ──────────────────────────────────────────────────────────────
+
+export function makeRiskDecision(overrides: Partial<Prisma.RiskDecisionUncheckedCreateInput> = {}) {
+  const data: Prisma.RiskDecisionUncheckedCreateInput = {
+    id: "risk-decision-1",
+    tenantId: TENANT_A_ID,
+    eventId: "risk-event-1",
+    verdict: RiskVerdict.ALLOW,
+    score: 0,
+    reasons: [],
     ...overrides,
   };
   return data;

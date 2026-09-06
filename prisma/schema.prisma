@@ -276,6 +276,12 @@ enum RiskTier {
   HIGH
 }
 
+enum RiskVerdict {
+  ALLOW
+  REVIEW
+  BLOCK
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -313,6 +319,7 @@ model Tenant {
   reconciliationReports ReconciliationReport[]
   settlementStatements  SettlementStatement[]
   merchantOnboarding    MerchantOnboarding?
+  riskDecisions         RiskDecision[]
 
   @@map("tenants")
 }
@@ -973,3 +980,20 @@ model MerchantOnboarding {
   @@index([tenantId, status])
   @@map("merchant_onboardings")
 }
+
+model RiskDecision {
+  id        String      @id @default(cuid())
+  tenantId  String
+  eventId   String      @unique
+  verdict   RiskVerdict
+  score     Int         @default(0)
+  reasons   Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("risk_decisions")
+}
+

@@ -6,6 +6,7 @@ import { installmentCharge } from "../jobs/installmentCharge.inngest";
 import { installmentSimulation } from "../jobs/installmentSimulation.inngest";
 import { notifications } from "../jobs/notifications.inngest";
 import { paymentPoller } from "../jobs/paymentPoller.inngest";
+import { riskEvaluate } from "../jobs/riskEvaluate.inngest";
 import { stripeWebhookProcessor } from "../jobs/stripeWebhookProcessor.inngest";
 import { onSubscriptionCreated } from "../jobs/subscriptionActivated.inngest";
 import { webhookProcessor } from "../jobs/webhookProcessor.inngest";
@@ -24,6 +25,7 @@ export const inngestHandler = serve({
     webhookProcessor,
     stripeWebhookProcessor,
     paymentPoller,
+    riskEvaluate,
     notifications,
     onSubscriptionCreated,
     billingRenewal,
