@@ -287,3 +287,6 @@ export const OnboardingStatusValues = [
 
 export type RiskTier = "LOW" | "MEDIUM" | "HIGH";
 export const RiskTierValues = ["LOW", "MEDIUM", "HIGH"] as const;
+
+export type RiskVerdict = "ALLOW" | "REVIEW" | "BLOCK";
+export const RiskVerdictValues = ["ALLOW", "REVIEW", "BLOCK"] as const;
