@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.19.0...corpopay-api-v0.20.0) (2026-09-06)
+
+
+### Features
+
+* **risk:** expose risk verdict in contract and admin review endpoints ([43544ca](https://github.com/CorpoPay/corpopay-api/commit/43544cafed6106714e495e49580a0245e23b4913))
+
 ## [0.19.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.18.0...corpopay-api-v0.19.0) (2026-09-06)
 
 
