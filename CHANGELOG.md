@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.16.0...corpopay-api-v0.16.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **api:** mark seam exports as knip entries ([2535bf7](https://github.com/CorpoPay/corpopay-api/commit/2535bf7649c918e66160404a9ab92a5ef2fa5302))
+
 ## [0.16.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.15.0...corpopay-api-v0.16.0) (2026-09-06)
 
 
