@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.16.1...corpopay-api-v0.17.0) (2026-09-06)
+
+
+### Features
+
+* **risk:** add fraud/risk engine (amount + velocity) ([5b5dc4f](https://github.com/CorpoPay/corpopay-api/commit/5b5dc4f175295abdd26ce4142d07f7769dfb6284))
+
 ## [0.16.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.16.0...corpopay-api-v0.16.1) (2026-09-06)
 
 
