@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLambdaEnvironment, ENV_VAR_NAMES, envSchema, OPTIONAL_ENV_VAR_NAMES } from "./env";
+import { ENV_VAR_NAMES, envSchema, OPTIONAL_ENV_VAR_NAMES } from "./env";
 
 const REQUIRED_VARS = [
   "DATABASE_URL",
@@ -13,11 +13,7 @@ const REQUIRED_VARS = [
   "WEB_BASE_URL",
 ] as const;
 
-const OPTIONAL_VARS = [
-  "NAPS_WEBHOOK_SECRET",
-  "VPS_WEBHOOK_SECRET",
-  "NOTIFICATION_SQS_QUEUE_URL",
-] as const;
+const OPTIONAL_VARS = ["NAPS_WEBHOOK_SECRET", "VPS_WEBHOOK_SECRET"] as const;
 
 function validEnv(): Record<string, string> {
   return {
@@ -40,10 +36,6 @@ describe("env spec (single source of truth)", () => {
 
   it("marks exactly the optional vars as optional", () => {
     expect([...OPTIONAL_ENV_VAR_NAMES].sort()).toEqual([...OPTIONAL_VARS].sort());
-  });
-
-  it("builds the Lambda environment with deployment constants only (secrets come from SSM)", () => {
-    expect(buildLambdaEnvironment()).toEqual({ NODE_ENV: "production", API_PORT: "4000" });
   });
 
   it("rejects when a required var is missing", () => {

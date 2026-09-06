@@ -1,10 +1,9 @@
 /**
  * env.ts — single source of truth for environment variables.
  *
- * Every environment variable is declared exactly once here. Both the boot-time
- * validator (`validateEnv.ts`) and the CDK Lambda environment map
- * (`cdk/lib/corpopay-api-stack.ts`) derive from this module, so adding or
- * renaming a secret is a single edit.
+ * Every environment variable is declared exactly once here. The boot-time
+ * validator (`validateEnv.ts`) derives from this module, so adding or renaming
+ * a secret is a single edit.
  *
  * Rules:
  *   required      — must be present and non-empty (whitespace trimmed)
@@ -41,7 +40,6 @@ export const envSchema = z.object({
   // ── Optional ──────────────────────────────────────────────────────────────
   NAPS_WEBHOOK_SECRET: z.string().optional(),
   VPS_WEBHOOK_SECRET: z.string().optional(),
-  NOTIFICATION_SQS_QUEUE_URL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -60,28 +58,12 @@ export const ENV_DESCRIPTIONS: Record<keyof Env, string> = {
   NAPS_WEBHOOK_SECRET: "HMAC secret for NAPS webhook signature verification",
   VPS_WEBHOOK_SECRET:
     "HMAC secret for VPS webhook signature verification (legacy — credentials stored per-tenant in DB)",
-  NOTIFICATION_SQS_QUEUE_URL: "Optional SQS queue URL for outbound payment notifications",
 };
 
-/** Ordered list of every variable name, for the CDK stack and other consumers. */
+/** Ordered list of every variable name, for boot-time validation and other consumers. */
 export const ENV_VAR_NAMES = Object.keys(envSchema.shape) as (keyof Env)[];
 
 /** Variable names that may be absent at runtime. */
 export const OPTIONAL_ENV_VAR_NAMES = ENV_VAR_NAMES.filter((name) =>
   envSchema.shape[name].isOptional(),
 );
-
-/**
- * Build the Lambda environment map.
- *
- * Secrets are no longer baked in at deploy time — they are resolved from SSM
- * Parameter Store at cold-start (see `src/lib/secrets.ts`). Only the deployment
- * constants are set here; the CDK stack adds `SSM_SECRETS_PREFIX` so the Lambda
- * knows where to fetch them.
- */
-export function buildLambdaEnvironment(): Record<string, string> {
-  return {
-    NODE_ENV: "production",
-    API_PORT: "4000",
-  };
-}

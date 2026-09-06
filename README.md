@@ -7,9 +7,9 @@
 [![Node 24](https://img.shields.io/badge/node-24-339933)](https://nodejs.org)
 
 **Multi-tenant payment orchestration & PayFac settlement API** — **Express + Prisma
-+ Inngest**, deployable to AWS Lambda (or any Node host). Providers: **VPS/Payzone**
-(full), **Stripe** (full), and **NAPS** (skeleton), plus recurring billing
-(subscriptions) and BNPL (installments).
++ Inngest**, deployable to any Node host. Providers: **VPS/Payzone** (full),
+**Stripe** (full), and **NAPS** (skeleton), plus recurring billing (subscriptions)
+and BNPL (installments).
 
 ## Architecture
 
@@ -44,7 +44,6 @@ flowchart TB
     Settlement --> DB
     Routes --> Jobs["Inngest jobs"]
     Jobs --> DB
-    Routes --> SQS["Notification SQS"]
 ```
 
 ## Features
@@ -100,8 +99,6 @@ npm run test
 | `ENCRYPTION_KEY`                                | 64-char hex (32 bytes) — AES-256-GCM         |
 | `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY`     | Inngest event + signing keys                 |
 | `API_BASE_URL` / `WEB_BASE_URL`                 | Public URLs (callbacks, checkout links)      |
-| `NOTIFICATION_SQS_QUEUE_URL` _(optional)_       | SQS queue for outbound payment notifications |
-| `DD_API_KEY` / `METRICS_BASE_TAGS` _(optional)_ | Enables Datadog custom metrics + base tags   |
 
 Secrets come from environment variables only — never hardcode them.
 
@@ -190,12 +187,12 @@ Secrets come from environment variables only — never hardcode them.
 
 | Layer           | Technology                               |
 | --------------- | ---------------------------------------- |
-| Runtime         | Node.js 24, Express, `serverless-http`   |
+| Runtime         | Node.js 24, Express                      |
 | ORM             | Prisma 7 + PostgreSQL                    |
 | Background jobs | Inngest                                  |
 | Auth            | JWT (jsonwebtoken), bcryptjs             |
 | Encryption      | AES-256-GCM (Node crypto)                |
-| Deploy          | Docker Compose, or AWS Lambda (optional) |
+| Deploy          | Docker Compose (or any Node host)        |
 
 ## License
 

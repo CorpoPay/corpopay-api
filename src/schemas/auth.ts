@@ -4,7 +4,7 @@
  * `routes/auth.ts` validates request bodies with these; `openapi.ts` imports
  * them to generate the API contract, so a request shape change is a single edit.
  * Kept dependency-light (zod only) so they can be used at runtime without pulling
- * the build-time `zod-to-openapi` tooling into the Lambda bundle.
+ * the build-time `zod-to-openapi` tooling into the runtime bundle.
  */
 import { z } from "zod";
 

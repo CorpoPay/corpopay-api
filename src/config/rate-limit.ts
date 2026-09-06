@@ -3,9 +3,8 @@ import rateLimit from "express-rate-limit";
 /**
  * Rate limiters.
  *
- * H-5: Applied in all deployment modes (VPS/Docker + Lambda). On Lambda, API
- * Gateway throttling is the outer defence; these limits are the inner,
- * per-process defence (important during scale-down / cold starts).
+ * H-5: Applied in all deployment modes. These limits are the inner, per-process
+ * defence; put a gateway-level throttle in front of the API as the outer defence.
  */
 
 export const authLimiter = rateLimit({

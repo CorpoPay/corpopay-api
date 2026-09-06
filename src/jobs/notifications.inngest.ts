@@ -1,18 +1,17 @@
 /**
  * Job: payment/notify
  *
- * Triggered when a PaymentIntent reaches SUCCEEDED or REFUNDED.
- * 1. POSTs a `payment.updated` event to the tenant's `notifyWebhookUrl` (if set).
- * 2. Publishes the same event to an optional SQS notification queue (if configured).
+ * Triggered when a PaymentIntent reaches SUCCEEDED or REFUNDED. POSTs a
+ * `payment.updated` event to the tenant's `notifyWebhookUrl` (if set).
  *
  * Architecture note — why no step.run() calls:
  *   The original implementation used 3 steps (fetch-intent, fetch-tenant,
  *   outbound-webhook), each requiring a separate HTTP round-trip between
- *   Inngest cloud and the CorpoPay Lambda (~2-3 s each, ~8 s total).
- *   Running everything inline reduces this to a single invocation (~2 s).
- *   If the SQS publish fails, Inngest retries the whole function (retries: 3)
- *   with a 2-second delay via RetryAfterError. DB reads are idempotent so
- *   re-running them on retry is safe.
+ *   Inngest and the API host (~2-3 s each, ~8 s total). Running everything
+ *   inline reduces this to a single invocation (~2 s). On outbound webhook
+ *   failure, Inngest retries the whole function (retries: 3) with a 2-second
+ *   delay via RetryAfterError. DB reads are idempotent so re-running them on
+ *   retry is safe.
  */
 import { RetryAfterError } from "inngest";
 import { decrypt } from "../lib/encryption";
@@ -66,7 +65,7 @@ export const notifications = inngest.createFunction(
 
     if (!tenant) return { skipped: true, reason: "tenant-not-found" };
 
-    // Build the shared payment event payload once (used by webhook + SQS paths).
+    // Build the shared payment event payload once.
     const intentMeta = (intent.metadata ?? {}) as Record<string, unknown>;
     const messageBody = JSON.stringify({
       event: "payment.updated",
@@ -115,40 +114,6 @@ export const notifications = inngest.createFunction(
       throw new RetryAfterError(`outbound webhook failed: ${(err as Error).message}`, "2s");
     } finally {
       clearTimeout(timer);
-    }
-
-    // ── 2. SQS notification queue (optional) — only when the queue is configured ──
-    const queueUrl = process.env.NOTIFICATION_SQS_QUEUE_URL;
-    if (queueUrl) {
-      const { SQSClient, SendMessageCommand } = await import("@aws-sdk/client-sqs");
-
-      const sqs = new SQSClient({
-        region: process.env.NOTIFICATION_SQS_REGION ?? process.env.AWS_REGION,
-      });
-      const cmd = new SendMessageCommand({
-        QueueUrl: queueUrl,
-        MessageBody: messageBody,
-        MessageAttributes: {
-          tenantId: { DataType: "String", StringValue: tenantId },
-          intentId: { DataType: "String", StringValue: intentId },
-          status: { DataType: "String", StringValue: status },
-        },
-      });
-
-      try {
-        const result = await sqs.send(cmd);
-        console.info("[notifications] SQS message sent", {
-          messageId: result.MessageId,
-          tenantId,
-          intentId,
-          status,
-        });
-        return { messageId: result.MessageId };
-      } catch (err) {
-        // RetryAfterError triggers a fast 2-second retry instead of
-        // Inngest's default exponential backoff (~60 s first retry).
-        throw new RetryAfterError(`SQS publish failed: ${(err as Error).message}`, "2s");
-      }
     }
 
     return { notified: true };

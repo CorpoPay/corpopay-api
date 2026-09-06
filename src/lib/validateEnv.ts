@@ -1,11 +1,10 @@
 /**
  * validateEnv — boot-time environment variable guard.
  *
- * Called once at the very start of lambda.ts and server.ts before any
- * middleware, routes, or DB connections are initialised.  If a required
- * variable is absent or malformed the process throws synchronously so the
- * Lambda cold-start fails loudly in CloudWatch rather than silently serving
- * 500s to users on the first real request.
+ * Called once at the very start of server.ts before any middleware, routes, or
+ * DB connections are initialised. If a required variable is absent or malformed
+ * the process throws synchronously so startup fails loudly rather than silently
+ * serving 500s on the first real request.
  *
  * The rules live in `env.ts` (single source of truth); this module only
  * applies them to `process.env` and formats the result.
@@ -43,7 +42,7 @@ export function validateEnv(): void {
         : `  ✖  ${name} — ${issue.message}`;
     });
 
-    // Throw synchronously — Lambda cold-start will fail before any request is served.
+    // Throw synchronously — the process fails before any request is served.
     throw new Error(
       `${RED}[validateEnv] ${result.error.issues.length} required environment variable(s) are missing or invalid:\n${errors.join("\n")}\n\nFix these in your environment and restart.${RESET}`,
     );
