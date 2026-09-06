@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.17.0...corpopay-api-v0.18.0) (2026-09-06)
+
+
+### Features
+
+* **risk:** trigger evaluation on payment success ([dadb81a](https://github.com/CorpoPay/corpopay-api/commit/dadb81abb419dbdb00635c9721565a9c2151d518))
+
 ## [0.17.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.16.1...corpopay-api-v0.17.0) (2026-09-06)
 
 
