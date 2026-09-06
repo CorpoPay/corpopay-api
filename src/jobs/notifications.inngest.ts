@@ -2,7 +2,8 @@
  * Job: payment/notify
  *
  * Triggered when a PaymentIntent reaches SUCCEEDED or REFUNDED. POSTs a
- * `payment.updated` event to the tenant's `notifyWebhookUrl` (if set).
+ * `payment.updated` event to the tenant's `notifyWebhookUrl` (if set), then
+ * fans the same event to the optional notification sink (no-op in OSS).
  *
  * Architecture note — why no step.run() calls:
  *   The original implementation used 3 steps (fetch-intent, fetch-tenant,
@@ -16,6 +17,7 @@
 import { RetryAfterError } from "inngest";
 import { decrypt } from "../lib/encryption";
 import { inngest } from "../lib/inngest";
+import { publishNotification } from "../lib/notification-sink";
 import { prisma } from "../lib/prisma";
 import { buildWebhookSignatureHeader } from "../lib/webhook-sign";
 
@@ -114,6 +116,14 @@ export const notifications = inngest.createFunction(
       throw new RetryAfterError(`outbound webhook failed: ${(err as Error).message}`, "2s");
     } finally {
       clearTimeout(timer);
+    }
+
+    // ── 2. Notification sink (optional) — no-op in OSS. A private fork registers
+    //    an SQS/SNS publisher at bootstrap to fan out to tenant queues. The
+    //    publisher may throw RetryAfterError to trigger a fast retry. ──
+    const sinkResult = await publishNotification({ messageBody, tenantId, intentId, status });
+    if (sinkResult?.messageId) {
+      return { messageId: sinkResult.messageId };
     }
 
     return { notified: true };
