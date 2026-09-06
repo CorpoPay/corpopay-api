@@ -475,6 +475,11 @@ router.post(
       data: { intentId: intent.id, tenantId: intent.tenantId },
     });
 
+    await inngest.send({
+      name: "payment/risk-evaluate",
+      data: { intentId: intent.id, tenantId: intent.tenantId },
+    });
+
     res.json({ intentId: intent.id, status: "SUCCEEDED" });
   }),
 );

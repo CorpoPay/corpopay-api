@@ -227,6 +227,12 @@ describe("webhookProcessor — find-intent step", () => {
         }),
       }),
     );
+
+    // A succeeded intent also enqueues a record-only risk evaluation.
+    expect(mockInngestSend).toHaveBeenCalledWith({
+      name: "payment/risk-evaluate",
+      data: { intentId: FAKE_INTENT.id, tenantId: FAKE_INTENT.tenantId },
+    });
   });
 
   it("does NOT fall through to metadata.reference when correlationId lookup succeeds", async () => {

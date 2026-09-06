@@ -234,6 +234,16 @@ export const webhookProcessor = inngest.createFunction(
       });
     }
 
+    if (processed && mappedStatus === "SUCCEEDED" && tenantId) {
+      await step.sendEvent("send-risk-evaluate", {
+        name: "payment/risk-evaluate",
+        data: {
+          intentId: intent!.id,
+          tenantId,
+        },
+      });
+    }
+
     // ── Step 6: Bootstrap recurring subscription if applicable ───────────────
     // When a VPS payment succeeds on a recurring Payment Link, Payzone includes
     // a storedPaymentProfileId in the callback.  We create a Subscription record

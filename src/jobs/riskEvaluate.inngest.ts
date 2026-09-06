@@ -2,20 +2,22 @@
  * Job: payment/risk-evaluate
  *
  * The TS port of the deprecated Rails `Risk::EvaluateEventJob`: evaluate a single
- * payment event, persist the decision, and return it. v1 risk is detection —
+ * payment success, persist the decision, and return it. v1 risk is detection —
  * it records decisions but never blocks the payment.
+ *
+ * Self-contained by design: callers send only `intentId` + `tenantId`; this job
+ * resolves the captured amount in one place (PaymentLink MAD -> centimes, or
+ * direct-intent metadata centimes) — the same derivation the notifications job
+ * uses — so the amount logic never drifts across call sites.
  */
-
 import { inngest } from "../lib/inngest";
-import { centimes } from "../lib/money";
+import { centimes, madToCentimes } from "../lib/money";
+import { prisma } from "../lib/prisma";
 import { evaluateAndRecordRisk } from "../lib/risk-db";
 
 interface RiskEvaluateEventData {
-  eventId: string;
+  intentId: string;
   tenantId: string;
-  amountCents: number;
-  occurredAt: string;
-  type?: string;
 }
 
 export const riskEvaluate = inngest.createFunction(
@@ -26,18 +28,32 @@ export const riskEvaluate = inngest.createFunction(
     triggers: [{ event: "payment/risk-evaluate" }],
   },
   async ({ event }) => {
-    const data = event.data as RiskEvaluateEventData;
+    const { intentId, tenantId } = event.data as RiskEvaluateEventData;
+
+    const intent = await prisma.paymentIntent.findUnique({
+      where: { id: intentId },
+      include: { paymentLink: { select: { amount: true } } },
+    });
+    if (!intent) return { skipped: true, reason: "intent-not-found" };
+
+    const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+    const rawAmount = intent.paymentLink
+      ? madToCentimes(intent.paymentLink.amount)
+      : ((meta["amount"] as number | undefined) ?? null);
+
+    if (rawAmount == null) return { skipped: true, reason: "amount-unknown" };
+
     const result = await evaluateAndRecordRisk({
-      eventId: data.eventId,
-      tenantId: data.tenantId,
-      amountCents: centimes(data.amountCents),
-      occurredAt: new Date(data.occurredAt),
-      type: data.type ?? "payment.intent.succeeded",
+      eventId: intentId,
+      tenantId,
+      amountCents: centimes(rawAmount),
+      occurredAt: new Date(),
+      type: "payment.intent.succeeded",
     });
 
     return {
-      eventId: data.eventId,
-      tenantId: data.tenantId,
+      intentId,
+      tenantId,
       verdict: result.decision.verdict,
       score: result.decision.score,
       reasons: result.decision.reasons,

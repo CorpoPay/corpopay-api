@@ -68,13 +68,14 @@ describe("stripeWebhookProcessor", () => {
     mockFindFirst.mockResolvedValue({ ...FAKE_INTENT });
     mockFindUnique.mockResolvedValue({ status: "REQUIRES_ACTION" });
 
+    const step = makeStep();
     const result = await (stripeWebhookProcessor as Function)({
       event: makeEvent("payment_intent.succeeded", {
         object: "payment_intent",
         id: "pi_1",
         metadata: { correlationId: "corr-1" },
       }),
-      step: makeStep(),
+      step,
     });
 
     expect(result).toMatchObject({ newStatus: "SUCCEEDED" });
@@ -84,6 +85,10 @@ describe("stripeWebhookProcessor", () => {
     expect(mockUpdateIntent).toHaveBeenCalledWith({
       where: { id: "intent-1" },
       data: { status: "SUCCEEDED" },
+    });
+    expect(step.sendEvent).toHaveBeenCalledWith("send-risk-evaluate", {
+      name: "payment/risk-evaluate",
+      data: { intentId: "intent-1", tenantId: "tenant-a" },
     });
   });
 

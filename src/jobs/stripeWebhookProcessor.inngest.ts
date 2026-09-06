@@ -365,6 +365,16 @@ export const stripeWebhookProcessor = inngest.createFunction(
       });
     }
 
+    if (updated && newStatus === "SUCCEEDED") {
+      await step.sendEvent("send-risk-evaluate", {
+        name: "payment/risk-evaluate",
+        data: {
+          intentId: intent.id,
+          tenantId: intent.tenantId,
+        },
+      });
+    }
+
     return {
       webhookEventId: webhookEvent.id,
       eventType,
