@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.15.0...corpopay-api-v0.16.0) (2026-09-06)
+
+
+### Features
+
+* **api:** add injectable metrics and notification sinks ([36cd4a8](https://github.com/CorpoPay/corpopay-api/commit/36cd4a87d409f3bd32c4823a912a1623da0fd995))
+
 ## [0.15.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.14.0...corpopay-api-v0.15.0) (2026-09-03)
 
 
