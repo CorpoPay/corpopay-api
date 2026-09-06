@@ -1,9 +1,51 @@
 # CorpoPay API
 
-Multi-tenant payment orchestration API — **Express + Prisma + Inngest**, deployable
-to AWS Lambda (or any Node host). Providers: **VPS/Payzone** (full), **Stripe**
-(full), and **NAPS** (skeleton), plus recurring billing (subscriptions) and BNPL
-(installments).
+[![CI](https://github.com/CorpoPay/corpopay-api/actions/workflows/ci.yml/badge.svg)](https://github.com/CorpoPay/corpopay-api/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/CorpoPay/corpopay-api/actions/workflows/codeql.yml/badge.svg)](https://github.com/CorpoPay/corpopay-api/actions/workflows/codeql.yml)
+[![release](https://github.com/CorpoPay/corpopay-api/actions/workflows/release-please.yml/badge.svg)](https://github.com/CorpoPay/corpopay-api/actions/workflows/release-please.yml)
+[![License](https://img.shields.io/github/license/CorpoPay/corpopay-api)](LICENSE)
+[![Node 24](https://img.shields.io/badge/node-24-339933)](https://nodejs.org)
+
+**Multi-tenant payment orchestration & PayFac settlement API** — **Express + Prisma
++ Inngest**, deployable to AWS Lambda (or any Node host). Providers: **VPS/Payzone**
+(full), **Stripe** (full), and **NAPS** (skeleton), plus recurring billing
+(subscriptions) and BNPL (installments).
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Clients
+        Web["CorpoPay Web"]
+        Checkout["Hosted checkout"]
+        S2S["Server-to-server API"]
+    end
+
+    subgraph Core["CorpoPay API (Express)"]
+        Routes["Routes + middleware"]
+        Adapters["Provider adapters"]
+        Settlement["Settlement engine"]
+        Webhooks["Webhooks"]
+    end
+
+    Web --> Routes
+    Checkout --> Routes
+    S2S --> Routes
+
+    Routes --> Adapters
+    Routes --> Settlement
+    Webhooks --> Routes
+
+    Adapters --> Stripe["Stripe"]
+    Adapters --> VPS["VPS / Payzone"]
+    Adapters --> NAPS["NAPS"]
+
+    Routes --> DB[("PostgreSQL (Prisma)")]
+    Settlement --> DB
+    Routes --> Jobs["Inngest jobs"]
+    Jobs --> DB
+    Routes --> SQS["Notification SQS"]
+```
 
 ## Features
 
