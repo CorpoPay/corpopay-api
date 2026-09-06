@@ -4,6 +4,7 @@
     "src/server.ts",
     "src/lib/metrics.ts",
     "src/lib/notification-sink.ts",
+    "src/lib/risk-scorer.ts",
     "scripts/*.mjs",
     "tests/factories.ts"
   ],

@@ -404,6 +404,7 @@ model PaymentIntent {
   providerData   Json?               // { paywallUrl, payload, signature, mode } — served by hosted relay page
   customerIp     String?
   metadata       Json?
+  riskVerdict    RiskVerdict?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 

@@ -20,10 +20,10 @@ import { type Centimes, centimes } from "./money";
  */
 
 export const RISK_VERDICTS = ["ALLOW", "REVIEW", "BLOCK"] as const;
-type RiskVerdict = (typeof RISK_VERDICTS)[number];
+export type RiskVerdict = (typeof RISK_VERDICTS)[number];
 
 export const RISK_REASONS = ["amount_exceeds_threshold", "velocity_exceeds_threshold"] as const;
-type RiskReason = (typeof RISK_REASONS)[number];
+export type RiskReason = (typeof RISK_REASONS)[number];
 
 export interface RiskThresholds {
   maxAmountCents: Centimes;

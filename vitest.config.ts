@@ -55,6 +55,7 @@ export default defineConfig({
         "src/lib/statements.ts",
         "src/lib/onboarding.ts",
         "src/lib/risk.ts",
+        "src/lib/risk-scorer.ts",
         "src/routes/fee-schedules.ts",
         "src/routes/settlement-policies.ts",
         "src/routes/payouts.ts",
@@ -85,6 +86,7 @@ export default defineConfig({
         "src/lib/statements.ts": { lines: 100 },
         "src/lib/onboarding.ts": { lines: 100 },
         "src/lib/risk.ts": { lines: 100 },
+        "src/lib/risk-scorer.ts": { lines: 100 },
         "src/lib/reversals.ts": { lines: 100 },
         "src/lib/validateEnv.ts": { lines: 100 },
         // Calibrated from measured baselines (a small buffer below each

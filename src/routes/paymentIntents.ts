@@ -13,7 +13,9 @@ import { computeInstallmentAmount } from "../lib/billing";
 import { inngest } from "../lib/inngest";
 import { maskObject } from "../lib/mask";
 import { trackMetric } from "../lib/metrics";
+import { centimes } from "../lib/money";
 import { prisma } from "../lib/prisma";
+import { scoreRisk } from "../lib/risk-scorer";
 import { forTenant } from "../lib/tenant-db";
 import { requireAuth, requireMerchant } from "../middleware/auth";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
@@ -152,11 +154,25 @@ router.post(
       });
     }
 
+    // ── Risk enforcement (pre-payment gate) ───────────────────────────────
+    // Score the intended charge before creating any intent. BLOCK rejects with no
+    // row created; REVIEW/ALLOW are recorded on the intent for the admin review
+    // queue (see GET /admin/risk-decisions). Idempotent replays returned above
+    // skip re-scoring so a cached intent is never re-verdict-ed mid-window.
+    const risk = await scoreRisk({
+      tenantId: req.user!.tenantId,
+      amountCents: centimes(body.amount),
+    });
+    if (risk.verdict === "BLOCK") {
+      throw new AppError(402, "RISK_BLOCKED", "Payment blocked by risk policy");
+    }
+
     const intent = await prisma.paymentIntent.create({
       data: {
         tenantId: req.user!.tenantId,
         provider: body.provider,
         status: "CREATED",
+        riskVerdict: risk.verdict,
         metadata: (body.metadata as any) ?? null,
         // paymentLinkId intentionally null — direct intent
       },
@@ -876,12 +892,23 @@ publicPayRouter.post(
       const totalInstallments = 1 + (remainingInstallments > 0 ? remainingInstallments : 0);
 
       // Pre-create intent to get correlationId for the customerId
+      // Risk is scored on the down payment (the actual amount charged up front),
+      // not the full principal — the remaining installments are charged later.
+      const risk = await scoreRisk({
+        tenantId: link.tenantId,
+        amountCents: centimes(Math.round(downPayment * 100)),
+      });
+      if (risk.verdict === "BLOCK") {
+        throw new AppError(402, "RISK_BLOCKED", "Payment blocked by risk policy");
+      }
+
       const draftIntent = await prisma.paymentIntent.create({
         data: {
           tenantId: link.tenantId,
           paymentLinkId: link.id,
           provider: link.provider,
           customerIp: customerIp ?? req.ip ?? null,
+          riskVerdict: risk.verdict,
           metadata: { bnpl: true }, // will be updated with agreementId below
         },
       });
@@ -970,12 +997,21 @@ publicPayRouter.post(
 
     // ── Standard (non-installment) path ─────────────────────────────────────
 
+    const risk = await scoreRisk({
+      tenantId: link.tenantId,
+      amountCents: centimes(chargeCentimes),
+    });
+    if (risk.verdict === "BLOCK") {
+      throw new AppError(402, "RISK_BLOCKED", "Payment blocked by risk policy");
+    }
+
     const intent = await prisma.paymentIntent.create({
       data: {
         tenantId: link.tenantId,
         paymentLinkId: link.id,
         provider: link.provider,
         customerIp: customerIp ?? req.ip ?? null,
+        riskVerdict: risk.verdict,
       },
     });
 

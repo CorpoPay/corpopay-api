@@ -661,4 +661,62 @@ router.post(
   }),
 );
 
+// GET /admin/risk-decisions — enforcement risk review queue.
+// Backed by PaymentIntent.riskVerdict (the synchronous pre-payment verdict set by
+// the scorer seam), NOT the async RiskDecision table (the post-hoc fraud record).
+router.get(
+  "/risk-decisions",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { verdict = "REVIEW" } = req.query as { verdict?: string };
+    const { skip, take, page, limit } = parseAdminPagination(req);
+    const where: Record<string, unknown> =
+      verdict && verdict !== "ALL" ? { riskVerdict: verdict } : { riskVerdict: { not: null } };
+    const [rows, total] = await Promise.all([
+      prisma.paymentIntent.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: { tenant: { select: { name: true, slug: true } } },
+      }),
+      prisma.paymentIntent.count({ where }),
+    ]);
+    res.json({
+      data: rows.map((pi) => ({
+        id: pi.id,
+        tenantId: pi.tenantId,
+        tenantName: pi.tenant.name,
+        tenantSlug: pi.tenant.slug,
+        verdict: pi.riskVerdict,
+        provider: pi.provider,
+        correlationId: pi.correlationId,
+        paymentLinkId: pi.paymentLinkId,
+        createdAt: pi.createdAt,
+        updatedAt: pi.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+    });
+  }),
+);
+
+// POST /admin/risk-decisions/:id/resolve — manually override an enforcement verdict
+// (approve a REVIEW by setting ALLOW, or reject it by setting BLOCK).
+router.post(
+  "/risk-decisions/:id/resolve",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { verdict } = z.object({ verdict: z.enum(["ALLOW", "BLOCK"]) }).parse(req.body);
+    const intent = await prisma.paymentIntent.update({
+      where: { id: req.params.id },
+      data: { riskVerdict: verdict },
+    });
+    res.json({ id: intent.id, verdict: intent.riskVerdict, updatedAt: intent.updatedAt });
+  }),
+);
+
 export default router;
