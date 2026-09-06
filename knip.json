@@ -1,6 +1,12 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/server.ts", "scripts/*.mjs", "tests/factories.ts"],
+  "entry": [
+    "src/server.ts",
+    "src/lib/metrics.ts",
+    "src/lib/notification-sink.ts",
+    "scripts/*.mjs",
+    "tests/factories.ts"
+  ],
   "ignore": ["contract/**", "ci/**", "k6/**"],
   "ignoreDependencies": ["@prisma/client", "esbuild"],
   "ignoreBinaries": ["k6"]
