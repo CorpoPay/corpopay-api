@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.27.0...corpopay-api-v0.28.0) (2026-09-07)
+
+
+### Features
+
+* **finance:** add FinanceConfig store, /finance-config route, and capability gating ([7d3eebe](https://github.com/CorpoPay/corpopay-api/commit/7d3eebe3b88b4022b4b2af29217c6c6cba6c3ebf))
+
 ## [0.27.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.26.1...corpopay-api-v0.27.0) (2026-09-07)
 
 
