@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.2](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.24.1...corpopay-api-v0.24.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* **fees:** unify fee fallback across card captures and wallet draw-downs ([d319e6e](https://github.com/CorpoPay/corpopay-api/commit/d319e6ec549ba5096cc9c12301ea389f8dd3722c))
+
 ## [0.24.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.24.0...corpopay-api-v0.24.1) (2026-09-07)
 
 
