@@ -15,6 +15,8 @@ import { inngest } from "../lib/inngest";
 import { maskObject } from "../lib/mask";
 import { madToCentimes } from "../lib/money";
 import { prisma } from "../lib/prisma";
+import { resolveIntentCharge } from "../lib/settlement";
+import { settleCapture } from "../lib/settlement-db";
 
 export const webhookProcessor = inngest.createFunction(
   {
@@ -62,7 +64,7 @@ export const webhookProcessor = inngest.createFunction(
       if (correlationId) {
         const byCorrelation = await prisma.paymentIntent.findFirst({
           where: { correlationId, provider },
-          include: { paymentLink: { select: { tenantId: true } } },
+          include: { paymentLink: { select: { tenantId: true, amount: true, currency: true } } },
         });
         if (byCorrelation) return byCorrelation;
       }
@@ -71,7 +73,7 @@ export const webhookProcessor = inngest.createFunction(
       if (orderId) {
         const byRef = await prisma.paymentIntent.findFirst({
           where: { providerRef: orderId, provider },
-          include: { paymentLink: { select: { tenantId: true } } },
+          include: { paymentLink: { select: { tenantId: true, amount: true, currency: true } } },
         });
         if (byRef) return byRef;
       }
@@ -86,7 +88,7 @@ export const webhookProcessor = inngest.createFunction(
             metadata: { path: ["reference"], equals: orderId },
           },
           orderBy: { createdAt: "desc" },
-          include: { paymentLink: { select: { tenantId: true } } },
+          include: { paymentLink: { select: { tenantId: true, amount: true, currency: true } } },
         });
         if (byReference) return byReference;
       }
@@ -191,6 +193,20 @@ export const webhookProcessor = inngest.createFunction(
       mappedStatus = result.mappedStatus;
       processingError = result.processingError;
       processed = result.processed;
+    }
+
+    // ── Step 3b: Settle a successful capture into the ledger ─────────────────
+    // Funds the tenant's AVAILABLE balance (gross → COLLECTED → fee/reserve →
+    // AVAILABLE). Idempotent, so replayed or duplicate webhooks never double-book.
+    if (processed && mappedStatus === "SUCCEEDED" && intent && tenantId) {
+      await step.run("settle-capture", async () => {
+        const { amountCents, currency } = resolveIntentCharge(intent);
+        return settleCapture(tenantId, {
+          intentId: intent.id,
+          amountCents,
+          currency,
+        });
+      });
     }
 
     // ── Step 4: Store WebhookEvent record ────────────────────────────────────

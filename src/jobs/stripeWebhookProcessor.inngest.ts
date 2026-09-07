@@ -37,6 +37,8 @@ import { Provider } from "@/generated/prisma/client";
 import { inngest } from "../lib/inngest";
 import { maskObject } from "../lib/mask";
 import { prisma } from "../lib/prisma";
+import { resolveIntentCharge } from "../lib/settlement";
+import { settleCapture } from "../lib/settlement-db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -275,6 +277,23 @@ export const stripeWebhookProcessor = inngest.createFunction(
 
       return newStatus;
     });
+
+    // ── Step 3b: Settle a successful capture into the ledger ─────────────────
+    if (updated === "SUCCEEDED") {
+      await step.run("settle-capture", async () => {
+        const withAmount = await prisma.paymentIntent.findFirst({
+          where: { id: intent.id },
+          include: { paymentLink: { select: { amount: true, currency: true } } },
+        });
+        if (!withAmount) return { settled: false };
+        const { amountCents, currency } = resolveIntentCharge(withAmount);
+        return settleCapture(intent.tenantId, {
+          intentId: intent.id,
+          amountCents,
+          currency,
+        });
+      });
+    }
 
     // ── Step 4: Update ProviderTransaction record ─────────────────────────────
     //

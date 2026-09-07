@@ -2,10 +2,12 @@
  * Payout persistence + the settlement ledger posting.
  *
  * A payout moves a tenant's `AVAILABLE` ledger balance to `PAID_OUT`. `createPayout`
- * (idempotent by `idempotencyKey`) snapshots the currently-eligible AVAILABLE
- * credit entries into `PayoutItem` rows — the reconciliation unit that guarantees
- * each ledger entry is settled exactly once (`PayoutItem.ledgerEntryId` is unique).
- * `markPayoutPaid` posts the balanced ledger movement (debit AVAILABLE, credit
+ * (idempotent by `idempotencyKey`) snapshots the tenant's **net** eligible balance —
+ * unpaid AVAILABLE credits minus non-payout AVAILABLE debits (chargeback clawbacks,
+ * wallet fees, refunds) — so a payout can never exceed what's actually owed. It
+ * writes `PayoutItem` rows (FIFO over the credits, the last possibly partial) that
+ * guarantee each ledger credit is settled at most once (`PayoutItem.ledgerEntryId`
+ * is unique). `markPayoutPaid` posts the balanced movement (debit AVAILABLE, credit
  * PAID_OUT) and flips the payout to `PAID`.
  *
  * Amounts cross this module's boundary as integer centimes; the DB stores MAD
@@ -30,7 +32,7 @@ export interface CreatePayoutInput {
 }
 
 /**
- * Snapshot the tenant's eligible AVAILABLE balance into a DRAFT payout.
+ * Snapshot the tenant's net eligible AVAILABLE balance into a DRAFT payout.
  * Idempotent: a repeat call with the same `idempotencyKey` returns the existing
  * payout instead of double-reserving funds.
  */
@@ -44,35 +46,57 @@ export async function createPayout(
   });
   if (existing) return existing;
 
-  const eligible = await prisma.ledgerEntry.findMany({
-    where: {
-      tenantId,
-      account: "AVAILABLE",
-      direction: "CREDIT",
-      payoutItem: { is: null },
-    },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-  });
-
-  const amountCents = eligible.reduce((sum, entry) => sum + madToCentimes(entry.amount), 0);
-  if (amountCents <= 0) throw new PayoutError("no eligible funds to pay out");
-
   return prisma.$transaction(async (tx) => {
+    // Serialize money movement for this tenant (the same lock `postEntry` uses)
+    // so a concurrent capture/clawback can't skew the snapshot.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`;
+
+    // Unpaid AVAILABLE credits (not yet reserved by any payout), oldest first.
+    const credits = await tx.ledgerEntry.findMany({
+      where: {
+        tenantId,
+        account: "AVAILABLE",
+        direction: "CREDIT",
+        payoutItem: { is: null },
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+
+    // Non-payout AVAILABLE debits (chargeback clawback, wallet fee, refund, …)
+    // reduce what's actually owed. Payout debits are excluded — they already
+    // settled a prior payout and don't reduce future eligibility.
+    const debitRows = await tx.ledgerEntry.findMany({
+      where: { tenantId, account: "AVAILABLE", direction: "DEBIT", category: { not: "PAYOUT" } },
+      select: { amount: true },
+    });
+
+    const unpaidCredits = credits.reduce((sum, entry) => sum + madToCentimes(entry.amount), 0);
+    const otherDebits = debitRows.reduce((sum, entry) => sum + madToCentimes(entry.amount), 0);
+    const payable = unpaidCredits - otherDebits;
+    if (payable <= 0) throw new PayoutError("no eligible funds to pay out");
+
+    // Allocate the net payable FIFO over the oldest credits; the last credit may
+    // be partial (its remainder was consumed by a clawback/fee).
+    let remaining = payable;
+    const items: { ledgerEntryId: string; amount: number }[] = [];
+    for (const entry of credits) {
+      if (remaining <= 0) break;
+      const creditCents = madToCentimes(entry.amount);
+      const alloc = Math.min(creditCents, remaining);
+      items.push({ ledgerEntryId: entry.id, amount: centimesToMad(centimes(alloc)) });
+      remaining -= alloc;
+    }
+
     return tx.payout.create({
       data: {
         tenantId,
-        amount: centimesToMad(centimes(amountCents)),
+        amount: centimesToMad(centimes(payable)),
         currency: "MAD",
         status: "DRAFT",
         provider: input.provider,
         method: input.method ?? "BANK_TRANSFER",
         idempotencyKey: input.idempotencyKey,
-        items: {
-          create: eligible.map((entry) => ({
-            ledgerEntryId: entry.id,
-            amount: entry.amount,
-          })),
-        },
+        items: { create: items },
       },
       include: { items: true },
     });

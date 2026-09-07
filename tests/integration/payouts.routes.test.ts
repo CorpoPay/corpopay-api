@@ -43,7 +43,11 @@ beforeEach(() => {
 describe("POST /payouts", () => {
   it("snapshots eligible AVAILABLE funds into a DRAFT payout", async () => {
     prisma.payout.findUnique.mockResolvedValue(null);
-    prisma.ledgerEntry.findMany.mockResolvedValue([{ id: "le-1", amount: "100.00" }]);
+    prisma.ledgerEntry.findMany.mockImplementation((args: { where?: { direction?: string } }) => {
+      // credits → one unpaid AVAILABLE credit; debits → none
+      if (args?.where?.direction === "DEBIT") return Promise.resolve([]);
+      return Promise.resolve([{ id: "le-1", amount: "100.00" }]);
+    });
     prisma.payout.create.mockResolvedValue(
       payoutRow({ items: [{ id: "pi-1", ledgerEntryId: "le-1", amount: "100.00" }] }),
     );

@@ -130,4 +130,36 @@ describe("payout persistence (real Postgres)", () => {
   it("getPayout returns null for a missing payout", async () => {
     expect(await getPayout(TENANT, "missing")).toBeNull();
   });
+
+  it("pays the net available balance (not gross credits) after a clawback", async () => {
+    // Capture 97.10 → AVAILABLE credit.
+    await postEntry(
+      TENANT,
+      posting(
+        debit("CASH", centimes(9710), "CAPTURE"),
+        credit("AVAILABLE", centimes(9710), "CAPTURE"),
+      ),
+    );
+    // A chargeback claws back 20.00.
+    await postEntry(
+      TENANT,
+      posting(
+        debit("AVAILABLE", centimes(2000), "CHARGEBACK"),
+        credit("CASH", centimes(2000), "CHARGEBACK"),
+      ),
+    );
+
+    const payout = await createPayout(TENANT, { idempotencyKey: "payout-net", provider: "VPS" });
+
+    expect(payout.amount.toString()).toBe("77.1"); // 97.10 − 20.00, not 97.10
+    expect(payout.items).toHaveLength(1);
+    expect(payout.items[0].amount.toString()).toBe("77.1"); // partial credit
+
+    await markPayoutPaid(TENANT, payout.id, "xfer-net");
+
+    const view = await getTenantLedger(TENANT);
+    expect(view.balanced).toBe(true);
+    expect(view.balances.AVAILABLE).toBe(0);
+    expect(view.balances.PAID_OUT).toBe(7710);
+  });
 });

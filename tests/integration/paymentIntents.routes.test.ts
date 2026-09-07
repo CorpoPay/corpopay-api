@@ -11,6 +11,9 @@ vi.mock("../../src/config/inngest", () => ({
 vi.mock("../../src/lib/inngest", () => ({
   inngest: { send: vi.fn().mockResolvedValue(undefined) },
 }));
+vi.mock("../../src/lib/settlement-db", () => ({
+  settleCapture: vi.fn().mockResolvedValue({ settled: true }),
+}));
 vi.mock("../../src/adapters/registry", () => ({
   getAdapter: vi.fn(() => ({
     createCheckoutSession: vi.fn(async () => ({

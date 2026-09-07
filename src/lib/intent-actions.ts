@@ -18,6 +18,7 @@ import { inngest } from "./inngest";
 import { maskObject } from "./mask";
 import { madToCentimes } from "./money";
 import { prisma } from "./prisma";
+import { settleCapture } from "./settlement-db";
 
 /** The intent shape the capture/void actions load (only the fields they need). */
 type IntentWithLink = Prisma.PaymentIntentGetPayload<{
@@ -131,7 +132,16 @@ export async function captureIntent(
     }),
   ]);
 
-  await inngest.send({ name: "payment/captured", data: { intentId, tenantId: intent.tenantId } });
+  // Settle the capture into the tenant's ledger (gross → COLLECTED → fee/reserve
+  // → AVAILABLE). Idempotent — a replay or a concurrent settle is a no-op.
+  if (status === "SUCCEEDED") {
+    await settleCapture(intent.tenantId, {
+      intentId,
+      amountCents,
+      currency,
+    });
+  }
+
   await inngest.send({
     name: "payment/risk-evaluate",
     data: { intentId, tenantId: intent.tenantId },
@@ -201,8 +211,6 @@ export async function voidIntent(
       },
     }),
   ]);
-
-  await inngest.send({ name: "payment/canceled", data: { intentId, tenantId: intent.tenantId } });
 
   return { intentId, status };
 }
