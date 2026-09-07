@@ -20,7 +20,7 @@
  */
 import type { Prisma, Wallet, WalletOwnerType, WalletTransaction } from "@/generated/prisma/client";
 
-import { toFeeSpec } from "./fees-db";
+import { resolveFeeSpec } from "./fees-db";
 import { credit as creditLeg, debit as debitLeg, posting } from "./ledger";
 import { postEntry } from "./ledger-db";
 import { type Centimes, centimes, centimesToMad, madToCentimes } from "./money";
@@ -32,7 +32,6 @@ import {
   adjustment as walletAdjustment,
   refund as walletRefund,
   topUp as walletTopUp,
-  ZERO_FEE_SCHEDULE,
 } from "./wallet";
 
 export interface CreateWalletInput {
@@ -185,7 +184,12 @@ export async function debitWallet(
   return prisma.$transaction(async (tx) => {
     const wallet = await loadActiveWallet(tx, tenantId, id);
     const scheduleRow = await tx.feeSchedule.findFirst({ where: { tenantId, isActive: true } });
-    const schedule = scheduleRow ? toFeeSpec(scheduleRow) : ZERO_FEE_SCHEDULE;
+    const policyRow = await tx.settlementPolicy.findFirst({
+      where: { tenantId, isActive: true },
+    });
+    // Same shared fallback as card captures: explicit FeeSchedule wins, else the
+    // tenant's industry preset fee — never a silent 0.
+    const schedule = resolveFeeSpec(scheduleRow, policyRow?.industry ?? null);
     const movement = debitWithFee(
       madToCentimes(wallet.balance),
       input.amountCents,

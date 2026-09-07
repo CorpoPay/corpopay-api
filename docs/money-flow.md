@@ -99,11 +99,11 @@ These are the next money-path hardening items (audited, not yet fixed here):
    over-pays when later marked `PAID` (no re-validation at `markPayoutPaid`), and
    `FAILED`/`CANCELLED` payouts leave their `PayoutItem`s in place (stuck credits).
 
-2. **Fee default is inconsistent between surfaces.** `settleCapture` falls back to
-   the **preset fee** (never a silent 0), but `wallet-db.debitWallet` falls back to
-   `ZERO_FEE_SCHEDULE`. Unify: both should default to the preset fee; a tenant with
-   no explicit `FeeSchedule` currently pays 0 on wallet draw-downs but the preset
-   rate on card captures.
+2. **~~Fee default inconsistent between surfaces~~ — fixed.** Both `settleCapture`
+   and `wallet-db.debitWallet` now resolve the fee through the shared
+   `resolveFeeSpec` helper (explicit active `FeeSchedule` wins, else the tenant's
+   industry preset fee — default 2.9%). A tenant with no explicit `FeeSchedule` no
+   longer silently pays 0 on wallet draw-downs.
 
 3. **~~Refund posts no ledger movement~~ — fixed.** `settleRefund` now unwinds the
    capture's settlement (`AVAILABLE + FEES + RESERVE → CASH`), idempotently, so a

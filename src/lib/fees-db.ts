@@ -13,6 +13,7 @@ import type { FeeSchedule, FeeType } from "@/generated/prisma/client";
 
 import type { FeeScheduleSpec, FeeTier } from "./fees";
 import { prisma } from "./prisma";
+import { presetForIndustry } from "./settlement-presets";
 
 export interface FeeScheduleInput {
   name?: string | null;
@@ -43,6 +44,20 @@ export function toFeeSpec(row: FeeSchedule): FeeScheduleSpec {
     perMethodCents: jsonToRecord(row.perMethodCents),
     tiersCents: jsonToTiers(row.tiersCents),
   };
+}
+
+/**
+ * Resolve a tenant's effective fee spec: an explicit active `FeeSchedule` wins;
+ * otherwise the tenant's industry preset fee (or the general default). This is
+ * the single fallback rule for the whole money path — a card capture and a wallet
+ * draw-down never diverge, and a tenant is never silently charged zero.
+ */
+export function resolveFeeSpec(
+  feeRow: FeeSchedule | null,
+  industry: string | null,
+): FeeScheduleSpec {
+  if (feeRow) return toFeeSpec(feeRow);
+  return presetForIndustry(industry).fee;
 }
 
 /** Create a new active version (deactivating the prior one) atomically. */

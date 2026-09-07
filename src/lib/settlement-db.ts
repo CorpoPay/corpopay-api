@@ -18,14 +18,14 @@
  */
 import type { Prisma } from "@/generated/prisma/client";
 
-import { toFeeSpec } from "./fees-db";
+import { resolveFeeSpec } from "./fees-db";
 import { credit, debit, posting } from "./ledger";
 import { postEntry } from "./ledger-db";
 import { centimes } from "./money";
 import { prisma } from "./prisma";
 import { CAPTURE_SOURCE_TYPE, planCaptureSettlement } from "./settlement";
 import type { PolicySpec } from "./settlement-policy";
-import { DEFAULT_PRESET, presetForIndustry } from "./settlement-presets";
+import { DEFAULT_PRESET } from "./settlement-presets";
 
 export interface SettleCaptureInput {
   /** The `PaymentIntent.id` — the idempotency key for the settlement. */
@@ -66,9 +66,9 @@ export async function settleCapture(
     const policyRow = await tx.settlementPolicy.findFirst({
       where: { tenantId, isActive: true },
     });
-    // An explicit FeeSchedule overrides the preset; otherwise the tenant pays the
-    // preset fee for their industry (or the general default) — never a silent 0.
-    const fee = feeRow ? toFeeSpec(feeRow) : presetForIndustry(policyRow?.industry ?? null).fee;
+    // `resolveFeeSpec` is the single fallback rule for the whole money path:
+    // an explicit active FeeSchedule wins, else the tenant's industry preset fee.
+    const fee = resolveFeeSpec(feeRow, policyRow?.industry ?? null);
     const policy: PolicySpec = policyRow ?? DEFAULT_PRESET;
 
     const plan = planCaptureSettlement(gross, fee, policy, input.method ?? undefined);

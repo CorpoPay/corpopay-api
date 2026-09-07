@@ -120,6 +120,21 @@ describe("capture settlement (real Postgres)", () => {
     expect(view.balances.CASH).toBe(-7000);
   });
 
+  it("charges the preset fee on a wallet draw-down with no explicit FeeSchedule", async () => {
+    // No FeeSchedule and no SettlementPolicy → the default 2.9% preset applies.
+    const wallet = await createWallet(TENANT, {
+      ownerType: WalletOwnerType.CUSTOMER,
+      ownerId: "cust-preset",
+    });
+    await topUpWallet(TENANT, wallet.id, { amountCents: centimes(5000) });
+    await debitWallet(TENANT, wallet.id, { amountCents: centimes(2000) });
+
+    const view = await expectBalanced();
+    expect(view.balances.WALLET).toBe(3000); // 30.00 MAD retained
+    expect(view.balances.FEES).toBe(58); // 2.9% of 20.00
+    expect(view.balances.AVAILABLE).toBe(1942); // 20.00 − 0.58
+  });
+
   it("keeps the ledger balanced across capture → payout → dispute → wallet", async () => {
     await createFeeSchedule(TENANT, { feeType: "PERCENTAGE", percentageBps: 290 });
     await createSettlementPolicy(TENANT, { reserveType: "NONE" });
