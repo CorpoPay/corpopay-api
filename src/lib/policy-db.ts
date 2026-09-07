@@ -9,6 +9,7 @@
  */
 import type {
   AvailabilityMode,
+  PayoutRail,
   PayoutSchedule,
   ReserveType,
   ReversalFundingPolicy,
@@ -34,6 +35,7 @@ export interface SettlementPolicyInput {
   reversalFunding?: ReversalFundingPolicy | null;
   allowNegative?: boolean | null;
   splittingEnabled?: boolean | null;
+  payoutRail?: PayoutRail | null;
   feeScheduleId?: string | null;
 }
 
@@ -52,6 +54,7 @@ function resolveInput(input: SettlementPolicyInput): PolicySpec {
     reversalFunding: input.reversalFunding,
     allowNegative: input.allowNegative,
     splittingEnabled: input.splittingEnabled,
+    payoutRail: input.payoutRail,
   });
   // industry/mcc are identity signals, not preset-derived dimensions — store the
   // tenant's raw input (or null) rather than the preset's canonical key.
@@ -96,6 +99,7 @@ export async function createSettlementPolicy(
         reversalFunding: resolved.reversalFunding,
         allowNegative: resolved.allowNegative,
         splittingEnabled: resolved.splittingEnabled,
+        payoutRail: resolved.payoutRail,
         feeScheduleId: input.feeScheduleId ?? null,
         isActive: true,
       },

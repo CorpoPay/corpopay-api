@@ -15,6 +15,7 @@
  */
 import type {
   AvailabilityMode,
+  PayoutRail,
   PayoutSchedule,
   ReserveType,
   ReversalFundingPolicy,
@@ -38,6 +39,7 @@ export interface PolicySpec {
   reversalFunding: ReversalFundingPolicy;
   allowNegative: boolean;
   splittingEnabled: boolean;
+  payoutRail: PayoutRail;
 }
 
 export class PolicyError extends Error {
@@ -128,5 +130,6 @@ export function resolvePolicy(preset: IndustryPreset, overrides: PolicyOverrides
     reversalFunding: overrides.reversalFunding ?? preset.reversalFunding,
     allowNegative: overrides.allowNegative ?? preset.allowNegative,
     splittingEnabled: overrides.splittingEnabled ?? preset.splittingEnabled,
+    payoutRail: overrides.payoutRail ?? preset.payoutRail ?? "MANUAL",
   };
 }

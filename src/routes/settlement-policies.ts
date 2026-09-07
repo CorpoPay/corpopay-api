@@ -30,6 +30,7 @@ function toResponse(row: SettlementPolicy) {
     reversalFunding: row.reversalFunding,
     allowNegative: row.allowNegative,
     splittingEnabled: row.splittingEnabled,
+    payoutRail: row.payoutRail,
     feeScheduleId: row.feeScheduleId,
     isActive: row.isActive,
     createdAt: row.createdAt,

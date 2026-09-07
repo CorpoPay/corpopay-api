@@ -2930,6 +2930,7 @@ const SettlementPolicy = registry.register(
     reversalFunding: z.string(),
     allowNegative: z.boolean(),
     splittingEnabled: z.boolean(),
+    payoutRail: z.string(),
     feeScheduleId: z.string().nullable(),
     isActive: z.boolean(),
     createdAt: z.string(),
@@ -2979,6 +2980,32 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: SettlementPolicy } } },
     404: { description: "No active settlement policy" },
+  },
+});
+
+const SettlementSummary = registry.register(
+  "SettlementSummary",
+  z.object({
+    currency: z.string(),
+    availableCents: z.number().int(),
+    scheduledCents: z.number().int(),
+    eligibleCents: z.number().int(),
+    feesCents: z.number().int(),
+    reserveCents: z.number().int(),
+    paidOutCents: z.number().int(),
+    payoutRail: z.string().nullable(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/settlement/summary",
+  operationId: "getSettlementSummary",
+  summary: "Get the tenant net-owed settlement summary",
+  tags: ["Settlement"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: SettlementSummary } } },
   },
 });
 

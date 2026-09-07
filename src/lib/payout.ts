@@ -26,6 +26,9 @@ export const PAYOUT_STATUSES = [
   "CANCELLED",
 ] as const;
 
+/** Non-terminal statuses: a payout that still reserves (or is moving) funds. */
+export const OPEN_PAYOUT_STATUSES = ["DRAFT", "SCHEDULED", "PENDING", "PROCESSING"] as const;
+
 /** Allowed outgoing transitions for each payout status (terminal states have none). */
 const TRANSITIONS: Record<PayoutStatus, readonly PayoutStatus[]> = {
   DRAFT: ["SCHEDULED", "CANCELLED"],

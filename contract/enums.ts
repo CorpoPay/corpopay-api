@@ -254,6 +254,9 @@ export const PayoutStatusValues = [
 export type PayoutMethod = "BANK_TRANSFER" | "CARD" | "WALLET";
 export const PayoutMethodValues = ["BANK_TRANSFER", "CARD", "WALLET"] as const;
 
+export type PayoutRail = "STRIPE_CONNECT" | "MANUAL";
+export const PayoutRailValues = ["STRIPE_CONNECT", "MANUAL"] as const;
+
 export type DisputeStatus = "OPEN" | "WON" | "LOST";
 export const DisputeStatusValues = ["OPEN", "WON", "LOST"] as const;
 

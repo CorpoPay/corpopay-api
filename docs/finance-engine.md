@@ -1,6 +1,6 @@
 # CorpoPay Finance Engine — config-driven money models
 
-Status: **Phase A + B + C complete.**
+Status: **Phase A + B + C + D complete.**
 
 ## Goal
 
@@ -105,4 +105,4 @@ model FinanceConfig {
 - **A** — `src/lib/finance-config.ts` validator + tests (pure, no migration). ✅
 - **B** — `FinanceConfig` schema + migration, route + creation gating. ✅
 - **C** — wallet commission basis (`usage` vs `load`) and the OtoParking `wallet` preset + `usage` default. ✅
-- **D** — settlement/owed surface (Tier 2), with the payout rail (`stripe_connect` vs `manual`) kept in `SettlementPolicy`, not here.
+- **D** — settlement/owed surface (Tier 2): `payoutRail` (`STRIPE_CONNECT` vs `MANUAL`) on `SettlementPolicy`, and `GET /settlement/summary` (net-owed = `AVAILABLE`, with fee/reserve/paid-out breakdown + eligible-after-scheduled). ✅

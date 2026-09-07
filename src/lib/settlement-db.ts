@@ -24,7 +24,7 @@ import { postEntry } from "./ledger-db";
 import { centimes } from "./money";
 import { prisma } from "./prisma";
 import { CAPTURE_SOURCE_TYPE, planCaptureSettlement } from "./settlement";
-import type { PolicySpec } from "./settlement-policy";
+import { type PolicySpec, resolvePolicy } from "./settlement-policy";
 import { DEFAULT_PRESET } from "./settlement-presets";
 import { type ShareSpec, split } from "./splits";
 import { executeSplitInTx } from "./splits-db";
@@ -71,7 +71,7 @@ export async function settleCapture(
     // `resolveFeeSpec` is the single fallback rule for the whole money path:
     // an explicit active FeeSchedule wins, else the tenant's industry preset fee.
     const fee = resolveFeeSpec(feeRow, policyRow?.industry ?? null);
-    const policy: PolicySpec = policyRow ?? DEFAULT_PRESET;
+    const policy: PolicySpec = policyRow ?? resolvePolicy(DEFAULT_PRESET);
 
     // A marketplace tenant (splittingEnabled) with an active AT_CAPTURE rule splits
     // the GROSS; the platform fee + reserve are then computed on the platform

@@ -91,6 +91,29 @@ card payments.
 
 ---
 
+## 3.5 Net-owed summary + payout rail (Tier 2)
+
+`src/lib/settlement-summary.ts` / `settlement-summary-db.ts` / `routes/settlement.ts`
+
+The single number an admin needs to settle a tenant — how much CorpoPay still owes
+after commission, fees, reserve and reversals — is `GET /settlement/summary`:
+
+| Field | Meaning |
+|---|---|
+| `availableCents` | **net owed** — the `AVAILABLE` balance (gross − fee − reserve − already paid out) |
+| `scheduledCents` | funds already reserved by open (`DRAFT`/`SCHEDULED`/`PENDING`/`PROCESSING`) payouts |
+| `eligibleCents` | `available − scheduled`, floored at 0 — what can be paid right now |
+| `feesCents` | CorpoPay revenue to date (`FEES`) |
+| `reserveCents` | held back against reversals (`RESERVE`) |
+| `paidOutCents` | cumulative amount already settled (`PAID_OUT`) |
+| `payoutRail` | `MANUAL` (admin pays out-of-band, e.g. Morocco) or `STRIPE_CONNECT` (automatic international) |
+
+`payoutRail` is a **`SettlementPolicy`** dimension (not a money-model concern) —
+default `MANUAL`, overridable per tenant. It lives in `settlement-policy.ts` /
+`policy-db.ts`, never in the ledger or capture math.
+
+---
+
 ## 4. Known gaps & follow-ups
 
 These are the next money-path hardening items (audited, not yet fixed here):

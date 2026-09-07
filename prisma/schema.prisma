@@ -215,6 +215,14 @@ enum PayoutMethod {
   WALLET
 }
 
+// The channel through which a tenant is paid out. `MANUAL` = CorpoPay admin
+// pays the tenant out-of-band (e.g. Morocco bank transfer); `STRIPE_CONNECT` =
+// automatic international disbursement via Stripe Connect.
+enum PayoutRail {
+  STRIPE_CONNECT
+  MANUAL
+}
+
 enum DisputeStatus {
   OPEN
   WON
@@ -752,6 +760,7 @@ model SettlementPolicy {
   reversalFunding       ReversalFundingPolicy @default(NET_FROM_AVAILABLE)
   allowNegative         Boolean               @default(false)
   splittingEnabled      Boolean               @default(false)
+  payoutRail            PayoutRail            @default(MANUAL)
   feeScheduleId         String?
   isActive              Boolean               @default(true)
   createdAt             DateTime              @default(now())

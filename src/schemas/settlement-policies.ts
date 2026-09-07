@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   AvailabilityMode,
+  PayoutRail,
   PayoutSchedule,
   ReserveType,
   ReversalFundingPolicy,
@@ -21,5 +22,6 @@ export const createSettlementPolicySchema = z.object({
   reversalFunding: z.nativeEnum(ReversalFundingPolicy).nullish(),
   allowNegative: z.boolean().nullish(),
   splittingEnabled: z.boolean().nullish(),
+  payoutRail: z.nativeEnum(PayoutRail).nullish(),
   feeScheduleId: z.string().nullish(),
 });

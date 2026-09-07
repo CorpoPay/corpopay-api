@@ -111,4 +111,14 @@ describe("resolvePolicy", () => {
     expect(resolved.payoutSchedule).toBe("AUTO_DAILY");
     expect(resolved.splittingEnabled).toBe(false);
   });
+
+  it("defaults payoutRail to MANUAL", () => {
+    expect(resolvePolicy(DEFAULT_PRESET).payoutRail).toBe("MANUAL");
+    expect(resolvePolicy(INDUSTRY_PRESETS.marketplace).payoutRail).toBe("MANUAL");
+  });
+
+  it("lets an explicit payoutRail override win", () => {
+    const resolved = resolvePolicy(DEFAULT_PRESET, { payoutRail: "STRIPE_CONNECT" });
+    expect(resolved.payoutRail).toBe("STRIPE_CONNECT");
+  });
 });

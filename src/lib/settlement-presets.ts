@@ -14,6 +14,7 @@
 import type {
   AvailabilityMode,
   FeeType,
+  PayoutRail,
   PayoutSchedule,
   ReserveType,
   ReversalFundingPolicy,
@@ -36,6 +37,8 @@ export interface IndustryPreset {
   reversalFunding: ReversalFundingPolicy;
   allowNegative: boolean;
   splittingEnabled: boolean;
+  /** Payout channel; defaults to `MANUAL` when unset (Morocco-first). */
+  payoutRail?: PayoutRail;
 }
 
 /** General-purpose PayFac default (the design doc §6 table). */

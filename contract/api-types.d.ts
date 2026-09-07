@@ -1356,6 +1356,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/settlement/summary": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the tenant net-owed settlement summary */
+    get: operations["getSettlementSummary"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/finance-config": {
     parameters: {
       query?: never;
@@ -2853,10 +2870,21 @@ export interface components {
       reversalFunding: string;
       allowNegative: boolean;
       splittingEnabled: boolean;
+      payoutRail: string;
       feeScheduleId: string | null;
       isActive: boolean;
       createdAt: string;
       updatedAt: string;
+    };
+    SettlementSummary: {
+      currency: string;
+      availableCents: number;
+      scheduledCents: number;
+      eligibleCents: number;
+      feesCents: number;
+      reserveCents: number;
+      paidOutCents: number;
+      payoutRail: string | null;
     };
     FinanceConfigResponse: {
       capabilities: string[];
@@ -6037,6 +6065,8 @@ export interface operations {
             | null;
           allowNegative?: boolean | null;
           splittingEnabled?: boolean | null;
+          /** @enum {string|null} */
+          payoutRail?: "STRIPE_CONNECT" | "MANUAL" | null;
           feeScheduleId?: string | null;
         };
       };
@@ -6077,6 +6107,26 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  getSettlementSummary: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SettlementSummary"];
+        };
       };
     };
   };
