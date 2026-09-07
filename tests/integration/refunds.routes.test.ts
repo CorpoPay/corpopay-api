@@ -18,6 +18,9 @@ vi.mock("../../src/adapters/registry", () => ({
     testConnection: vi.fn(),
   })),
 }));
+vi.mock("../../src/lib/refund-db", () => ({
+  settleRefund: vi.fn().mockResolvedValue({ settled: true }),
+}));
 
 import app from "../../src/app";
 import { prisma } from "../../src/lib/prisma";

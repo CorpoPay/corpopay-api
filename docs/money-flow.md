@@ -84,7 +84,7 @@ card payments.
 | **Split (ON_USAGE/MANUAL)** | `AVAILABLE → AVAILABLE/RESERVE` per party | `splits-db.ts` |
 | **Split release** (escrow) | `RESERVE → AVAILABLE` | `splits-db.ts` |
 | **Dispute LOST** (chargeback clawback) | `AVAILABLE → CASH` and/or `RESERVE → CASH`, shortfall → `Recovery` receivable | `reversals-db.ts` |
-| **Refund (card)** | status flip only — see §4 | `routes/refunds.ts` |
+| **Refund (card)** | `AVAILABLE + FEES + RESERVE → CASH` (full unwind of the capture) | `refund-db.ts` |
 
 ---
 
@@ -105,10 +105,11 @@ These are the next money-path hardening items (audited, not yet fixed here):
    no explicit `FeeSchedule` currently pays 0 on wallet draw-downs but the preset
    rate on card captures.
 
-3. **`Refund` (card) posts no ledger movement.** `routes/refunds.ts` flips the
-   `Refund`/`PaymentIntent` status and writes an audit log + provider transaction,
-   but does not claw `AVAILABLE → CASH` (or reverse fee/reserve). Refunds therefore
-   don't reconcile against the settlement ledger. Wire a balanced refund posting.
+3. **~~Refund posts no ledger movement~~ — fixed.** `settleRefund` now unwinds the
+   capture's settlement (`AVAILABLE + FEES + RESERVE → CASH`), idempotently, so a
+   refunded payment leaves the payout-eligible balance. Remaining edge case: a
+   refund **after** payout throws `REFUND_AFTER_PAYOUT` (the net was already
+   disbursed) — needs a receivable / clawback-from-`PAID_OUT` follow-up.
 
 4. **`executeSplit`/`releaseSplit` are not wired to any capture.** The split engine
    is built and DB-tested but no code path calls it; decide the trigger (on capture

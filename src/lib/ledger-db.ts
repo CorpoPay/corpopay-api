@@ -58,7 +58,7 @@ export interface LedgerView {
 }
 
 /** Current balance of one account (Σ credits − Σ debits), read from stored rows. */
-async function accountBalanceCents(
+export async function accountBalanceCents(
   client: Prisma.TransactionClient,
   tenantId: string,
   account: LedgerAccount,

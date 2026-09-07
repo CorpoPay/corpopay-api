@@ -4,6 +4,7 @@ import { getAdapter } from "../adapters/registry";
 import { maskObject } from "../lib/mask";
 import { centimes, centimesToMad, madToCentimes } from "../lib/money";
 import { prisma } from "../lib/prisma";
+import { settleRefund } from "../lib/refund-db";
 import { forTenant } from "../lib/tenant-db";
 import { requireAuth, requireOwner } from "../middleware/auth";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
@@ -97,6 +98,13 @@ router.post(
     });
 
     const result = await adapter.refund(intent.providerRef, amountCentimes, currency);
+
+    // Reverse the capture's settlement (net → CASH, fee → CASH, reserve → CASH)
+    // so the refunded funds leave the tenant's AVAILABLE balance and are never
+    // paid out. Throws REFUND_AFTER_PAYOUT if the net was already disbursed.
+    if (result.success) {
+      await settleRefund(req.user!.tenantId, { intentId: intent.id, refundId: refund.id });
+    }
 
     const finalStatus = result.success ? "SUCCEEDED" : "FAILED";
 

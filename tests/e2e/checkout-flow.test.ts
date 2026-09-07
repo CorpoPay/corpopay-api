@@ -19,6 +19,9 @@ vi.mock("../../src/config/inngest", () => ({
 vi.mock("../../src/lib/inngest", () => ({
   inngest: { send: vi.fn().mockResolvedValue(undefined) },
 }));
+vi.mock("../../src/lib/refund-db", () => ({
+  settleRefund: vi.fn().mockResolvedValue({ settled: true }),
+}));
 
 const fakeAdapter = {
   createCheckoutSession: vi.fn(async (params: { amount: number; correlationId: string }) => ({
