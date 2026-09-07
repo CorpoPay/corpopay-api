@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.22.0...corpopay-api-v0.23.0) (2026-09-07)
+
+
+### Features
+
+* **risk:** hold REVIEW via pre-auth + admin capture/void ([e6bfa8c](https://github.com/CorpoPay/corpopay-api/commit/e6bfa8c9776c4a3b135c1ece6d8085df69cf4f34))
+
 ## [0.22.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.21.0...corpopay-api-v0.22.0) (2026-09-07)
 
 
