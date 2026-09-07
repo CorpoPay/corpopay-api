@@ -10,13 +10,16 @@ vi.mock("../../src/lib/prisma", async () => {
 // re-running the full money logic (already covered by the lib/unit suites).
 vi.mock("../../src/lib/reversals-db", () => ({ resolveDispute: vi.fn() }));
 vi.mock("../../src/lib/reconciliation-db", () => ({ resolveReconciliation: vi.fn() }));
-vi.mock("../../src/lib/statements-db", () => ({ finalizeSettlementStatement: vi.fn() }));
+vi.mock("../../src/lib/statements-db", () => ({
+  finalizeSettlementStatement: vi.fn(),
+  voidSettlementStatement: vi.fn(),
+}));
 
 import app from "../../src/app";
 import { prisma } from "../../src/lib/prisma";
 import { resolveReconciliation } from "../../src/lib/reconciliation-db";
 import { resolveDispute } from "../../src/lib/reversals-db";
-import { finalizeSettlementStatement } from "../../src/lib/statements-db";
+import { finalizeSettlementStatement, voidSettlementStatement } from "../../src/lib/statements-db";
 import { mintToken } from "../factories";
 
 const ADMIN_TOKEN = mintToken({ id: "user-admin", tenantId: "tenant-a", role: "SUPER_ADMIN" });
@@ -25,6 +28,7 @@ const OWNER_TOKEN = mintToken({ id: "user-owner", tenantId: "tenant-a", role: "O
 const mockResolveDispute = resolveDispute as ReturnType<typeof vi.fn>;
 const mockResolveReconciliation = resolveReconciliation as ReturnType<typeof vi.fn>;
 const mockFinalizeStatement = finalizeSettlementStatement as ReturnType<typeof vi.fn>;
+const mockVoidStatement = voidSettlementStatement as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -146,6 +150,36 @@ describe("POST /admin/settlement-statements/:id/finalize", () => {
   it("rejects non-admin callers", async () => {
     const res = await request(app)
       .post("/admin/settlement-statements/stmt-1/finalize")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`);
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("POST /admin/settlement-statements/:id/void", () => {
+  it("voids a statement for any tenant (cross-tenant delegation)", async () => {
+    prisma.settlementStatement.findUnique.mockResolvedValue({
+      id: "stmt-2",
+      tenantId: "tenant-b",
+      status: "VOIDED",
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .post("/admin/settlement-statements/stmt-2/void")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      id: "stmt-2",
+      status: "VOIDED",
+      updatedAt: expect.any(String),
+    });
+    expect(mockVoidStatement).toHaveBeenCalledWith("tenant-b", "stmt-2");
+  });
+
+  it("rejects non-admin callers", async () => {
+    const res = await request(app)
+      .post("/admin/settlement-statements/stmt-1/void")
       .set("Authorization", `Bearer ${OWNER_TOKEN}`);
     expect(res.status).toBe(403);
   });

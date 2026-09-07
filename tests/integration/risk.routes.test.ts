@@ -29,6 +29,7 @@ vi.mock("../../src/adapters/registry", () => ({
   })),
 }));
 
+import { getAdapter } from "../../src/adapters/registry";
 import app from "../../src/app";
 import { prisma } from "../../src/lib/prisma";
 import { mintToken } from "../factories";
@@ -45,6 +46,7 @@ const mockFindIntentMany = prisma.paymentIntent.findMany as ReturnType<typeof vi
 const mockUpdateIntent = prisma.paymentIntent.update as ReturnType<typeof vi.fn>;
 const mockFindLink = prisma.paymentLink.findFirst as ReturnType<typeof vi.fn>;
 const mockUpdateLinkMany = prisma.paymentLink.updateMany as ReturnType<typeof vi.fn>;
+const mockUpdateMany = prisma.paymentIntent.updateMany as ReturnType<typeof vi.fn>;
 
 const INTENT = {
   id: "intent-1",
@@ -94,6 +96,7 @@ beforeEach(() => {
   mockUpdateIntent.mockResolvedValue(INTENT);
   mockFindOnboarding.mockResolvedValue({ riskTier: "MEDIUM" });
   mockCountIntents.mockResolvedValue(0);
+  mockUpdateMany.mockResolvedValue({ count: 1 });
 });
 
 describe("POST /payment-intents (risk enforcement)", () => {
@@ -131,6 +134,23 @@ describe("POST /payment-intents (risk enforcement)", () => {
     expect(res.status).toBe(201);
     expect(mockCreateIntent).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ riskVerdict: "ALLOW" }) }),
+    );
+  });
+
+  it("forces authorize-only (pre-auth) when the verdict is REVIEW", async () => {
+    mockCountIntents.mockResolvedValue(10); // MEDIUM maxPerWindow = 10 → REVIEW
+    const res = await request(app)
+      .post("/payment-intents")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`)
+      .send(CREATE_BODY);
+
+    expect(res.status).toBe(201);
+    expect(res.body.riskVerdict).toBe("REVIEW");
+    const adapter = (getAdapter as any).mock.results.at(-1)?.value as {
+      createCheckoutSession: ReturnType<typeof vi.fn>;
+    };
+    expect(adapter.createCheckoutSession).toHaveBeenCalledWith(
+      expect.objectContaining({ isPreauth: true }),
     );
   });
 });
@@ -200,6 +220,12 @@ describe("GET /admin/risk-decisions", () => {
 
 describe("POST /admin/risk-decisions/:id/resolve", () => {
   it("overrides a REVIEW verdict to ALLOW", async () => {
+    mockFindIntent.mockResolvedValue({
+      id: "intent-2",
+      tenantId: "tenant-a",
+      status: "SUCCEEDED",
+      riskVerdict: "REVIEW",
+    });
     mockUpdateIntent.mockResolvedValue({
       id: "intent-2",
       riskVerdict: "ALLOW",
@@ -217,6 +243,58 @@ describe("POST /admin/risk-decisions/:id/resolve", () => {
       where: { id: "intent-2" },
       data: { riskVerdict: "ALLOW" },
     });
+  });
+
+  it("captures a held pre-auth when approving an AUTHORIZED intent", async () => {
+    mockFindIntent.mockResolvedValue({
+      id: "intent-2",
+      tenantId: "tenant-a",
+      status: "AUTHORIZED",
+      provider: "VPS",
+      providerRef: "ref-2",
+      paymentLink: null,
+      metadata: { amount: 5000, currency: "MAD" },
+    });
+    mockUpdateIntent.mockResolvedValue({
+      id: "intent-2",
+      riskVerdict: "ALLOW",
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .post("/admin/risk-decisions/intent-2/resolve")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ verdict: "ALLOW" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.verdict).toBe("ALLOW");
+    expect(prisma.providerTransaction.create).toHaveBeenCalled(); // capture persisted an audit row
+  });
+
+  it("voids a held pre-auth when rejecting an AUTHORIZED intent", async () => {
+    mockFindIntent.mockResolvedValue({
+      id: "intent-2",
+      tenantId: "tenant-a",
+      status: "AUTHORIZED",
+      provider: "VPS",
+      providerRef: "ref-2",
+      paymentLink: null,
+      metadata: { amount: 5000, currency: "MAD" },
+    });
+    mockUpdateIntent.mockResolvedValue({
+      id: "intent-2",
+      riskVerdict: "BLOCK",
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .post("/admin/risk-decisions/intent-2/resolve")
+      .set("Authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ verdict: "BLOCK" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.verdict).toBe("BLOCK");
+    expect(prisma.providerTransaction.create).toHaveBeenCalled(); // void persisted an audit row
   });
 
   it("rejects an invalid resolve verdict", async () => {

@@ -11,6 +11,7 @@ import { Provider } from "@/generated/prisma/client";
 import { getAdapter } from "../adapters/registry";
 import { computeInstallmentAmount } from "../lib/billing";
 import { inngest } from "../lib/inngest";
+import { captureIntent, voidIntent } from "../lib/intent-actions";
 import { maskObject } from "../lib/mask";
 import { trackMetric } from "../lib/metrics";
 import { centimes } from "../lib/money";
@@ -198,7 +199,8 @@ router.post(
       customerPhone: body.customerPhone,
       customerCountry: body.customerCountry,
       customerLocale,
-      isPreauth: body.isPreauth,
+      // REVIEW is held for manual review: authorize-only (no capture) until admin resolves.
+      isPreauth: body.isPreauth || risk.verdict === "REVIEW",
       correlationId: intent.correlationId,
       walletMode: body.walletMode,
       checkoutMode: body.checkoutMode,
@@ -396,109 +398,8 @@ router.post(
   requireAuth,
   requireMerchant,
   asyncHandler(async (req, res) => {
-    const db = forTenant(req.user!.tenantId);
-    // C-1: Atomic status transition AUTHORIZED → PROCESSING is the race-condition gate.
-    // If two capture requests arrive simultaneously, only one updateMany returns count=1.
-    const locked = await db.paymentIntent.updateMany({
-      where: {
-        id: req.params.id,
-        status: "AUTHORIZED",
-      },
-      data: { status: "PROCESSING" },
-    });
-    if (locked.count === 0) {
-      // Either not found, wrong tenant, or already being processed / in terminal state
-      const intent = await db.paymentIntent.findFirst({
-        where: { id: req.params.id },
-      });
-      if (!intent) throw new AppError(404, "INTENT_NOT_FOUND", "Payment intent not found");
-      throw new AppError(
-        409,
-        "INVALID_STATE",
-        `Cannot capture intent in ${intent.status} state — may already be processing`,
-      );
-    }
-
-    const intent = await db.paymentIntent.findFirst({
-      where: { id: req.params.id },
-      include: { paymentLink: true },
-    });
-    if (!intent) throw new AppError(404, "INTENT_NOT_FOUND", "Payment intent not found");
-
-    if (!intent.providerRef) {
-      // Revert the lock on unexpected bad state
-      await prisma.paymentIntent.updateMany({
-        where: { id: intent.id },
-        data: { status: "AUTHORIZED" },
-      });
-      throw new AppError(
-        400,
-        "MISSING_PROVIDER_REF",
-        "Intent has no provider reference to capture",
-      );
-    }
-
-    const config = await db.providerConfig.findFirst({
-      where: { provider: intent.provider },
-    });
-    if (!config) throw new AppError(400, "PROVIDER_NOT_CONFIGURED", "Provider config missing");
-
-    const adapter = getAdapter(intent.provider, config.encryptedCredentials);
-
-    // Resolve amount: from PaymentLink if linked, else from metadata (already centimes)
-    const amount = intent.paymentLink
-      ? Math.round(Number(intent.paymentLink.amount) * 100) // stored as MAD, convert to centimes
-      : ((intent.metadata as any)?.amount as number | undefined); // already centimes
-    const currency =
-      intent.paymentLink?.currency ??
-      ((intent.metadata as any)?.currency as string | undefined) ??
-      "MAD";
-
-    if (!amount) {
-      await prisma.paymentIntent.updateMany({
-        where: { id: intent.id },
-        data: { status: "AUTHORIZED" },
-      });
-      throw new AppError(400, "MISSING_AMOUNT", "Cannot determine amount to capture");
-    }
-
-    const result = await adapter.capturePayment(intent.providerRef, amount, currency);
-
-    if (!result.success) {
-      // Revert the lock so the merchant can retry — the provider rejected capture.
-      await prisma.paymentIntent.updateMany({
-        where: { id: intent.id },
-        data: { status: "AUTHORIZED" },
-      });
-      throw new AppError(502, "CAPTURE_FAILED", "Provider rejected the capture request.");
-    }
-
-    await prisma.$transaction([
-      prisma.paymentIntent.update({
-        where: { id: intent.id },
-        data: { status: result.status ?? "SUCCEEDED" },
-      }),
-      prisma.providerTransaction.create({
-        data: {
-          paymentIntentId: intent.id,
-          provider: intent.provider,
-          rawRequest: maskObject(result.rawRequest ?? {}) as any,
-          rawResponse: maskObject(result.rawResponse) as any,
-        },
-      }),
-    ]);
-
-    await inngest.send({
-      name: "payment/captured",
-      data: { intentId: intent.id, tenantId: intent.tenantId },
-    });
-
-    await inngest.send({
-      name: "payment/risk-evaluate",
-      data: { intentId: intent.id, tenantId: intent.tenantId },
-    });
-
-    res.json({ intentId: intent.id, status: "SUCCEEDED" });
+    const result = await captureIntent(req.params.id, { tenantId: req.user!.tenantId });
+    res.json({ intentId: result.intentId, status: result.status });
   }),
 );
 
@@ -512,88 +413,8 @@ router.post(
   requireAuth,
   requireMerchant,
   asyncHandler(async (req, res) => {
-    const db = forTenant(req.user!.tenantId);
-    // C-1: Atomic status transition AUTHORIZED → PROCESSING is the race-condition gate.
-    const locked = await db.paymentIntent.updateMany({
-      where: {
-        id: req.params.id,
-        status: "AUTHORIZED",
-      },
-      data: { status: "PROCESSING" },
-    });
-    if (locked.count === 0) {
-      const intent = await db.paymentIntent.findFirst({
-        where: { id: req.params.id },
-      });
-      if (!intent) throw new AppError(404, "INTENT_NOT_FOUND", "Payment intent not found");
-      throw new AppError(
-        409,
-        "INVALID_STATE",
-        `Cannot cancel intent in ${intent.status} state — may already be processing`,
-      );
-    }
-
-    const intent = await db.paymentIntent.findFirst({
-      where: { id: req.params.id },
-      include: { paymentLink: true },
-    });
-    if (!intent) throw new AppError(404, "INTENT_NOT_FOUND", "Payment intent not found");
-
-    if (!intent.providerRef) {
-      await prisma.paymentIntent.updateMany({
-        where: { id: intent.id },
-        data: { status: "AUTHORIZED" },
-      });
-      throw new AppError(400, "MISSING_PROVIDER_REF", "Intent has no provider reference to cancel");
-    }
-
-    const config = await db.providerConfig.findFirst({
-      where: { provider: intent.provider },
-    });
-    if (!config) throw new AppError(400, "PROVIDER_NOT_CONFIGURED", "Provider config missing");
-
-    const adapter = getAdapter(intent.provider, config.encryptedCredentials);
-    // Resolve amount (already centimes from metadata, or MAD from PaymentLink → convert)
-    const amount = intent.paymentLink
-      ? Math.round(Number(intent.paymentLink.amount) * 100) // MAD → centimes
-      : (((intent.metadata as any)?.amount as number | undefined) ?? 0); // already centimes
-    const currency =
-      intent.paymentLink?.currency ??
-      ((intent.metadata as any)?.currency as string | undefined) ??
-      "MAD";
-
-    const result = await adapter.cancelPayment(intent.providerRef, amount, currency);
-
-    if (!result.success) {
-      // Revert the lock so the merchant can retry — the provider rejected void.
-      await prisma.paymentIntent.updateMany({
-        where: { id: intent.id },
-        data: { status: "AUTHORIZED" },
-      });
-      throw new AppError(502, "CANCEL_FAILED", "Provider rejected the cancellation request.");
-    }
-
-    await prisma.$transaction([
-      prisma.paymentIntent.update({
-        where: { id: intent.id },
-        data: { status: result.status ?? "CANCELED" },
-      }),
-      prisma.providerTransaction.create({
-        data: {
-          paymentIntentId: intent.id,
-          provider: intent.provider,
-          rawRequest: maskObject(result.rawRequest ?? {}) as any,
-          rawResponse: maskObject(result.rawResponse) as any,
-        },
-      }),
-    ]);
-
-    await inngest.send({
-      name: "payment/canceled",
-      data: { intentId: intent.id, tenantId: intent.tenantId },
-    });
-
-    res.json({ intentId: intent.id, status: "CANCELED" });
+    const result = await voidIntent(req.params.id, { tenantId: req.user!.tenantId });
+    res.json({ intentId: result.intentId, status: result.status });
   }),
 );
 
@@ -1029,6 +850,9 @@ publicPayRouter.post(
       customerPhone: link.customerPhone ?? undefined,
       correlationId: intent.correlationId,
       storePaymentProfile: link.isRecurring === true,
+      // REVIEW holds via authorize-only; recurring links still need a captured
+      // first charge to store the payment profile, so they stay flag-and-proceed.
+      isPreauth: risk.verdict === "REVIEW" && link.isRecurring !== true,
     });
 
     await prisma.$transaction([

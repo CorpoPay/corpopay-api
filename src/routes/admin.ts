@@ -8,12 +8,13 @@ import { Provider } from "@/generated/prisma/client";
 import type { VpsCredentials } from "../adapters/types";
 import { VpsAdapter } from "../adapters/vps.adapter";
 import { decryptCredentials } from "../lib/encryption";
+import { captureIntent, voidIntent } from "../lib/intent-actions";
 import { madToCentimes } from "../lib/money";
 import { markPayoutPaid } from "../lib/payout-db";
 import { prisma } from "../lib/prisma";
 import { resolveReconciliation } from "../lib/reconciliation-db";
 import { resolveDispute } from "../lib/reversals-db";
-import { finalizeSettlementStatement } from "../lib/statements-db";
+import { finalizeSettlementStatement, voidSettlementStatement } from "../lib/statements-db";
 import { requireAdmin, requireAuth, requireSuperAdmin } from "../middleware/auth";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
 import { manualPayoutSchema, providerHealthSchema } from "../schemas/admin";
@@ -707,19 +708,34 @@ router.get(
   }),
 );
 
-// POST /admin/risk-decisions/:id/resolve — manually override an enforcement verdict
-// (approve a REVIEW by setting ALLOW, or reject it by setting BLOCK).
+// POST /admin/risk-decisions/:id/resolve — resolve a held REVIEW.
+// Approve (ALLOW) captures a held (AUTHORIZED) pre-auth; reject (BLOCK) voids it.
+// The final admin decision is always recorded on riskVerdict.
 router.post(
   "/risk-decisions/:id/resolve",
   requireAuth,
   requireAdmin,
   asyncHandler(async (req, res) => {
     const { verdict } = z.object({ verdict: z.enum(["ALLOW", "BLOCK"]) }).parse(req.body);
-    const intent = await prisma.paymentIntent.update({
-      where: { id: req.params.id },
+    const intent = await prisma.paymentIntent.findFirst({ where: { id: req.params.id } });
+    if (!intent) throw new AppError(404, "INTENT_NOT_FOUND", "Payment intent not found");
+
+    // Held pre-auth (REVIEW → authorize-only): act on it, then record the decision.
+    if (intent.status === "AUTHORIZED") {
+      if (verdict === "ALLOW") await captureIntent(intent.id);
+      else await voidIntent(intent.id);
+    }
+
+    const updated = await prisma.paymentIntent.update({
+      where: { id: intent.id },
       data: { riskVerdict: verdict },
     });
-    res.json({ id: intent.id, verdict: intent.riskVerdict, updatedAt: intent.updatedAt });
+    res.json({
+      id: updated.id,
+      verdict: updated.riskVerdict,
+      status: updated.status,
+      updatedAt: updated.updatedAt,
+    });
   }),
 );
 
@@ -773,6 +789,24 @@ router.post(
       throw new AppError(404, "STATEMENT_NOT_FOUND", "Settlement statement not found");
     }
     await finalizeSettlementStatement(statement.tenantId, statement.id);
+    const updated = await prisma.settlementStatement.findUnique({ where: { id: statement.id } });
+    res.json({ id: updated!.id, status: updated!.status, updatedAt: updated!.updatedAt });
+  }),
+);
+
+// POST /admin/settlement-statements/:id/void — void a statement across any tenant.
+router.post(
+  "/settlement-statements/:id/void",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const statement = await prisma.settlementStatement.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!statement) {
+      throw new AppError(404, "STATEMENT_NOT_FOUND", "Settlement statement not found");
+    }
+    await voidSettlementStatement(statement.tenantId, statement.id);
     const updated = await prisma.settlementStatement.findUnique({ where: { id: statement.id } });
     res.json({ id: updated!.id, status: updated!.status, updatedAt: updated!.updatedAt });
   }),

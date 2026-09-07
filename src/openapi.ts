@@ -4016,6 +4016,7 @@ registry.registerPath({
           schema: z.object({
             id: z.string(),
             verdict: z.string().nullable(),
+            status: z.string(),
             updatedAt: z.string(),
           }),
         },
@@ -4078,6 +4079,22 @@ registry.registerPath({
   path: "/admin/settlement-statements/{id}/finalize",
   operationId: "adminFinalizeSettlementStatement",
   summary: "Finalize a settlement statement across any tenant",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: AdminSettlementActionResult } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/admin/settlement-statements/{id}/void",
+  operationId: "adminVoidSettlementStatement",
+  summary: "Void a settlement statement across any tenant",
   tags: ["Admin"],
   security: [{ bearerAuth: [] }],
   request: { params: z.object({ id: z.string() }) },

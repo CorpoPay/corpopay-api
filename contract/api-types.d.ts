@@ -2044,6 +2044,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/admin/settlement-statements/{id}/void": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Void a settlement statement across any tenant */
+    post: operations["adminVoidSettlementStatement"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/wallets": {
     parameters: {
       query?: never;
@@ -7373,6 +7390,7 @@ export interface operations {
           "application/json": {
             id: string;
             verdict: string | null;
+            status: string;
             updatedAt: string;
           };
         };
@@ -7439,6 +7457,32 @@ export interface operations {
     };
   };
   adminFinalizeSettlementStatement: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            id: string;
+            status: string;
+            updatedAt: string;
+          };
+        };
+      };
+    };
+  };
+  adminVoidSettlementStatement: {
     parameters: {
       query?: never;
       header?: never;

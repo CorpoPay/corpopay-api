@@ -10683,11 +10683,14 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "status": {
+                      "type": "string"
+                    },
                     "updatedAt": {
                       "type": "string"
                     }
                   },
-                  "required": ["id", "verdict", "updatedAt"]
+                  "required": ["id", "verdict", "status", "updatedAt"]
                 }
               }
             }
@@ -10807,6 +10810,52 @@
       "post": {
         "operationId": "adminFinalizeSettlementStatement",
         "summary": "Finalize a settlement statement across any tenant",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "status", "updatedAt"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/settlement-statements/{id}/void": {
+      "post": {
+        "operationId": "adminVoidSettlementStatement",
+        "summary": "Void a settlement statement across any tenant",
         "tags": ["Admin"],
         "security": [
           {
