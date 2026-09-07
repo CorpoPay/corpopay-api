@@ -110,7 +110,10 @@ after commission, fees, reserve and reversals — is `GET /settlement/summary`:
 
 `payoutRail` is a **`SettlementPolicy`** dimension (not a money-model concern) —
 default `MANUAL`, overridable per tenant. It lives in `settlement-policy.ts` /
-`policy-db.ts`, never in the ledger or capture math.
+`policy-db.ts`, never in the ledger or capture math. `POST /payouts/:id/process`
+honors it: `MANUAL` confirms the operator's out-of-band transfer (optional
+`providerTransferId`, **no provider call**) and posts `AVAILABLE → PAID_OUT`; only
+`STRIPE_CONNECT` dispatches the provider adapter's `createPayout`.
 
 ---
 

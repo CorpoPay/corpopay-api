@@ -133,6 +133,7 @@ describe("POST /payouts/:id/cancel", () => {
 
 describe("POST /payouts/:id/process", () => {
   it("disburses via the provider and settles the ledger", async () => {
+    prisma.settlementPolicy.findFirst.mockResolvedValue({ payoutRail: "STRIPE_CONNECT" });
     prisma.payout.findFirst
       .mockResolvedValueOnce(payoutRow())
       .mockResolvedValueOnce(payoutRow())
@@ -169,6 +170,7 @@ describe("POST /payouts/:id/process", () => {
   });
 
   it("returns 400 when the provider is not configured", async () => {
+    prisma.settlementPolicy.findFirst.mockResolvedValue({ payoutRail: "STRIPE_CONNECT" });
     prisma.payout.findFirst.mockResolvedValue(payoutRow());
     prisma.providerConfig.findFirst.mockResolvedValue(null);
 
@@ -181,6 +183,7 @@ describe("POST /payouts/:id/process", () => {
   });
 
   it("marks the payout failed and returns 502 on provider failure", async () => {
+    prisma.settlementPolicy.findFirst.mockResolvedValue({ payoutRail: "STRIPE_CONNECT" });
     prisma.payout.findFirst.mockResolvedValueOnce(payoutRow()).mockResolvedValueOnce(payoutRow());
     prisma.providerConfig.findFirst.mockResolvedValue({
       provider: "VPS",
@@ -197,6 +200,69 @@ describe("POST /payouts/:id/process", () => {
 
     expect(res.status).toBe(502);
     expect(res.body.code).toBe("PAYOUT_FAILED");
+  });
+
+  it("MANUAL rail settles without calling the provider", async () => {
+    prisma.settlementPolicy.findFirst.mockResolvedValue({ payoutRail: "MANUAL" });
+    prisma.payout.findFirst
+      .mockResolvedValueOnce(payoutRow())
+      .mockResolvedValueOnce(payoutRow())
+      .mockResolvedValueOnce(payoutRow({ status: "PAID", providerTransferId: "manual-ref" }));
+    prisma.ledgerEntry.groupBy.mockResolvedValue([
+      { direction: "CREDIT", _sum: { amount: "100.00" } },
+    ]);
+    prisma.ledgerEntry.create.mockResolvedValue({
+      id: "le-paid",
+      postingId: "posting-1",
+      account: "AVAILABLE",
+      direction: "DEBIT",
+      amount: "100.00",
+      balanceAfter: "-100.00",
+    });
+    prisma.payout.update.mockResolvedValue(
+      payoutRow({ status: "PAID", providerTransferId: "manual-ref" }),
+    );
+
+    const res = await request(app)
+      .post("/payouts/payout-1/process")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`)
+      .send({ providerTransferId: "manual-ref" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("PAID");
+    expect(res.body.providerTransferId).toBe("manual-ref");
+    expect(getAdapter).not.toHaveBeenCalled();
+    expect(prisma.providerConfig.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("defaults to MANUAL when no active policy exists", async () => {
+    prisma.settlementPolicy.findFirst.mockResolvedValue(null);
+    prisma.payout.findFirst
+      .mockResolvedValueOnce(payoutRow())
+      .mockResolvedValueOnce(payoutRow())
+      .mockResolvedValueOnce(payoutRow({ status: "PAID", providerTransferId: null }));
+    prisma.ledgerEntry.groupBy.mockResolvedValue([
+      { direction: "CREDIT", _sum: { amount: "100.00" } },
+    ]);
+    prisma.ledgerEntry.create.mockResolvedValue({
+      id: "le-paid",
+      postingId: "posting-1",
+      account: "AVAILABLE",
+      direction: "DEBIT",
+      amount: "100.00",
+      balanceAfter: "-100.00",
+    });
+    prisma.payout.update.mockResolvedValue(payoutRow({ status: "PAID", providerTransferId: null }));
+
+    const res = await request(app)
+      .post("/payouts/payout-1/process")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("PAID");
+    expect(res.body.providerTransferId).toBe(null);
+    expect(getAdapter).not.toHaveBeenCalled();
+    expect(prisma.providerConfig.findFirst).not.toHaveBeenCalled();
   });
 });
 

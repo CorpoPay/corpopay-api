@@ -4,6 +4,7 @@ import { AuditAction } from "@/generated/prisma/client";
 
 import { getAdapter } from "../adapters/registry";
 import { madToCentimes } from "../lib/money";
+import { PayoutError } from "../lib/payout";
 import {
   cancelPayout,
   createPayout,
@@ -13,11 +14,12 @@ import {
   markPayoutPaid,
   type PayoutWithItems,
 } from "../lib/payout-db";
+import { getActiveSettlementPolicy } from "../lib/policy-db";
 import { prisma } from "../lib/prisma";
 import { forTenant } from "../lib/tenant-db";
 import { requireAuth, requireOwner } from "../middleware/auth";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
-import { createPayoutSchema } from "../schemas/payouts";
+import { createPayoutSchema, processPayoutSchema } from "../schemas/payouts";
 
 const router = Router();
 
@@ -96,8 +98,26 @@ router.post(
 
 // ─── POST /payouts/:id/process ────────────────────────────────────────────────────
 
-// Execute the payout: call the provider's disbursement, then post the settlement
-// ledger movement (AVAILABLE → PAID_OUT) and mark the payout PAID.
+// Post the settlement movement (AVAILABLE → PAID_OUT) for a payout, surfacing
+// money/state conflicts (already-paid, insufficient funds) as a 409 rather than
+// a generic 500. The provider transfer must already have succeeded on the
+// STRIPE_CONNECT rail, or be confirmed by the operator on the MANUAL rail.
+async function settlePayout(tenantId: string, id: string, providerTransferId?: string) {
+  try {
+    return await markPayoutPaid(tenantId, id, providerTransferId);
+  } catch (err) {
+    if (err instanceof PayoutError) {
+      throw new AppError(409, "PAYOUT_CONFLICT", err.message);
+    }
+    throw err;
+  }
+}
+
+// Execute the payout. Two rails:
+//   - MANUAL (default): no provider call — the operator pays out-of-band (e.g.
+//     a Morocco bank transfer) and confirms here, optionally with a transfer
+//     reference, which posts the settlement movement.
+//   - STRIPE_CONNECT: call the provider's disbursement, then settle.
 router.post(
   "/:id/process",
   requireAuth,
@@ -106,6 +126,28 @@ router.post(
     const tenantId = req.user!.tenantId;
     const payout = await getPayout(tenantId, req.params.id);
     if (!payout) throw new AppError(404, "PAYOUT_NOT_FOUND", "Payout not found");
+
+    const policy = await getActiveSettlementPolicy(tenantId);
+    const rail = policy?.payoutRail ?? "MANUAL";
+
+    if (rail === "MANUAL") {
+      const { providerTransferId } = processPayoutSchema.parse(req.body);
+      await settlePayout(tenantId, payout.id, providerTransferId ?? undefined);
+      await prisma.auditLog.create({
+        data: {
+          tenantId,
+          userId: req.user!.id,
+          action: AuditAction.PAYOUT_MARKED_PAID,
+          entityType: "Payout",
+          entityId: payout.id,
+          metadata: { payoutRail: "MANUAL", providerTransferId: providerTransferId ?? null },
+          ip: req.ip,
+        },
+      });
+      const full = await getPayout(tenantId, payout.id);
+      res.json(toResponse(full!));
+      return;
+    }
 
     const db = forTenant(tenantId);
     const config = await db.providerConfig.findFirst({ where: { provider: payout.provider } });
@@ -124,7 +166,7 @@ router.post(
       throw new AppError(502, "PAYOUT_FAILED", "Provider payout failed");
     }
 
-    await markPayoutPaid(tenantId, payout.id, result.providerTransferId);
+    await settlePayout(tenantId, payout.id, result.providerTransferId);
     await prisma.auditLog.create({
       data: {
         tenantId,

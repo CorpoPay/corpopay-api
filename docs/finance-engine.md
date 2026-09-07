@@ -106,3 +106,4 @@ model FinanceConfig {
 - **B** — `FinanceConfig` schema + migration, route + creation gating. ✅
 - **C** — wallet commission basis (`usage` vs `load`) and the OtoParking `wallet` preset + `usage` default. ✅
 - **D** — settlement/owed surface (Tier 2): `payoutRail` (`STRIPE_CONNECT` vs `MANUAL`) on `SettlementPolicy`, and `GET /settlement/summary` (net-owed = `AVAILABLE`, with fee/reserve/paid-out breakdown + eligible-after-scheduled). ✅
+- **D.1** — `MANUAL` payout rail wired end-to-end: `POST /payouts/:id/process` branches on the active policy's `payoutRail` — `MANUAL` confirms an out-of-band transfer (optional `providerTransferId`, **no provider call**) and posts `AVAILABLE → PAID_OUT`; `STRIPE_CONNECT` still dispatches the provider adapter. Route + integration tests added. ✅
