@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.29.0...corpopay-api-v0.30.0) (2026-09-07)
+
+
+### Features
+
+* **settlement:** add payout rail + net-owed settlement summary ([c042404](https://github.com/CorpoPay/corpopay-api/commit/c042404b2f774092ece184eb646d038000d2d946))
+
 ## [0.29.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.28.0...corpopay-api-v0.29.0) (2026-09-07)
 
 
