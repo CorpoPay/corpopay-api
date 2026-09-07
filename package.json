@@ -1,6 +1,6 @@
 {
   "name": "corpopay-api",
-  "version": "0.24.2",
+  "version": "0.25.0",
   "private": true,
   "type": "module",
   "description": "CorpoPay backend API – Express + Prisma + TypeScript",

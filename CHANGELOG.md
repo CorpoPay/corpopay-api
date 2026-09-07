@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.24.2...corpopay-api-v0.25.0) (2026-09-07)
+
+
+### Features
+
+* **audit:** record audit trail for payout, dispute, and risk-override writes ([2d72c9d](https://github.com/CorpoPay/corpopay-api/commit/2d72c9d3f7ba06321c6d2b48a6c25f5fcadac064))
+
 ## [0.24.2](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.24.1...corpopay-api-v0.24.2) (2026-09-07)
 
 
