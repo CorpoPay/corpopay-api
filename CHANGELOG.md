@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.26.1...corpopay-api-v0.27.0) (2026-09-07)
+
+
+### Features
+
+* **finance:** config-driven money-model capability layer (Phase A) ([637b635](https://github.com/CorpoPay/corpopay-api/commit/637b6351daae74516805a30368d41b4c06d144c3))
+
 ## [0.26.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.26.0...corpopay-api-v0.26.1) (2026-09-07)
 
 
