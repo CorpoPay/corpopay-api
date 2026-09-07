@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.31.0...corpopay-api-v0.32.0) (2026-09-07)
+
+
+### Features
+
+* **adapters:** add payout + dispute surface to provider adapters ([e18dde8](https://github.com/CorpoPay/corpopay-api/commit/e18dde86413a9450fc1881ec05c497531ae112d8))
+
 ## [0.31.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.30.0...corpopay-api-v0.31.0) (2026-09-07)
 
 
