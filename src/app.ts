@@ -34,6 +34,7 @@ import subscriptionsRouter from "./routes/subscriptions";
 import tenantRouter, { adminTenantRouter } from "./routes/tenant";
 import transactionsRouter from "./routes/transactions";
 import usersRouter from "./routes/users";
+import walletsRouter from "./routes/wallets";
 import webhooksRouter from "./routes/webhooks";
 
 const app = express();
@@ -136,6 +137,7 @@ app.use("/split-rules", apiLimiter, splitRulesRouter);
 app.use("/splits", apiLimiter, splitsRouter);
 app.use("/reconciliation-reports", apiLimiter, reconciliationRouter);
 app.use("/settlement-statements", apiLimiter, statementsRouter);
+app.use("/wallets", apiLimiter, walletsRouter);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────────
 app.use("/admin/tenants", apiLimiter, adminTenantRouter);

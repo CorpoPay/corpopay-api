@@ -56,6 +56,7 @@ export default defineConfig({
         "src/lib/onboarding.ts",
         "src/lib/risk.ts",
         "src/lib/risk-scorer.ts",
+        "src/lib/wallet.ts",
         "src/routes/fee-schedules.ts",
         "src/routes/settlement-policies.ts",
         "src/routes/payouts.ts",
@@ -64,6 +65,7 @@ export default defineConfig({
         "src/routes/reconciliation.ts",
         "src/routes/statements.ts",
         "src/routes/onboarding.ts",
+        "src/routes/wallets.ts",
       ],
       thresholds: {
         // Pure money/billing/encryption/status-maps helpers — 100% line coverage
@@ -87,6 +89,7 @@ export default defineConfig({
         "src/lib/onboarding.ts": { lines: 100 },
         "src/lib/risk.ts": { lines: 100 },
         "src/lib/risk-scorer.ts": { lines: 100 },
+        "src/lib/wallet.ts": { lines: 100 },
         "src/lib/reversals.ts": { lines: 100 },
         "src/lib/validateEnv.ts": { lines: 100 },
         // Calibrated from measured baselines (a small buffer below each
@@ -118,6 +121,7 @@ export default defineConfig({
         "src/routes/reconciliation.ts": { lines: 90 },
         "src/routes/statements.ts": { lines: 90 },
         "src/routes/onboarding.ts": { lines: 90 },
+        "src/routes/wallets.ts": { lines: 90 },
       },
       reporter: ["text", "lcov"],
     },

@@ -2044,6 +2044,109 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/wallets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List stored-value wallets */
+    get: operations["listWallets"];
+    put?: never;
+    /** Create a stored-value wallet */
+    post: operations["createWallet"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/wallets/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a wallet with its transactions */
+    get: operations["getWallet"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/wallets/{id}/topup": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Top up a wallet */
+    post: operations["topUpWallet"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/wallets/{id}/debit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Draw down a wallet (with commission) */
+    post: operations["debitWallet"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/wallets/{id}/refund": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Return stored value to a wallet */
+    post: operations["refundWallet"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/wallets/{id}/adjust": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Manually adjust a wallet balance (signed) */
+    post: operations["adjustWallet"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2887,6 +2990,33 @@ export interface components {
       reversalFunding: string;
       allowNegative: boolean;
       splittingEnabled: boolean;
+    };
+    WalletTransaction: {
+      id: string;
+      type: string;
+      amountCents: number;
+      currency: string;
+      balanceAfterCents: number;
+      sourceType: string | null;
+      sourceId: string | null;
+      createdAt: string;
+    };
+    Wallet: {
+      id: string;
+      tenantId: string;
+      ownerType: string;
+      ownerId: string;
+      balanceCents: number;
+      currency: string;
+      status: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+    WalletOpResponse: components["schemas"]["Wallet"] & {
+      transaction: components["schemas"]["WalletTransaction"];
+    };
+    WalletDetail: components["schemas"]["Wallet"] & {
+      transactions: components["schemas"]["WalletTransaction"][];
     };
   };
   responses: never;
@@ -7330,6 +7460,198 @@ export interface operations {
             status: string;
             updatedAt: string;
           };
+        };
+      };
+    };
+  };
+  listWallets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Wallet"][];
+        };
+      };
+    };
+  };
+  createWallet: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          /** @enum {string} */
+          ownerType: "TENANT" | "CUSTOMER";
+          ownerId: string;
+          currency?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Wallet"];
+        };
+      };
+    };
+  };
+  getWallet: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WalletDetail"];
+        };
+      };
+      /** @description Wallet not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  topUpWallet: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          amountCents: number;
+          paymentIntentId?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WalletOpResponse"];
+        };
+      };
+    };
+  };
+  debitWallet: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          amountCents: number;
+          method?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WalletOpResponse"];
+        };
+      };
+    };
+  };
+  refundWallet: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          amountCents: number;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WalletOpResponse"];
+        };
+      };
+    };
+  };
+  adjustWallet: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          amountCents: number;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WalletOpResponse"];
         };
       };
     };

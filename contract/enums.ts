@@ -147,7 +147,8 @@ export type LedgerAccount =
   | "AVAILABLE"
   | "RESERVE"
   | "FEES"
-  | "PAID_OUT";
+  | "PAID_OUT"
+  | "WALLET";
 export const LedgerAccountValues = [
   "CASH",
   "PENDING",
@@ -156,6 +157,7 @@ export const LedgerAccountValues = [
   "RESERVE",
   "FEES",
   "PAID_OUT",
+  "WALLET",
 ] as const;
 
 export type LedgerDirection = "DEBIT" | "CREDIT";
@@ -290,3 +292,12 @@ export const RiskTierValues = ["LOW", "MEDIUM", "HIGH"] as const;
 
 export type RiskVerdict = "ALLOW" | "REVIEW" | "BLOCK";
 export const RiskVerdictValues = ["ALLOW", "REVIEW", "BLOCK"] as const;
+
+export type WalletStatus = "ACTIVE" | "SUSPENDED" | "CLOSED";
+export const WalletStatusValues = ["ACTIVE", "SUSPENDED", "CLOSED"] as const;
+
+export type WalletOwnerType = "TENANT" | "CUSTOMER";
+export const WalletOwnerTypeValues = ["TENANT", "CUSTOMER"] as const;
+
+export type WalletTransactionType = "TOP_UP" | "DEBIT" | "REFUND" | "ADJUSTMENT";
+export const WalletTransactionTypeValues = ["TOP_UP", "DEBIT", "REFUND", "ADJUSTMENT"] as const;

@@ -44,6 +44,9 @@ import {
   SplitTrigger,
   SubscriptionStatus,
   UserRole,
+  WalletOwnerType,
+  WalletStatus,
+  WalletTransactionType,
 } from "@/generated/prisma/client";
 
 // ─── Stable identifiers so integration tests share a consistent fixture set ────
@@ -642,6 +645,38 @@ export function makeRiskDecision(overrides: Partial<Prisma.RiskDecisionUnchecked
     verdict: RiskVerdict.ALLOW,
     score: 0,
     reasons: [],
+    ...overrides,
+  };
+  return data;
+}
+
+export function makeWallet(overrides: Partial<Prisma.WalletUncheckedCreateInput> = {}) {
+  const data: Prisma.WalletUncheckedCreateInput = {
+    id: "wallet-1",
+    tenantId: TENANT_A_ID,
+    ownerType: WalletOwnerType.CUSTOMER,
+    ownerId: "customer-1",
+    balance: 0,
+    currency: "MAD",
+    status: WalletStatus.ACTIVE,
+    ...overrides,
+  };
+  return data;
+}
+
+export function makeWalletTransaction(
+  overrides: Partial<Prisma.WalletTransactionUncheckedCreateInput> = {},
+) {
+  const data: Prisma.WalletTransactionUncheckedCreateInput = {
+    id: "wallet-tx-1",
+    walletId: "wallet-1",
+    tenantId: TENANT_A_ID,
+    type: WalletTransactionType.TOP_UP,
+    amount: 0,
+    currency: "MAD",
+    balanceAfter: 0,
+    sourceType: null,
+    sourceId: null,
     ...overrides,
   };
   return data;

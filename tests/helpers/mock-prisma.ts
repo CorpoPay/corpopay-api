@@ -71,6 +71,8 @@ export function buildMockPrisma(): MockPrisma {
     settlementStatementItem: makeModel(),
     merchantOnboarding: makeModel(),
     providerHealth: makeModel(),
+    wallet: makeModel(),
+    walletTransaction: makeModel(),
     $transaction: vi.fn(async (arg: unknown) => {
       if (Array.isArray(arg)) return Promise.all(arg);
       if (typeof arg === "function") return arg(prisma);

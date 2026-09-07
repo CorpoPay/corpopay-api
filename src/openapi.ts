@@ -36,6 +36,13 @@ import {
 import { createSettlementStatementSchema } from "./schemas/statements";
 import { updateTenantSchema } from "./schemas/tenant";
 import { changeRoleSchema, inviteSchema } from "./schemas/users";
+import {
+  adjustWalletSchema,
+  createWalletSchema,
+  debitWalletSchema,
+  refundWalletSchema,
+  topUpWalletSchema,
+} from "./schemas/wallets";
 
 extendZodWithOpenApi(z);
 
@@ -4079,5 +4086,151 @@ registry.registerPath({
       description: "OK",
       content: { "application/json": { schema: AdminSettlementActionResult } },
     },
+  },
+});
+
+// ─── Wallets (stored-value / prepaid) ──────────────────────────────────────────
+
+const WalletTransaction = registry.register(
+  "WalletTransaction",
+  z.object({
+    id: z.string(),
+    type: z.string(),
+    amountCents: z.number().int(),
+    currency: z.string(),
+    balanceAfterCents: z.number().int(),
+    sourceType: z.string().nullable(),
+    sourceId: z.string().nullable(),
+    createdAt: z.string(),
+  }),
+);
+
+const Wallet = registry.register(
+  "Wallet",
+  z.object({
+    id: z.string(),
+    tenantId: z.string(),
+    ownerType: z.string(),
+    ownerId: z.string(),
+    balanceCents: z.number().int(),
+    currency: z.string(),
+    status: z.string(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
+
+const WalletOpResponse = registry.register(
+  "WalletOpResponse",
+  Wallet.extend({ transaction: WalletTransaction }),
+);
+
+const WalletDetail = registry.register(
+  "WalletDetail",
+  Wallet.extend({ transactions: z.array(WalletTransaction) }),
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/wallets",
+  operationId: "createWallet",
+  summary: "Create a stored-value wallet",
+  tags: ["Wallets"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: createWalletSchema } } },
+  },
+  responses: {
+    201: { description: "Created", content: { "application/json": { schema: Wallet } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/wallets",
+  operationId: "listWallets",
+  summary: "List stored-value wallets",
+  tags: ["Wallets"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: z.array(Wallet) } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/wallets/{id}",
+  operationId: "getWallet",
+  summary: "Get a wallet with its transactions",
+  tags: ["Wallets"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: WalletDetail } } },
+    404: { description: "Wallet not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/wallets/{id}/topup",
+  operationId: "topUpWallet",
+  summary: "Top up a wallet",
+  tags: ["Wallets"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { "application/json": { schema: topUpWalletSchema } } },
+  },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: WalletOpResponse } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/wallets/{id}/debit",
+  operationId: "debitWallet",
+  summary: "Draw down a wallet (with commission)",
+  tags: ["Wallets"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { "application/json": { schema: debitWalletSchema } } },
+  },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: WalletOpResponse } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/wallets/{id}/refund",
+  operationId: "refundWallet",
+  summary: "Return stored value to a wallet",
+  tags: ["Wallets"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { "application/json": { schema: refundWalletSchema } } },
+  },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: WalletOpResponse } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/wallets/{id}/adjust",
+  operationId: "adjustWallet",
+  summary: "Manually adjust a wallet balance (signed)",
+  tags: ["Wallets"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { "application/json": { schema: adjustWalletSchema } } },
+  },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: WalletOpResponse } } },
   },
 });

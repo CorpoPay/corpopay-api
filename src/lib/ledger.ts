@@ -37,6 +37,7 @@ export const LEDGER_ACCOUNTS = [
   "RESERVE",
   "FEES",
   "PAID_OUT",
+  "WALLET",
 ] as const;
 
 export const LEDGER_CATEGORIES = [

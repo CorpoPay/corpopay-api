@@ -3353,6 +3353,125 @@
           "allowNegative",
           "splittingEnabled"
         ]
+      },
+      "WalletTransaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "balanceAfterCents": {
+            "type": "integer"
+          },
+          "sourceType": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "amountCents",
+          "currency",
+          "balanceAfterCents",
+          "sourceType",
+          "sourceId",
+          "createdAt"
+        ]
+      },
+      "Wallet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "ownerType": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "balanceCents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "ownerType",
+          "ownerId",
+          "balanceCents",
+          "currency",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "WalletOpResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Wallet"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "transaction": {
+                "$ref": "#/components/schemas/WalletTransaction"
+              }
+            },
+            "required": ["transaction"]
+          }
+        ]
+      },
+      "WalletDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Wallet"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "transactions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WalletTransaction"
+                }
+              }
+            },
+            "required": ["transactions"]
+          }
+        ]
       }
     },
     "parameters": {}
@@ -10723,6 +10842,333 @@
                     }
                   },
                   "required": ["id", "status", "updatedAt"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wallets": {
+      "post": {
+        "operationId": "createWallet",
+        "summary": "Create a stored-value wallet",
+        "tags": ["Wallets"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ownerType": {
+                    "type": "string",
+                    "enum": ["TENANT", "CUSTOMER"]
+                  },
+                  "ownerId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "currency": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 3,
+                    "maxLength": 3
+                  }
+                },
+                "required": ["ownerType", "ownerId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Wallet"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listWallets",
+        "summary": "List stored-value wallets",
+        "tags": ["Wallets"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Wallet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wallets/{id}": {
+      "get": {
+        "operationId": "getWallet",
+        "summary": "Get a wallet with its transactions",
+        "tags": ["Wallets"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Wallet not found"
+          }
+        }
+      }
+    },
+    "/wallets/{id}/topup": {
+      "post": {
+        "operationId": "topUpWallet",
+        "summary": "Top up a wallet",
+        "tags": ["Wallets"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "paymentIntentId": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": ["amountCents"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletOpResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wallets/{id}/debit": {
+      "post": {
+        "operationId": "debitWallet",
+        "summary": "Draw down a wallet (with commission)",
+        "tags": ["Wallets"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "method": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 50
+                  }
+                },
+                "required": ["amountCents"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletOpResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wallets/{id}/refund": {
+      "post": {
+        "operationId": "refundWallet",
+        "summary": "Return stored value to a wallet",
+        "tags": ["Wallets"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  }
+                },
+                "required": ["amountCents"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletOpResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wallets/{id}/adjust": {
+      "post": {
+        "operationId": "adjustWallet",
+        "summary": "Manually adjust a wallet balance (signed)",
+        "tags": ["Wallets"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": {
+                    "type": "integer"
+                  }
+                },
+                "required": ["amountCents"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletOpResponse"
                 }
               }
             }
