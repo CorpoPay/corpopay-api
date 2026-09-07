@@ -1248,11 +1248,6 @@ router.post(
       data: { status: "SUCCEEDED" },
     });
 
-    await inngest.send({
-      name: "payment/captured",
-      data: { intentId: intent.id, tenantId: intent.tenantId },
-    });
-
     return res.json({ intentId: intent.id, status: "SUCCEEDED" });
   }),
 );
@@ -1293,11 +1288,6 @@ router.post(
     await prisma.paymentIntent.update({
       where: { id: intent.id },
       data: { status: "CANCELED" },
-    });
-
-    await inngest.send({
-      name: "payment/canceled",
-      data: { intentId: intent.id, tenantId: intent.tenantId },
     });
 
     return res.json({ intentId: intent.id, status: "CANCELED" });

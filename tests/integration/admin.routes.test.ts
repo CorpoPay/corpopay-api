@@ -129,7 +129,9 @@ describe("admin routes", () => {
       status: "DRAFT",
       amount: "100.00",
     });
-    prisma.ledgerEntry.groupBy.mockResolvedValue([]);
+    prisma.ledgerEntry.groupBy.mockResolvedValue([
+      { direction: "CREDIT", _sum: { amount: "100.00" } },
+    ]);
     prisma.ledgerEntry.create.mockResolvedValue({
       id: "le-1",
       postingId: "posting-1",

@@ -144,7 +144,9 @@ describe("POST /payouts/:id/process", () => {
     (getAdapter as ReturnType<typeof vi.fn>).mockReturnValue({
       createPayout: vi.fn().mockResolvedValue({ success: true, providerTransferId: "tr-1" }),
     });
-    prisma.ledgerEntry.groupBy.mockResolvedValue([]);
+    prisma.ledgerEntry.groupBy.mockResolvedValue([
+      { direction: "CREDIT", _sum: { amount: "100.00" } },
+    ]);
     prisma.ledgerEntry.create.mockResolvedValue({
       id: "le-paid",
       postingId: "posting-1",

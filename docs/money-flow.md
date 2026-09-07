@@ -95,12 +95,11 @@ card payments.
 
 These are the next money-path hardening items (audited, not yet fixed here):
 
-1. **~~Payout over-pay~~ — fixed.** `createPayout` now snapshots the **net** eligible
-   balance (unpaid credits − non-payout debits) with FIFO allocation, so a chargeback
-   clawback / wallet fee / refund reduces the payable amount. Remaining payout edge
-   cases (separate, still open): a DRAFT payout created *before* a clawback still
-   over-pays when later marked `PAID` (no re-validation at `markPayoutPaid`), and
-   `FAILED`/`CANCELLED` payouts leave their `PayoutItem`s in place (stuck credits).
+1. **~~Payout over-pay~~ — fixed.** `createPayout` snapshots the **net** eligible
+   balance (unpaid credits − non-payout debits) with FIFO allocation, and
+   `markPayoutPaid` now re-validates against the current AVAILABLE balance (throws
+   if a clawback/refund landed after the DRAFT snapshot). `FAILED`/`CANCELLED`
+   payouts release their `PayoutItem`s so the credits can be re-reserved.
 
 2. **~~Fee default inconsistent between surfaces~~ — fixed.** Both `settleCapture`
    and `wallet-db.debitWallet` now resolve the fee through the shared
@@ -119,13 +118,14 @@ These are the next money-path hardening items (audited, not yet fixed here):
    `splittingEnabled` and an active `AT_CAPTURE` rule, then funds fee + reserve from
    the platform remainder. `releaseSplit` remains the manual escrow-release step.
 
-5. **`payment/captured` / `payment/canceled` were dead events.** Removed from
-   `intent-actions.ts` (replaced by an inline `settleCapture`). `routes/simulation.ts`
-   still emits both — harmless (no handler) but should be re-pointed at the real
-   settlement/void path or removed.
+5. **~~Dead `payment/captured` / `payment/canceled` events~~ — fixed.** Removed from
+   `intent-actions.ts` (replaced by inline `settleCapture`) and dropped from
+   `routes/simulation.ts`, which no longer emits either.
 
-6. **`PENDING` account is unused.** Either wire "captured, not yet provider-settled"
-   to it, or drop it to avoid a dormant balance-sheet line.
+6. **`PENDING` account is reserved (not yet used).** It represents "captured, not yet
+   provider-settled" and is intentionally kept as a dormant balance-sheet line until
+   authorized/pre-auth holds are wired to it. Dropping the enum value would need an
+   `ALTER TYPE` recreation — not worth it for a placeholder.
 
 ---
 

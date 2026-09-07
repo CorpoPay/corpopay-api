@@ -16,7 +16,7 @@
 import type { Payout, PayoutItem, PayoutMethod, Provider } from "@/generated/prisma/client";
 
 import { credit, debit, posting } from "./ledger";
-import { postEntry } from "./ledger-db";
+import { accountBalanceCents, postEntry } from "./ledger-db";
 import { type Centimes, centimes, centimesToMad, madToCentimes } from "./money";
 import { assertTransition, PayoutError } from "./payout";
 import { prisma } from "./prisma";
@@ -119,7 +119,11 @@ export async function cancelPayout(tenantId: string, id: string): Promise<Payout
   const payout = await prisma.payout.findFirst({ where: { id, tenantId } });
   if (!payout) throw new PayoutError("payout not found");
   assertTransition(payout.status, "CANCELLED");
-  return prisma.payout.update({ where: { id }, data: { status: "CANCELLED" } });
+  return prisma.$transaction(async (tx) => {
+    // Release the reserved credits so a future payout can re-reserve them.
+    await tx.payoutItem.deleteMany({ where: { payoutId: id } });
+    return tx.payout.update({ where: { id }, data: { status: "CANCELLED" } });
+  });
 }
 
 export async function markPayoutFailed(tenantId: string, id: string): Promise<Payout> {
@@ -128,7 +132,11 @@ export async function markPayoutFailed(tenantId: string, id: string): Promise<Pa
   if (TERMINAL.has(payout.status)) {
     throw new PayoutError(`payout is already ${payout.status}`);
   }
-  return prisma.payout.update({ where: { id }, data: { status: "FAILED" } });
+  return prisma.$transaction(async (tx) => {
+    // Release the reserved credits so a future payout can re-reserve them.
+    await tx.payoutItem.deleteMany({ where: { payoutId: id } });
+    return tx.payout.update({ where: { id }, data: { status: "FAILED" } });
+  });
 }
 
 /**
@@ -143,6 +151,11 @@ export async function markPayoutPaid(
   providerTransferId?: string,
 ): Promise<Payout> {
   return prisma.$transaction(async (tx) => {
+    // Serialize money movement for this tenant (the same lock postEntry uses) so
+    // a concurrent capture/clawback can't slip in between the re-validation read
+    // and the settlement post.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`;
+
     const payout = await tx.payout.findFirst({ where: { id, tenantId } });
     if (!payout) throw new PayoutError("payout not found");
     if (TERMINAL.has(payout.status)) {
@@ -150,6 +163,14 @@ export async function markPayoutPaid(
     }
 
     const amountCents: Centimes = madToCentimes(payout.amount);
+
+    // Re-validate: a clawback/refund after the DRAFT snapshot can reduce the
+    // actual eligible balance, so never pay out more than is currently available.
+    const availableCents = await accountBalanceCents(tx, tenantId, "AVAILABLE");
+    if (availableCents < amountCents) {
+      throw new PayoutError("payout exceeds current eligible funds — recreate the payout");
+    }
+
     await postEntry(
       tenantId,
       posting(

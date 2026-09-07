@@ -162,4 +162,39 @@ describe("payout persistence (real Postgres)", () => {
     expect(view.balances.AVAILABLE).toBe(0);
     expect(view.balances.PAID_OUT).toBe(7710);
   });
+
+  it("refuses to pay out when a clawback lands after the DRAFT snapshot", async () => {
+    await seedAvailable(50000); // 500.00 MAD
+    const payout = await createPayout(TENANT, { idempotencyKey: "payout-stale", provider: "VPS" });
+
+    // A chargeback claws back 20.00 after the snapshot.
+    await postEntry(
+      TENANT,
+      posting(
+        debit("AVAILABLE", centimes(2000), "CHARGEBACK"),
+        credit("CASH", centimes(2000), "CHARGEBACK"),
+      ),
+    );
+
+    await expect(markPayoutPaid(TENANT, payout.id, "xfer-stale")).rejects.toThrow(
+      /exceeds current eligible funds/,
+    );
+  });
+
+  it("releases reserved credits when a payout fails so they can be re-reserved", async () => {
+    await seedAvailable(50000);
+    const failed = await createPayout(TENANT, {
+      idempotencyKey: "payout-release",
+      provider: "VPS",
+    });
+    await markPayoutFailed(TENANT, failed.id);
+
+    // The same 500.00 MAD is now eligible again.
+    const next = await createPayout(TENANT, {
+      idempotencyKey: "payout-release-2",
+      provider: "VPS",
+    });
+    expect(next.amount.toString()).toBe("500");
+    expect(next.items).toHaveLength(1);
+  });
 });
