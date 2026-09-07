@@ -18,12 +18,15 @@ import type {
   CreateCheckoutParams,
   CreateCheckoutResult,
   CreatePayoutParams,
+  ListDisputesResult,
   NapsCredentials,
   PayoutResult,
   PayoutStatusResult,
   ProviderAdapter,
   QueryStatusResult,
   RefundResult,
+  SubmitDisputeEvidenceParams,
+  SubmitDisputeEvidenceResult,
   TestConnectionResult,
 } from "./types";
 
@@ -202,6 +205,16 @@ export class NapsAdapter implements ProviderAdapter {
 
   async getPayoutStatus(_providerTransferId: string): Promise<PayoutStatusResult> {
     throw new Error(`${this.name} payout status is not yet implemented`);
+  }
+
+  async listDisputes(): Promise<ListDisputesResult> {
+    throw new Error(`${this.name} dispute API is not yet implemented`);
+  }
+
+  async submitDisputeEvidence(
+    _params: SubmitDisputeEvidenceParams,
+  ): Promise<SubmitDisputeEvidenceResult> {
+    throw new Error(`${this.name} dispute API is not yet implemented`);
   }
 
   async testConnection(): Promise<TestConnectionResult> {

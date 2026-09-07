@@ -9,6 +9,8 @@ const { mockStripe } = vi.hoisted(() => {
     refunds: { create: vi.fn() },
     balance: { retrieve: vi.fn() },
     webhooks: { constructEvent: vi.fn() },
+    transfers: { create: vi.fn(), retrieve: vi.fn() },
+    disputes: { list: vi.fn(), update: vi.fn() },
   };
   return { mockStripe: instance };
 });
@@ -24,6 +26,7 @@ const CREDENTIALS: StripeCredentials = {
   secretKey: "demo-stripe-secret-key",
   webhookSecret: "demo-stripe-webhook-secret",
   publishableKey: "demo-stripe-publishable-key",
+  connectedAccountId: "acct_demo",
 };
 
 function makeAdapter() {
@@ -164,5 +167,101 @@ describe("StripeAdapter.testConnection", () => {
     const result = await makeAdapter().testConnection();
     expect(result.connected).toBe(false);
     expect(result.error).toContain("Invalid API Key");
+  });
+});
+
+describe("StripeAdapter.createPayout", () => {
+  it("creates a Stripe Connect transfer to the tenant", async () => {
+    mockStripe.transfers.create.mockResolvedValue({ id: "tr_1" });
+
+    const result = await makeAdapter().createPayout({
+      amount: 5000,
+      currency: "MAD",
+      reference: "payout-1",
+      method: "BANK_TRANSFER",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.providerTransferId).toBe("tr_1");
+    expect(mockStripe.transfers.create).toHaveBeenCalledWith({
+      amount: 5000,
+      currency: "mad",
+      destination: "acct_demo",
+      transfer_group: "payout-1",
+    });
+  });
+
+  it("throws when no connectedAccountId is configured", async () => {
+    const adapter = new StripeAdapter({ secretKey: "sk", webhookSecret: "wh" });
+    await expect(
+      adapter.createPayout({
+        amount: 5000,
+        currency: "MAD",
+        reference: "p",
+        method: "BANK_TRANSFER",
+      }),
+    ).rejects.toThrow(/connectedAccountId/);
+  });
+});
+
+describe("StripeAdapter.getPayoutStatus", () => {
+  it("maps a settled transfer to PAID", async () => {
+    mockStripe.transfers.retrieve.mockResolvedValue({ id: "tr_1", reversed: false });
+    const result = await makeAdapter().getPayoutStatus("tr_1");
+    expect(result.status).toBe("PAID");
+    expect(result.providerTransferId).toBe("tr_1");
+  });
+
+  it("maps a reversed transfer to FAILED", async () => {
+    mockStripe.transfers.retrieve.mockResolvedValue({ id: "tr_2", reversed: true });
+    const result = await makeAdapter().getPayoutStatus("tr_2");
+    expect(result.status).toBe("FAILED");
+  });
+});
+
+describe("StripeAdapter.listDisputes", () => {
+  it("maps Stripe disputes to DisputeSummary", async () => {
+    mockStripe.disputes.list.mockResolvedValue({
+      data: [
+        {
+          id: "dp_1",
+          status: "needs_response",
+          amount: 1000,
+          currency: "mad",
+          reason: "fraudulent",
+          evidence_details: { due_by: 1700000000 },
+          charge: "ch_1",
+        },
+      ],
+    });
+
+    const result = await makeAdapter().listDisputes();
+
+    expect(result.disputes).toHaveLength(1);
+    expect(result.disputes[0]).toMatchObject({
+      providerDisputeId: "dp_1",
+      status: "needs_response",
+      amount: 1000,
+      currency: "MAD",
+      reason: "fraudulent",
+      chargeId: "ch_1",
+    });
+    expect(result.disputes[0].evidenceDueDate).toBeInstanceOf(Date);
+  });
+});
+
+describe("StripeAdapter.submitDisputeEvidence", () => {
+  it("submits evidence against a dispute", async () => {
+    mockStripe.disputes.update.mockResolvedValue({ id: "dp_1" });
+
+    const result = await makeAdapter().submitDisputeEvidence({
+      providerDisputeId: "dp_1",
+      evidence: { customer_communication: "receipt attached" },
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockStripe.disputes.update).toHaveBeenCalledWith("dp_1", {
+      evidence: { customer_communication: "receipt attached" },
+    });
   });
 });

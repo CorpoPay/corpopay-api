@@ -5,11 +5,15 @@ import type {
   CreateCheckoutParams,
   CreateCheckoutResult,
   CreatePayoutParams,
+  DisputeSummary,
+  ListDisputesResult,
   PayoutResult,
   PayoutStatusResult,
   ProviderAdapter,
   QueryStatusResult,
   RefundResult,
+  SubmitDisputeEvidenceParams,
+  SubmitDisputeEvidenceResult,
   TestConnectionResult,
 } from "./types";
 
@@ -82,6 +86,22 @@ export class FakeAdapter implements ProviderAdapter {
 
   async getPayoutStatus(providerTransferId: string): Promise<PayoutStatusResult> {
     return { status: "PAID", providerTransferId, rawResponse: {} };
+  }
+
+  async listDisputes(): Promise<ListDisputesResult> {
+    // Deterministic: no disputes by default. Tests can override via opts if needed.
+    const disputes: DisputeSummary[] = [];
+    return { disputes, rawResponse: {} };
+  }
+
+  async submitDisputeEvidence(
+    params: SubmitDisputeEvidenceParams,
+  ): Promise<SubmitDisputeEvidenceResult> {
+    return {
+      success: true,
+      rawRequest: { providerDisputeId: params.providerDisputeId, evidence: params.evidence },
+      rawResponse: {},
+    };
   }
 
   async testConnection(): Promise<TestConnectionResult> {

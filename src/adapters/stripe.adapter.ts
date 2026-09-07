@@ -23,6 +23,10 @@
  *   queryTransactionStatus → stripe.paymentIntents.retrieve(id)
  *   verifyWebhookSignature → stripe.webhooks.constructEvent(rawBody, sig, secret)
  *   mapStatusToInternal    → PaymentIntent status → CorpoPay PaymentIntentStatus
+ *   createPayout           → stripe.transfers.create (Stripe Connect destination)
+ *   getPayoutStatus        → stripe.transfers.retrieve(id)
+ *   listDisputes           → stripe.disputes.list()
+ *   submitDisputeEvidence  → stripe.disputes.update(id, { evidence })
  *   testConnection         → stripe.balance.retrieve()
  */
 
@@ -35,12 +39,16 @@ import type {
   CreateCheckoutParams,
   CreateCheckoutResult,
   CreatePayoutParams,
+  DisputeSummary,
+  ListDisputesResult,
   PayoutResult,
   PayoutStatusResult,
   ProviderAdapter,
   QueryStatusResult,
   RefundResult,
   StripeCredentials,
+  SubmitDisputeEvidenceParams,
+  SubmitDisputeEvidenceResult,
   TestConnectionResult,
 } from "./types";
 
@@ -353,12 +361,78 @@ export class StripeAdapter implements ProviderAdapter {
   // stripe.balance.retrieve() is a lightweight authenticated call that confirms
   // the secret key is valid without touching real data.
 
-  async createPayout(_params: CreatePayoutParams): Promise<PayoutResult> {
-    throw new Error(`${this.name} payouts are not yet implemented`);
+  async createPayout(params: CreatePayoutParams): Promise<PayoutResult> {
+    const destination = this.credentials.connectedAccountId;
+    if (!destination) {
+      throw new Error(
+        `${this.name} payouts require a Stripe Connect account id (connectedAccountId)`,
+      );
+    }
+
+    const rawRequest: Record<string, unknown> = {
+      amount: params.amount,
+      currency: params.currency.toLowerCase(),
+      destination,
+      transfer_group: params.reference,
+    };
+
+    const transfer = await this.stripe.transfers.create({
+      amount: params.amount,
+      currency: params.currency.toLowerCase(),
+      destination,
+      transfer_group: params.reference,
+    });
+
+    return {
+      success: true,
+      providerTransferId: transfer.id,
+      rawRequest,
+      rawResponse: transfer as unknown as Record<string, unknown>,
+    };
   }
 
-  async getPayoutStatus(_providerTransferId: string): Promise<PayoutStatusResult> {
-    throw new Error(`${this.name} payout status is not yet implemented`);
+  async getPayoutStatus(providerTransferId: string): Promise<PayoutStatusResult> {
+    const transfer = await this.stripe.transfers.retrieve(providerTransferId);
+    // Stripe Transfers are synchronous (same-currency): a created transfer is
+    // settled, and `reversed` flags a later claw-back (mapped to FAILED).
+    return {
+      status: transfer.reversed ? "FAILED" : "PAID",
+      providerTransferId: transfer.id,
+      rawResponse: transfer as unknown as Record<string, unknown>,
+    };
+  }
+
+  async listDisputes(): Promise<ListDisputesResult> {
+    const result = await this.stripe.disputes.list({ limit: 100 });
+    const disputes: DisputeSummary[] = result.data.map((d) => ({
+      providerDisputeId: d.id,
+      status: d.status,
+      amount: d.amount,
+      currency: d.currency.toUpperCase(),
+      reason: d.reason ?? null,
+      evidenceDueDate: d.evidence_details?.due_by
+        ? new Date(d.evidence_details.due_by * 1000)
+        : null,
+      chargeId: (d.charge as string | null) ?? null,
+    }));
+    return { disputes, rawResponse: result as unknown as Record<string, unknown> };
+  }
+
+  async submitDisputeEvidence(
+    params: SubmitDisputeEvidenceParams,
+  ): Promise<SubmitDisputeEvidenceResult> {
+    const rawRequest: Record<string, unknown> = {
+      id: params.providerDisputeId,
+      evidence: params.evidence,
+    };
+    const dispute = await this.stripe.disputes.update(params.providerDisputeId, {
+      evidence: params.evidence as Stripe.DisputeUpdateParams.Evidence,
+    });
+    return {
+      success: true,
+      rawRequest,
+      rawResponse: dispute as unknown as Record<string, unknown>,
+    };
   }
 
   async testConnection(): Promise<TestConnectionResult> {

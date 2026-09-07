@@ -25,11 +25,14 @@ import type {
   CreateCheckoutParams,
   CreateCheckoutResult,
   CreatePayoutParams,
+  ListDisputesResult,
   PayoutResult,
   PayoutStatusResult,
   ProviderAdapter,
   QueryStatusResult,
   RefundResult,
+  SubmitDisputeEvidenceParams,
+  SubmitDisputeEvidenceResult,
   TestConnectionResult,
   VpsCredentials,
 } from "./types";
@@ -371,11 +374,21 @@ export class VpsAdapter implements ProviderAdapter {
   //   anything else or network error → treat as unreachable
 
   async createPayout(_params: CreatePayoutParams): Promise<PayoutResult> {
-    throw new Error(`${this.name} payouts are not yet implemented`);
+    throw new Error(`${this.name} has no disbursement API — payout is manual (Morocco)`);
   }
 
   async getPayoutStatus(_providerTransferId: string): Promise<PayoutStatusResult> {
-    throw new Error(`${this.name} payout status is not yet implemented`);
+    throw new Error(`${this.name} has no disbursement API — payout is manual (Morocco)`);
+  }
+
+  async listDisputes(): Promise<ListDisputesResult> {
+    throw new Error(`${this.name} has no dispute API — chargebacks are handled out-of-band`);
+  }
+
+  async submitDisputeEvidence(
+    _params: SubmitDisputeEvidenceParams,
+  ): Promise<SubmitDisputeEvidenceResult> {
+    throw new Error(`${this.name} has no dispute API — chargebacks are handled out-of-band`);
   }
 
   async testConnection(): Promise<TestConnectionResult> {

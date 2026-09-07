@@ -55,6 +55,8 @@ export interface StripeCredentials {
   secretKey: string;
   webhookSecret: string;
   publishableKey?: string;
+  /** Stripe Connect destination account id (acct_xxx) for payouts/transfers. */
+  connectedAccountId?: string;
 }
 
 // ─── Adapter interface params/results ────────────────────────────────────────────
@@ -190,6 +192,38 @@ export interface PayoutStatusResult {
   rawResponse: Record<string, unknown>;
 }
 
+// ─── Dispute surface ─────────────────────────────────────────────────────────────
+
+export interface DisputeSummary {
+  providerDisputeId: string;
+  /** Provider-native dispute status (e.g. Stripe `needs_response`, `won`). */
+  status: string;
+  /** Disputed amount in centimes. */
+  amount: number;
+  currency: string;
+  reason: string | null;
+  evidenceDueDate: Date | null;
+  /** Provider transaction/charge id the dispute is attached to. */
+  chargeId: string | null;
+}
+
+export interface ListDisputesResult {
+  disputes: DisputeSummary[];
+  rawResponse: Record<string, unknown>;
+}
+
+export interface SubmitDisputeEvidenceParams {
+  providerDisputeId: string;
+  /** Provider evidence fields (Stripe: `customer_communication`, `refund_policy`, …). */
+  evidence: Record<string, string>;
+}
+
+export interface SubmitDisputeEvidenceResult {
+  success: boolean;
+  rawRequest: Record<string, unknown>;
+  rawResponse: Record<string, unknown>;
+}
+
 /**
  * All provider adapters must implement this interface.
  */
@@ -228,4 +262,10 @@ export interface ProviderAdapter {
 
   /** Poll the status of an outbound payout / transfer. */
   getPayoutStatus(providerTransferId: string): Promise<PayoutStatusResult>;
+
+  /** List open/processed provider disputes for the tenant (chargeback sync). */
+  listDisputes(): Promise<ListDisputesResult>;
+
+  /** Submit evidence against a provider dispute. */
+  submitDisputeEvidence(params: SubmitDisputeEvidenceParams): Promise<SubmitDisputeEvidenceResult>;
 }
