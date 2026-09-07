@@ -29,10 +29,22 @@ const CAPTURE_DEPENDENT: readonly FinanceCapability[] = [
   "MARKETPLACE_SPLITS",
 ];
 
+/**
+ * When CorpoPay takes its wallet commission. `usage` (default) charges on each
+ * draw-down (the OtoParking pay-as-you-go model); `load` charges once, on top-up.
+ * A no-op unless the `WALLET` capability is enabled.
+ */
+export const WALLET_COMMISSION_BASIS = ["usage", "load"] as const;
+
+export type WalletCommissionBasis = (typeof WALLET_COMMISSION_BASIS)[number];
+
+export const DEFAULT_WALLET_COMMISSION_BASIS: WalletCommissionBasis = "usage";
+
 export type FinanceConfigValidationCode =
   | "UNKNOWN_CAPABILITY"
   | "DUPLICATE_CAPABILITY"
-  | "REQUIRES_CAPTURE_FUNDING";
+  | "REQUIRES_CAPTURE_FUNDING"
+  | "INVALID_WALLET_COMMISSION_BASIS";
 
 export interface FinanceConfigViolation {
   code: FinanceConfigValidationCode;
@@ -100,4 +112,32 @@ export function validateFinanceCapabilities(
   }
 
   return violations;
+}
+
+/** Validate the optional wallet commission basis (defaults to `usage`). */
+export function validateWalletCommissionBasis(value: unknown): FinanceConfigViolation[] {
+  if (value == null) return [];
+  if (!WALLET_COMMISSION_BASIS.includes(value as WalletCommissionBasis)) {
+    return [
+      {
+        code: "INVALID_WALLET_COMMISSION_BASIS",
+        message: `Invalid wallet commission basis "${String(value)}"; expected ${WALLET_COMMISSION_BASIS.join(" or ")}`,
+      },
+    ];
+  }
+  return [];
+}
+
+/** A whole finance-config payload (capabilities + per-capability settings). */
+export interface FinanceConfigInput {
+  capabilities: readonly string[];
+  walletCommissionBasis?: unknown;
+}
+
+/** Validate capabilities and settings together (the full config boundary). */
+export function validateFinanceConfig(input: FinanceConfigInput): FinanceConfigViolation[] {
+  return [
+    ...validateFinanceCapabilities(input.capabilities),
+    ...validateWalletCommissionBasis(input.walletCommissionBasis),
+  ];
 }

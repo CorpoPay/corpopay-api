@@ -2689,9 +2689,12 @@
           "preset": {
             "type": "string",
             "nullable": true
+          },
+          "walletCommissionBasis": {
+            "type": "string"
           }
         },
-        "required": ["capabilities", "preset"]
+        "required": ["capabilities", "preset", "walletCommissionBasis"]
       },
       "PayoutItem": {
         "type": "object",
@@ -8433,6 +8436,11 @@
                     "nullable": true,
                     "minLength": 1,
                     "maxLength": 50
+                  },
+                  "walletCommissionBasis": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["usage", "load"]
                   }
                 },
                 "required": ["capabilities"]

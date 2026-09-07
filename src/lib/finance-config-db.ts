@@ -1,18 +1,21 @@
 /**
  * Finance-config persistence (capability layer).
  *
- * A tenant's money model is the set of enabled capabilities (see finance-config.ts).
- * A missing row means the tenant runs on the default preset; an explicit row stores
- * the tenant's toggles. Capability gating reads through `requireCapability`.
+ * A tenant's money model is the set of enabled capabilities (see finance-config.ts)
+ * plus per-capability settings such as the wallet commission basis. A missing row
+ * means the tenant runs on the default preset; an explicit row stores the tenant's
+ * toggles. Capability gating reads through `requireCapability`.
  */
-import type { FinanceConfig as FinanceConfigRecord } from "@/generated/prisma/client";
+import type { FinanceConfig as FinanceConfigRecord, Prisma } from "@/generated/prisma/client";
 
 import { AppError } from "../middleware/errorHandler";
 import {
+  DEFAULT_WALLET_COMMISSION_BASIS,
   FINANCE_PRESETS,
   type FinanceCapability,
   type FinancePreset,
-  validateFinanceCapabilities,
+  validateFinanceConfig,
+  type WalletCommissionBasis,
 } from "./finance-config";
 import { prisma } from "./prisma";
 
@@ -34,22 +37,57 @@ export async function getEffectiveCapabilities(tenantId: string): Promise<Financ
   return row.capabilities as FinanceCapability[];
 }
 
-/** Validate + persist a tenant's capability set (idempotent upsert). */
+/** Effective wallet commission basis from a row (default `usage`). */
+export function resolveWalletCommissionBasis(
+  row: Pick<FinanceConfigRecord, "walletCommissionBasis"> | null,
+): WalletCommissionBasis {
+  return row?.walletCommissionBasis === "load" ? "load" : DEFAULT_WALLET_COMMISSION_BASIS;
+}
+
+/** Effective wallet commission basis for a tenant, optionally inside a transaction. */
+export async function getEffectiveWalletCommissionBasis(
+  tenantId: string,
+  tx?: Prisma.TransactionClient,
+): Promise<WalletCommissionBasis> {
+  const client = tx ?? prisma;
+  const row = await client.financeConfig.findUnique({ where: { tenantId } });
+  return resolveWalletCommissionBasis(row);
+}
+
+export interface UpsertFinanceConfigInput {
+  capabilities: string[];
+  preset?: string | null;
+  walletCommissionBasis?: WalletCommissionBasis | null;
+}
+
+/** Validate + persist a tenant's finance config (idempotent upsert). */
 export async function upsertFinanceConfig(
   tenantId: string,
-  capabilities: string[],
-  preset?: string | null,
+  input: UpsertFinanceConfigInput,
 ): Promise<FinanceConfigRecord> {
-  const violations = validateFinanceCapabilities(capabilities);
+  const violations = validateFinanceConfig({
+    capabilities: input.capabilities,
+    walletCommissionBasis: input.walletCommissionBasis,
+  });
   if (violations.length > 0) {
     throw new AppError(422, "INVALID_FINANCE_CONFIG", violations.map((v) => v.message).join("; "));
   }
 
-  const normalized = [...new Set(capabilities)];
+  const normalized = [...new Set(input.capabilities)];
+  const basis = input.walletCommissionBasis ?? DEFAULT_WALLET_COMMISSION_BASIS;
   return prisma.financeConfig.upsert({
     where: { tenantId },
-    create: { tenantId, capabilities: normalized, preset: preset ?? "custom" },
-    update: { capabilities: normalized, preset: preset ?? "custom" },
+    create: {
+      tenantId,
+      capabilities: normalized,
+      preset: input.preset ?? "custom",
+      walletCommissionBasis: basis,
+    },
+    update: {
+      capabilities: normalized,
+      preset: input.preset ?? "custom",
+      walletCommissionBasis: basis,
+    },
   });
 }
 

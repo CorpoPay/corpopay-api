@@ -2861,6 +2861,7 @@ export interface components {
     FinanceConfigResponse: {
       capabilities: string[];
       preset: string | null;
+      walletCommissionBasis: string;
     };
     PayoutItem: {
       id: string;
@@ -6118,6 +6119,8 @@ export interface operations {
             | "MARKETPLACE_SPLITS"
           )[];
           preset?: string | null;
+          /** @enum {string|null} */
+          walletCommissionBasis?: "usage" | "load" | null;
         };
       };
     };

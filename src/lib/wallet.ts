@@ -56,6 +56,15 @@ export interface WalletDebit extends WalletMovement {
   netCents: Centimes;
 }
 
+export interface WalletTopUp extends WalletMovement {
+  /** Gross amount collected from the customer (centimes). */
+  grossCents: Centimes;
+  /** CorpoPay commission (centimes) taken on this top-up. */
+  feeCents: Centimes;
+  /** Net stored value credited: `gross − fee` (equals `signedAmountCents`). */
+  netCents: Centimes;
+}
+
 /** Derive a wallet balance from a list of signed amounts (Σ). */
 export function computeBalance(signedAmountCents: readonly Centimes[]): Centimes {
   return centimes(signedAmountCents.reduce((a, b) => a + b, 0));
@@ -110,6 +119,33 @@ export function debitWithFee(
     ...movement,
     feeCents,
     netCents: centimes(amountCents - feeCents),
+  };
+}
+
+/**
+ * Top up the wallet on the `load` commission basis: compute the commission on the
+ * gross top-up, credit only the net stored value, and return the split. A net of
+ * zero or less (a fee that eats the whole top-up) is rejected.
+ */
+export function topUpWithFee(
+  balanceCents: Centimes,
+  grossCents: Centimes,
+  schedule: FeeScheduleSpec,
+  method?: string,
+): WalletTopUp {
+  if (grossCents <= 0)
+    throw new WalletError("top-up amount must be positive", "WALLET_INVALID_AMOUNT");
+  const feeCents = computeFee(schedule, grossCents, method);
+  const netCents = centimes(grossCents - feeCents);
+  if (netCents <= 0) {
+    throw new WalletError("top-up fee exceeds the top-up amount", "WALLET_FEE_EXCEEDS_AMOUNT");
+  }
+  return {
+    signedAmountCents: netCents,
+    balanceAfterCents: applyMovement(balanceCents, netCents),
+    grossCents,
+    feeCents,
+    netCents,
   };
 }
 

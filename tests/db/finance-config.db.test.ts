@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
   getEffectiveCapabilities,
+  getEffectiveWalletCommissionBasis,
   requireCapability,
   upsertFinanceConfig,
 } from "@/lib/finance-config-db";
@@ -42,19 +43,39 @@ describe("finance config (real Postgres)", () => {
   });
 
   it("persists and reads back a custom capability set", async () => {
-    await upsertFinanceConfig(TENANT, ["WALLET", "INSTANT_CAPTURE"], "wallet");
+    await upsertFinanceConfig(TENANT, {
+      capabilities: ["WALLET", "INSTANT_CAPTURE"],
+      preset: "wallet",
+    });
     expect(await getEffectiveCapabilities(TENANT)).toEqual(["WALLET", "INSTANT_CAPTURE"]);
   });
 
+  it("persists the wallet commission basis (defaults to usage)", async () => {
+    await upsertFinanceConfig(TENANT, {
+      capabilities: ["WALLET", "INSTANT_CAPTURE"],
+      preset: "wallet",
+    });
+    expect(await getEffectiveWalletCommissionBasis(TENANT)).toBe("usage");
+
+    await upsertFinanceConfig(TENANT, {
+      capabilities: ["WALLET", "INSTANT_CAPTURE"],
+      preset: "wallet",
+      walletCommissionBasis: "load",
+    });
+    expect(await getEffectiveWalletCommissionBasis(TENANT)).toBe("load");
+  });
+
   it("rejects a capability set missing its capture funding", async () => {
-    await expect(upsertFinanceConfig(TENANT, ["SUBSCRIPTIONS"])).rejects.toMatchObject({
+    await expect(
+      upsertFinanceConfig(TENANT, { capabilities: ["SUBSCRIPTIONS"] }),
+    ).rejects.toMatchObject({
       statusCode: 422,
       code: "INVALID_FINANCE_CONFIG",
     });
   });
 
   it("requireCapability throws 403 when disabled and passes when enabled", async () => {
-    await upsertFinanceConfig(TENANT, ["INSTANT_CAPTURE"]);
+    await upsertFinanceConfig(TENANT, { capabilities: ["INSTANT_CAPTURE"] });
 
     await expect(requireCapability(TENANT, "WALLET")).rejects.toMatchObject({
       statusCode: 403,

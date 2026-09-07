@@ -123,6 +123,32 @@ describe("wallets routes", () => {
     expect(res.body.transaction.type).toBe("TOP_UP");
   });
 
+  it("tops up with a commission on the load basis", async () => {
+    prisma.financeConfig.findUnique.mockResolvedValue({ walletCommissionBasis: "load" });
+    prisma.wallet.findFirst.mockResolvedValue(walletRow({ balance: 0 }));
+    prisma.feeSchedule.findFirst.mockResolvedValue({
+      feeType: "PERCENTAGE",
+      flatCents: null,
+      percentageBps: 290,
+      perMethodCents: null,
+      tiersCents: null,
+    });
+    prisma.settlementPolicy.findFirst.mockResolvedValue(null);
+    prisma.walletTransaction.create.mockResolvedValue(
+      txRow({ type: "TOP_UP", amount: 97.1, balanceAfter: 97.1 }),
+    );
+    prisma.wallet.update.mockResolvedValue(walletRow({ balance: 97.1 }));
+
+    const res = await request(app)
+      .post("/wallets/wallet-1/topup")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`)
+      .send({ amountCents: 10000 });
+
+    expect(res.status).toBe(200);
+    // 100.00 MAD − 2.9% (2.90 MAD) = 97.10 MAD credited.
+    expect(res.body.balanceCents).toBe(9710);
+  });
+
   it("debits a wallet and records commission", async () => {
     prisma.wallet.findFirst.mockResolvedValue(walletRow({ balance: 1000 }));
     prisma.feeSchedule.findFirst.mockResolvedValue({

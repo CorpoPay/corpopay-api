@@ -1033,12 +1033,13 @@ model RiskDecision {
 // from `WalletTransaction` rows (Σ signed amounts); `balance` is a cached snapshot
 // kept in sync under the same advisory lock that serializes money movement.
 model FinanceConfig {
-  id           String   @id @default(cuid())
-  tenantId     String   @unique
-  capabilities String[] @default([])
-  preset       String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  tenantId              String   @unique
+  capabilities          String[] @default([])
+  preset                String?
+  walletCommissionBasis String   @default("usage")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 

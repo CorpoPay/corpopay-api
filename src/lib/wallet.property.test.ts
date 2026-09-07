@@ -1,8 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import type { FeeScheduleSpec } from "./fees";
 import { centimes } from "./money";
-import { applyMovement, computeBalance, debit, topUp } from "./wallet";
+import { applyMovement, computeBalance, debit, topUp, topUpWithFee } from "./wallet";
 
 /**
  * Property tests for the stored-value wallet.
@@ -72,6 +73,27 @@ describe("wallet properties", () => {
           expect(Number.isInteger(debited.signedAmountCents)).toBe(true);
         },
       ),
+    );
+  });
+
+  it("topUpWithFee credits net = gross − fee and stays whole centimes", () => {
+    const pct: FeeScheduleSpec = {
+      feeType: "PERCENTAGE",
+      flatCents: null,
+      percentageBps: 290,
+      perMethodCents: null,
+      tiersCents: null,
+    };
+    fc.assert(
+      fc.property(fc.integer({ min: 1, max: 1_000_000_000 }), (gross) => {
+        const r = topUpWithFee(centimes(0), centimes(gross), pct);
+        expect(r.netCents).toBe(gross - r.feeCents);
+        expect(r.signedAmountCents).toBe(r.netCents);
+        expect(r.balanceAfterCents).toBe(r.netCents);
+        expect(Number.isInteger(r.feeCents)).toBe(true);
+        expect(Number.isInteger(r.netCents)).toBe(true);
+        expect(r.netCents).toBeGreaterThan(0);
+      }),
     );
   });
 });

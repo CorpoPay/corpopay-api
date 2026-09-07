@@ -2987,6 +2987,7 @@ const FinanceConfigResponse = registry.register(
   z.object({
     capabilities: z.array(z.string()),
     preset: z.string().nullable(),
+    walletCommissionBasis: z.string(),
   }),
 );
 

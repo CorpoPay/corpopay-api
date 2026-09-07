@@ -10,6 +10,7 @@ import {
   debitWithFee,
   refund,
   topUp,
+  topUpWithFee,
   WalletError,
   ZERO_FEE_SCHEDULE,
 } from "./wallet";
@@ -91,6 +92,39 @@ describe("debitWithFee", () => {
     const r = debitWithFee(centimes(1000), centimes(1000), ZERO_FEE_SCHEDULE);
     expect(r.feeCents).toBe(0);
     expect(r.netCents).toBe(1000);
+  });
+});
+
+describe("topUpWithFee", () => {
+  it("credits the net amount after commission", () => {
+    const r = topUpWithFee(centimes(0), centimes(10000), pct(290)); // 100.00 MAD, 2.9%
+    expect(r.feeCents).toBe(290);
+    expect(r.netCents).toBe(9710);
+    expect(r.grossCents).toBe(10000);
+    expect(r.signedAmountCents).toBe(9710);
+    expect(r.balanceAfterCents).toBe(9710);
+  });
+
+  it("credits the full amount with a zero schedule", () => {
+    const r = topUpWithFee(centimes(0), centimes(1000), ZERO_FEE_SCHEDULE);
+    expect(r.feeCents).toBe(0);
+    expect(r.netCents).toBe(1000);
+    expect(r.signedAmountCents).toBe(1000);
+  });
+
+  it("rejects a fee that eats the whole top-up", () => {
+    const flat: FeeScheduleSpec = {
+      feeType: "FLAT",
+      flatCents: 1000,
+      percentageBps: null,
+      perMethodCents: null,
+      tiersCents: null,
+    };
+    expect(() => topUpWithFee(centimes(0), centimes(500), flat)).toThrow(/exceeds/);
+  });
+
+  it("rejects a non-positive top-up", () => {
+    expect(() => topUpWithFee(centimes(0), centimes(0), ZERO_FEE_SCHEDULE)).toThrow(/positive/);
   });
 });
 

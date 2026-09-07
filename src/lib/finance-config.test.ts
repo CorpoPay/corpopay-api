@@ -8,6 +8,9 @@ import {
   type FinancePreset,
   presetCapabilities,
   validateFinanceCapabilities,
+  validateFinanceConfig,
+  validateWalletCommissionBasis,
+  WALLET_COMMISSION_BASIS,
 } from "./finance-config";
 
 const codesOf = (violations: FinanceConfigViolation[]): FinanceConfigValidationCode[] =>
@@ -105,5 +108,52 @@ describe("validateFinanceCapabilities", () => {
     expect(codes.filter((c) => c === "REQUIRES_CAPTURE_FUNDING")).toHaveLength(2);
     expect(codes.filter((c) => c === "DUPLICATE_CAPABILITY")).toHaveLength(1);
     expect(codes.filter((c) => c === "UNKNOWN_CAPABILITY")).toHaveLength(1);
+  });
+});
+
+describe("validateWalletCommissionBasis", () => {
+  it("accepts an absent basis (default)", () => {
+    expect(validateWalletCommissionBasis(undefined)).toEqual([]);
+    expect(validateWalletCommissionBasis(null)).toEqual([]);
+  });
+
+  it("accepts both bases", () => {
+    for (const basis of WALLET_COMMISSION_BASIS) {
+      expect(validateWalletCommissionBasis(basis)).toEqual([]);
+    }
+  });
+
+  it("rejects an unknown basis", () => {
+    expect(validateWalletCommissionBasis("weekly")).toEqual([
+      expect.objectContaining({ code: "INVALID_WALLET_COMMISSION_BASIS" }),
+    ]);
+  });
+});
+
+describe("validateFinanceConfig", () => {
+  it("validates capabilities and settings together", () => {
+    expect(
+      validateFinanceConfig({
+        capabilities: ["WALLET", "INSTANT_CAPTURE"],
+        walletCommissionBasis: "usage",
+      }),
+    ).toEqual([]);
+    expect(
+      validateFinanceConfig({
+        capabilities: ["INSTANT_CAPTURE"],
+        walletCommissionBasis: "load",
+      }),
+    ).toEqual([]);
+  });
+
+  it("reports capability and basis violations together", () => {
+    const codes = codesOf(
+      validateFinanceConfig({
+        capabilities: ["SUBSCRIPTIONS"],
+        walletCommissionBasis: "nonsense",
+      }),
+    );
+    expect(codes).toContain("REQUIRES_CAPTURE_FUNDING");
+    expect(codes).toContain("INVALID_WALLET_COMMISSION_BASIS");
   });
 });

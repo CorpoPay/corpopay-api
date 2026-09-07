@@ -1,6 +1,6 @@
 # CorpoPay Finance Engine — config-driven money models
 
-Status: **Phase A + B complete.**
+Status: **Phase A + B + C complete.**
 
 ## Goal
 
@@ -28,13 +28,27 @@ that blocks combinations that cannot work.
 | `INSTALLMENTS` | BNPL (down payment + schedule) | a capture method |
 | `MARKETPLACE_SPLITS` | split payouts to beneficiaries | a capture method |
 
+## Wallet commission basis (per-capability setting)
+
+The `WALLET` capability has one knob — *when* CorpoPay takes its commission:
+
+| Basis | Commission charged on | Model |
+|---|---|---|
+| `usage` (default) | each draw-down (debit) | OtoParking pay-as-you-go |
+| `load` | each top-up (credit the net, fee out of the wallet) | pre-funded with load fee |
+
+The setting is a no-op unless `WALLET` is enabled. The `wallet` preset + the
+`usage` default together encode the OtoParking model; a tenant can flip to `load`
+independently without changing capabilities.
+
 ## Validation (the "smartness")
 
 A capability set is invalid if any of these hold:
 
 1. it contains an unknown key (`UNKNOWN_CAPABILITY`);
 2. it contains a duplicate key (`DUPLICATE_CAPABILITY`);
-3. `SUBSCRIPTIONS`, `INSTALLMENTS`, or `MARKETPLACE_SPLITS` is enabled without `INSTANT_CAPTURE` or `PREAUTH_CAPTURE` (`REQUIRES_CAPTURE_FUNDING`).
+3. `SUBSCRIPTIONS`, `INSTALLMENTS`, or `MARKETPLACE_SPLITS` is enabled without `INSTANT_CAPTURE` or `PREAUTH_CAPTURE` (`REQUIRES_CAPTURE_FUNDING`);
+4. `walletCommissionBasis` is not `usage` or `load` (`INVALID_WALLET_COMMISSION_BASIS`).
 
 That is the whole rule set today — deliberately minimal, and it only grows when a new
 capability introduces a real conflict or prerequisite.
@@ -54,12 +68,13 @@ Default (no `FinanceConfig` row): **`full`** — total flexibility; gating only 
 
 ```prisma
 model FinanceConfig {
-  id           String   @id @default(cuid())
-  tenantId     String   @unique
-  capabilities String[] @default([]) // FinanceCapability keys
-  preset       String?               // standard | wallet | marketplace | full | custom
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  tenantId              String   @unique
+  capabilities          String[] @default([]) // FinanceCapability keys
+  preset                String?               // standard | wallet | marketplace | full | custom
+  walletCommissionBasis String   @default("usage") // usage | load
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -83,10 +98,11 @@ model FinanceConfig {
 3. `src/lib/finance-config-db.ts` — `getEffectiveCapabilities` (default `full`), `upsertFinanceConfig`, `requireCapability`.
 4. `GET` / `PUT /finance-config` (owner) + `schemas/finance-config.ts`.
 5. Gating at creation: payment links (`isRecurring`→`SUBSCRIPTIONS`, `isInstallment`→`INSTALLMENTS`), wallets (`WALLET`), split rules (`MARKETPLACE_SPLITS`).
+6. `walletCommissionBasis` (`usage` | `load`) on `FinanceConfig` + `topUpWithFee` pure helper, wired into `topUpWallet` / `debitWallet` so the wallet charges commission on either load or draw-down.
 
 ## Phases
 
 - **A** — `src/lib/finance-config.ts` validator + tests (pure, no migration). ✅
 - **B** — `FinanceConfig` schema + migration, route + creation gating. ✅
-- **C** — wallet commission basis (`usage` vs `load`) and any OtoParking-specific config.
+- **C** — wallet commission basis (`usage` vs `load`) and the OtoParking `wallet` preset + `usage` default. ✅
 - **D** — settlement/owed surface (Tier 2), with the payout rail (`stripe_connect` vs `manual`) kept in `SettlementPolicy`, not here.

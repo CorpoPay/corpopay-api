@@ -19,17 +19,19 @@
  * `money.ts`.
  */
 import type { Prisma, Wallet, WalletOwnerType, WalletTransaction } from "@/generated/prisma/client";
-
 import { resolveFeeSpec } from "./fees-db";
+import { getEffectiveWalletCommissionBasis } from "./finance-config-db";
 import { credit as creditLeg, debit as debitLeg, posting } from "./ledger";
 import { postEntry } from "./ledger-db";
 import { type Centimes, centimes, centimesToMad, madToCentimes } from "./money";
 import { prisma } from "./prisma";
 import {
   debitWithFee,
+  topUpWithFee,
   WalletError,
   type WalletMovement,
   adjustment as walletAdjustment,
+  debit as walletDebit,
   refund as walletRefund,
   topUp as walletTopUp,
 } from "./wallet";
@@ -158,6 +160,45 @@ export async function topUpWallet(
 ): Promise<WalletOpResult> {
   return prisma.$transaction(async (tx) => {
     const wallet = await loadActiveWallet(tx, tenantId, id);
+    const basis = await getEffectiveWalletCommissionBasis(tenantId, tx);
+
+    if (basis === "load") {
+      // Commission on load: collect gross, credit only the net stored value, and
+      // take the fee out of the wallet (symmetrical to the usage-basis debit).
+      const scheduleRow = await tx.feeSchedule.findFirst({ where: { tenantId, isActive: true } });
+      const policyRow = await tx.settlementPolicy.findFirst({
+        where: { tenantId, isActive: true },
+      });
+      const schedule = resolveFeeSpec(scheduleRow, policyRow?.industry ?? null);
+      const movement = topUpWithFee(madToCentimes(wallet.balance), input.amountCents, schedule);
+
+      await postEntry(
+        tenantId,
+        posting(
+          debitLeg("CASH", movement.grossCents, "CAPTURE"),
+          creditLeg("WALLET", movement.grossCents, "CAPTURE"),
+          { sourceType: "wallet", sourceId: wallet.id },
+        ),
+        tx,
+      );
+      if (movement.feeCents > 0) {
+        await postEntry(
+          tenantId,
+          posting(
+            debitLeg("WALLET", movement.feeCents, "FEE"),
+            creditLeg("FEES", movement.feeCents, "FEE"),
+            { sourceType: "wallet", sourceId: wallet.id },
+          ),
+          tx,
+        );
+      }
+
+      const sourceType = input.paymentIntentId ? "payment_intent" : "wallet_topup";
+      const sourceId = input.paymentIntentId ?? wallet.id;
+      return recordMovement(tx, tenantId, wallet, "TOP_UP", movement, sourceType, sourceId);
+    }
+
+    // usage basis (default): no commission on load.
     const movement = walletTopUp(madToCentimes(wallet.balance), input.amountCents);
 
     await postEntry(
@@ -183,6 +224,24 @@ export async function debitWallet(
 ): Promise<WalletOpResult> {
   return prisma.$transaction(async (tx) => {
     const wallet = await loadActiveWallet(tx, tenantId, id);
+    const basis = await getEffectiveWalletCommissionBasis(tenantId, tx);
+
+    if (basis === "load") {
+      // Commission already taken on load: draw-down is free.
+      const movement = walletDebit(madToCentimes(wallet.balance), input.amountCents);
+      await postEntry(
+        tenantId,
+        posting(
+          debitLeg("WALLET", input.amountCents, "CAPTURE"),
+          creditLeg("AVAILABLE", input.amountCents, "CAPTURE"),
+          { sourceType: "wallet", sourceId: wallet.id },
+        ),
+        tx,
+      );
+      return recordMovement(tx, tenantId, wallet, "DEBIT", movement, "wallet_debit", wallet.id);
+    }
+
+    // usage basis (default): commission on draw-down.
     const scheduleRow = await tx.feeSchedule.findFirst({ where: { tenantId, isActive: true } });
     const policyRow = await tx.settlementPolicy.findFirst({
       where: { tenantId, isActive: true },
