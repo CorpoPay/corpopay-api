@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.25.0...corpopay-api-v0.26.0) (2026-09-07)
+
+
+### Features
+
+* **split:** wire marketplace split on capture (Model A) ([f7b2acc](https://github.com/CorpoPay/corpopay-api/commit/f7b2acc95af8455aabe1f59df565c9a41f1cb867))
+
 ## [0.25.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.24.2...corpopay-api-v0.25.0) (2026-09-07)
 
 
