@@ -81,6 +81,19 @@ npx prisma migrate dev
 npm run dev     # :4000
 ```
 
+### Packaged image (production)
+
+A production image is published to `ghcr.io/corpopay/corpopay-api` on every `v*`
+tag (multi-arch, Trivy-scanned). Run it against your own Postgres:
+
+```bash
+docker run --rm -p 4000:4000 \
+  -e DATABASE_URL="postgresql://…" \
+  ghcr.io/corpopay/corpopay-api:latest
+```
+
+The container runs `prisma migrate deploy` on start and serves the API on `:4000`.
+
 ### Verify
 
 ```bash
