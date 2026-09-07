@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.30.0...corpopay-api-v0.31.0) (2026-09-07)
+
+
+### Features
+
+* **payouts:** wire MANUAL payout rail end-to-end ([94d6a72](https://github.com/CorpoPay/corpopay-api/commit/94d6a72b48082dcad2972a84ada44474ddf99316))
+
 ## [0.30.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.29.0...corpopay-api-v0.30.0) (2026-09-07)
 
 
