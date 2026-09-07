@@ -59,6 +59,9 @@ Net effect: `CASH = −G`, `FEES = F`, `RESERVE = R`, `AVAILABLE = G−F−R`,
   (`presetForIndustry(industry).fee`, default 2.9%).
 - **Reserve** = active `SettlementPolicy` (self-contained row) else `DEFAULT_PRESET`
   (5% rolling). See `src/lib/settlement-policy.ts` for the dimension model.
+- **Splits** = when `splittingEnabled` + an active `AT_CAPTURE` `SplitRule` exist,
+  the gross is split into beneficiary shares + platform remainder first, and the
+  fee + reserve are then computed on the **platform remainder** (see §3 + gap #4).
 
 ### 2.1 The gap this closes
 
@@ -111,9 +114,10 @@ These are the next money-path hardening items (audited, not yet fixed here):
    refund **after** payout throws `REFUND_AFTER_PAYOUT` (the net was already
    disbursed) — needs a receivable / clawback-from-`PAID_OUT` follow-up.
 
-4. **`executeSplit`/`releaseSplit` are not wired to any capture.** The split engine
-   is built and DB-tested but no code path calls it; decide the trigger (on capture
-   via settlement policy `splittingEnabled`) and the source (gross vs net).
+4. **~~`executeSplit` not wired to capture~~ — fixed (Model A).** `settleCapture`
+   splits the gross among beneficiaries + platform remainder when the policy has
+   `splittingEnabled` and an active `AT_CAPTURE` rule, then funds fee + reserve from
+   the platform remainder. `releaseSplit` remains the manual escrow-release step.
 
 5. **`payment/captured` / `payment/canceled` were dead events.** Removed from
    `intent-actions.ts` (replaced by an inline `settleCapture`). `routes/simulation.ts`

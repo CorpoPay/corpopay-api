@@ -10,6 +10,7 @@ import { createSettlementPolicy } from "@/lib/policy-db";
 import { prisma } from "@/lib/prisma";
 import { createDispute, resolveDispute } from "@/lib/reversals-db";
 import { settleCapture } from "@/lib/settlement-db";
+import { createSplitParty, createSplitRule } from "@/lib/splits-db";
 import { createWallet, debitWallet, topUpWallet } from "@/lib/wallet-db";
 import { makeTenant } from "../factories";
 
@@ -60,6 +61,9 @@ describe("capture settlement (real Postgres)", () => {
     await prisma.settlementPolicy.deleteMany({ where: { tenantId: TENANT } });
     await prisma.feeSchedule.deleteMany({ where: { tenantId: TENANT } });
     await prisma.ledgerEntry.deleteMany({ where: { tenantId: TENANT } });
+    await prisma.split.deleteMany({ where: { tenantId: TENANT } });
+    await prisma.splitRule.deleteMany({ where: { tenantId: TENANT } });
+    await prisma.splitParty.deleteMany({ where: { tenantId: TENANT } });
     await prisma.tenant.deleteMany({ where: { id: TENANT } });
   });
 
@@ -72,6 +76,9 @@ describe("capture settlement (real Postgres)", () => {
     await prisma.settlementPolicy.deleteMany({ where: { tenantId: TENANT } });
     await prisma.feeSchedule.deleteMany({ where: { tenantId: TENANT } });
     await prisma.ledgerEntry.deleteMany({ where: { tenantId: TENANT } });
+    await prisma.split.deleteMany({ where: { tenantId: TENANT } });
+    await prisma.splitRule.deleteMany({ where: { tenantId: TENANT } });
+    await prisma.splitParty.deleteMany({ where: { tenantId: TENANT } });
   });
 
   it("settles a capture into CASH → COLLECTED → FEES/RESERVE/AVAILABLE, net-zero", async () => {
@@ -133,6 +140,35 @@ describe("capture settlement (real Postgres)", () => {
     expect(view.balances.WALLET).toBe(3000); // 30.00 MAD retained
     expect(view.balances.FEES).toBe(58); // 2.9% of 20.00
     expect(view.balances.AVAILABLE).toBe(1942); // 20.00 − 0.58
+  });
+
+  it("splits a capture on the gross and funds fee+reserve from the platform remainder", async () => {
+    const party = await createSplitParty(TENANT, { slug: "host", name: "Host" });
+    await createSplitRule(TENANT, {
+      name: "Marketplace",
+      shares: [{ partyId: party.id, shareBps: 8000 }], // host 80%, platform 20%
+    });
+    await createFeeSchedule(TENANT, { feeType: "PERCENTAGE", percentageBps: 290 });
+    await createSettlementPolicy(TENANT, { splittingEnabled: true, reserveType: "NONE" });
+
+    const { settled } = await settleCapture(TENANT, {
+      intentId: "pi-split",
+      amountCents: centimes(10000), // 100.00 MAD gross
+    });
+    expect(settled).toBe(true);
+
+    const view = await expectBalanced();
+    // Host gets 80.00 MAD untouched; the platform remainder (20.00 MAD) is charged
+    // 2.9% → 0.58 MAD — the fee is computed on the remainder, not the gross.
+    expect(view.balances.CASH).toBe(-10000);
+    expect(view.balances.COLLECTED).toBe(0);
+    expect(view.balances.FEES).toBe(58); // 2.9% of 20.00
+    expect(view.balances.RESERVE).toBe(0);
+    expect(view.balances.AVAILABLE).toBe(9942); // 80.00 host + 19.42 platform
+
+    const splits = await prisma.split.findMany({ where: { tenantId: TENANT } });
+    expect(splits).toHaveLength(1);
+    expect(splits[0].amount.toString()).toBe("80");
   });
 
   it("keeps the ledger balanced across capture → payout → dispute → wallet", async () => {

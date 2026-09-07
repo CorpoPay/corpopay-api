@@ -137,70 +137,86 @@ export interface ExecuteSplitInput {
  *   in place (it is already the tenant's available balance).
  */
 export async function executeSplit(tenantId: string, input: ExecuteSplitInput): Promise<Split[]> {
-  let trigger: SplitTrigger;
-  let shares: ShareSpec[];
+  return prisma.$transaction(async (tx) => {
+    const { trigger, shares } = await resolveSplitRule(tx, tenantId, input);
+    return executeSplitInTx(tx, tenantId, input, trigger, shares);
+  });
+}
 
+/** Resolve a split's trigger + shares from a rule id or inline input. */
+async function resolveSplitRule(
+  client: Pick<Prisma.TransactionClient, "splitRule">,
+  tenantId: string,
+  input: ExecuteSplitInput,
+): Promise<{ trigger: SplitTrigger; shares: ShareSpec[] }> {
   if (input.splitRuleId) {
-    const rule = await prisma.splitRule.findFirst({ where: { id: input.splitRuleId, tenantId } });
+    const rule = await client.splitRule.findFirst({ where: { id: input.splitRuleId, tenantId } });
     if (!rule) throw new SplitError("split rule not found");
-    trigger = rule.trigger;
-    shares = rule.shares as unknown as ShareSpec[];
-  } else {
-    trigger = input.trigger ?? "AT_CAPTURE";
-    shares = input.shares ?? [];
+    return { trigger: rule.trigger, shares: rule.shares as unknown as ShareSpec[] };
   }
+  return { trigger: input.trigger ?? "AT_CAPTURE", shares: input.shares ?? [] };
+}
 
+/**
+ * Post a split's beneficiary shares + platform remainder within an open tx.
+ * `trigger`/`shares` must already be resolved (see `resolveSplitRule`) so the
+ * caller can compute the platform remainder up-front (e.g. to base fees on it).
+ */
+export async function executeSplitInTx(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  input: ExecuteSplitInput,
+  trigger: SplitTrigger,
+  shares: ShareSpec[],
+): Promise<Split[]> {
   const result = split(input.sourceCents, shares);
   const sourceAccount = sourceAccountFor(trigger);
   const held = input.held ?? false;
   const beneficiaryAccount = held ? "RESERVE" : "AVAILABLE";
+  const created: Split[] = [];
 
-  return prisma.$transaction(async (tx) => {
-    const created: Split[] = [];
+  for (const allocation of result.shares) {
+    await postEntry(
+      tenantId,
+      posting(
+        debit(sourceAccount, allocation.amountCents, "SPLIT"),
+        credit(beneficiaryAccount, allocation.amountCents, "SPLIT", allocation.partyId),
+        { sourceType: input.sourceType, sourceId: input.sourceId },
+      ),
+      tx,
+    );
+    created.push(
+      await tx.split.create({
+        data: {
+          tenantId,
+          splitRuleId: input.splitRuleId ?? null,
+          sourceType: input.sourceType,
+          sourceId: input.sourceId,
+          partyId: allocation.partyId,
+          amount: centimesToMad(allocation.amountCents),
+          currency: "MAD",
+          status: held ? "PENDING" : "SETTLED",
+          heldUntil: held ? (input.heldUntil ?? null) : null,
+        },
+      }),
+    );
+  }
 
-    for (const allocation of result.shares) {
-      await postEntry(
-        tenantId,
-        posting(
-          debit(sourceAccount, allocation.amountCents, "SPLIT"),
-          credit(beneficiaryAccount, allocation.amountCents, "SPLIT", allocation.partyId),
-          { sourceType: input.sourceType, sourceId: input.sourceId },
-        ),
-        tx,
-      );
-      created.push(
-        await tx.split.create({
-          data: {
-            tenantId,
-            splitRuleId: input.splitRuleId ?? null,
-            sourceType: input.sourceType,
-            sourceId: input.sourceId,
-            partyId: allocation.partyId,
-            amount: centimesToMad(allocation.amountCents),
-            currency: "MAD",
-            status: held ? "PENDING" : "SETTLED",
-            heldUntil: held ? (input.heldUntil ?? null) : null,
-          },
-        }),
-      );
-    }
+  // The platform remainder: only AT_CAPTURE moves it (COLLECTED → AVAILABLE);
+  // ON_USAGE/MANUAL leaves it in the tenant's existing AVAILABLE balance.
+  if (trigger === "AT_CAPTURE" && result.platformCents > 0) {
+    await postEntry(
+      tenantId,
+      posting(
+        debit(sourceAccount, result.platformCents, "SPLIT"),
+        credit("AVAILABLE", result.platformCents, "SPLIT"),
+        { sourceType: input.sourceType, sourceId: input.sourceId },
+      ),
+      tx,
+    );
+  }
 
-    // The platform remainder: only AT_CAPTURE moves it (COLLECTED → AVAILABLE);
-    // ON_USAGE/MANUAL leaves it in the tenant's existing AVAILABLE balance.
-    if (trigger === "AT_CAPTURE" && result.platformCents > 0) {
-      await postEntry(
-        tenantId,
-        posting(
-          debit(sourceAccount, result.platformCents, "SPLIT"),
-          credit("AVAILABLE", result.platformCents, "SPLIT"),
-          { sourceType: input.sourceType, sourceId: input.sourceId },
-        ),
-        tx,
-      );
-    }
-
-    return created;
-  });
+  return created;
 }
 
 export async function listSplits(
