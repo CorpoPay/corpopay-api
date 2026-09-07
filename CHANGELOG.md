@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.23.0...corpopay-api-v0.24.0) (2026-09-07)
+
+
+### Features
+
+* **settlement:** complete the capture-&gt;payout money path ([448ade8](https://github.com/CorpoPay/corpopay-api/commit/448ade8464bfc20ef3ed4d77afa6b6f9437cd858))
+
 ## [0.23.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.22.0...corpopay-api-v0.23.0) (2026-09-07)
 
 
