@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.24.0...corpopay-api-v0.24.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **refund:** unwind capture settlement on refund ([6820261](https://github.com/CorpoPay/corpopay-api/commit/6820261cb74a35ef6c07815314764d37dbf1c4c4))
+
 ## [0.24.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.23.0...corpopay-api-v0.24.0) (2026-09-07)
 
 
