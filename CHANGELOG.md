@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.21.0...corpopay-api-v0.22.0) (2026-09-07)
+
+
+### Features
+
+* **wallet:** add stored-value / prepaid wallet engine ([85de819](https://github.com/CorpoPay/corpopay-api/commit/85de8195d82f0cdc32b115e805577c9feff7a5b5))
+
 ## [0.21.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.20.0...corpopay-api-v0.21.0) (2026-09-07)
 
 
