@@ -4,7 +4,7 @@
  */
 import { Router } from "express";
 import { z } from "zod";
-import { Provider } from "@/generated/prisma/client";
+import { AuditAction, Provider } from "@/generated/prisma/client";
 import type { VpsCredentials } from "../adapters/types";
 import { VpsAdapter } from "../adapters/vps.adapter";
 import { decryptCredentials } from "../lib/encryption";
@@ -229,6 +229,17 @@ router.post(
     }
 
     const updated = await markPayoutPaid(payout.tenantId, payout.id, externalReference);
+    await prisma.auditLog.create({
+      data: {
+        tenantId: payout.tenantId,
+        userId: req.user!.id,
+        action: AuditAction.PAYOUT_MARKED_PAID,
+        entityType: "Payout",
+        entityId: payout.id,
+        metadata: { externalReference },
+        ip: req.ip,
+      },
+    });
     res.json({
       id: updated.id,
       status: updated.status,
@@ -730,6 +741,21 @@ router.post(
       where: { id: intent.id },
       data: { riskVerdict: verdict },
     });
+    await prisma.auditLog.create({
+      data: {
+        tenantId: intent.tenantId,
+        userId: req.user!.id,
+        action: AuditAction.RISK_OVERRIDE,
+        entityType: "PaymentIntent",
+        entityId: intent.id,
+        metadata: {
+          verdict,
+          previousRiskVerdict: intent.riskVerdict,
+          previousStatus: intent.status,
+        },
+        ip: req.ip,
+      },
+    });
     res.json({
       id: updated.id,
       verdict: updated.riskVerdict,
@@ -754,6 +780,17 @@ router.post(
     const dispute = await prisma.dispute.findUnique({ where: { id: req.params.id } });
     if (!dispute) throw new AppError(404, "DISPUTE_NOT_FOUND", "Dispute not found");
     const resolved = await resolveDispute(dispute.tenantId, dispute.id, outcome);
+    await prisma.auditLog.create({
+      data: {
+        tenantId: dispute.tenantId,
+        userId: req.user!.id,
+        action: AuditAction.DISPUTE_RESOLVED,
+        entityType: "Dispute",
+        entityId: dispute.id,
+        metadata: { outcome },
+        ip: req.ip,
+      },
+    });
     res.json({ id: resolved.id, status: resolved.status, updatedAt: resolved.updatedAt });
   }),
 );

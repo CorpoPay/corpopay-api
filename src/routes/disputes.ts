@@ -1,6 +1,9 @@
 import { Router } from "express";
 
+import { AuditAction } from "@/generated/prisma/client";
+
 import { centimes, madToCentimes } from "../lib/money";
+import { prisma } from "../lib/prisma";
 import {
   createDispute,
   type DisputeWithRecovery,
@@ -98,6 +101,17 @@ router.post(
   asyncHandler(async (req, res) => {
     const input = resolveDisputeSchema.parse(req.body);
     const dispute = await resolveDispute(req.user!.tenantId, req.params.id, input.outcome);
+    await prisma.auditLog.create({
+      data: {
+        tenantId: req.user!.tenantId,
+        userId: req.user!.id,
+        action: AuditAction.DISPUTE_RESOLVED,
+        entityType: "Dispute",
+        entityId: req.params.id,
+        metadata: { outcome: input.outcome },
+        ip: req.ip,
+      },
+    });
     res.json(toResponse(dispute));
   }),
 );

@@ -102,6 +102,15 @@ describe("POST /disputes/:id/resolve", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("WON");
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: "DISPUTE_RESOLVED",
+          entityType: "Dispute",
+          entityId: "dispute-1",
+        }),
+      }),
+    );
   });
 
   it("resolves to LOST and records an uncovered recovery", async () => {

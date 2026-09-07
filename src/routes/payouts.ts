@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { AuditAction } from "@/generated/prisma/client";
+
 import { getAdapter } from "../adapters/registry";
 import { madToCentimes } from "../lib/money";
 import {
@@ -11,6 +13,7 @@ import {
   markPayoutPaid,
   type PayoutWithItems,
 } from "../lib/payout-db";
+import { prisma } from "../lib/prisma";
 import { forTenant } from "../lib/tenant-db";
 import { requireAuth, requireOwner } from "../middleware/auth";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
@@ -122,6 +125,17 @@ router.post(
     }
 
     await markPayoutPaid(tenantId, payout.id, result.providerTransferId);
+    await prisma.auditLog.create({
+      data: {
+        tenantId,
+        userId: req.user!.id,
+        action: AuditAction.PAYOUT_MARKED_PAID,
+        entityType: "Payout",
+        entityId: payout.id,
+        metadata: { providerTransferId: result.providerTransferId },
+        ip: req.ip,
+      },
+    });
     const full = await getPayout(tenantId, payout.id);
     res.json(toResponse(full!));
   }),
