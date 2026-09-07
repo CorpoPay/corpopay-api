@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.26.0...corpopay-api-v0.26.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **payout:** re-validate eligibility at markPayoutPaid and release stuck items ([fef9a12](https://github.com/CorpoPay/corpopay-api/commit/fef9a1220abc0d96dbf0656e987a229278d01097))
+
 ## [0.26.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.25.0...corpopay-api-v0.26.0) (2026-09-07)
 
 
