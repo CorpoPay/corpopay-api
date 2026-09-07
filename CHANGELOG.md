@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.20.0...corpopay-api-v0.21.0) (2026-09-07)
+
+
+### Features
+
+* **api:** add cross-tenant admin settlement write endpoints ([021115a](https://github.com/CorpoPay/corpopay-api/commit/021115ad65e7441a7d910ccaddfeb018d3a9a49f))
+
 ## [0.20.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.19.0...corpopay-api-v0.20.0) (2026-09-06)
 
 
