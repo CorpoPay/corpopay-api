@@ -1993,6 +1993,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/admin/disputes/{id}/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Resolve a dispute across any tenant (WON/LOST) */
+    post: operations["adminResolveDispute"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/admin/reconciliation-reports/{id}/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Close a reconciliation report across any tenant */
+    post: operations["adminResolveReconciliationReport"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/admin/settlement-statements/{id}/finalize": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Finalize a settlement statement across any tenant */
+    post: operations["adminFinalizeSettlementStatement"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7192,6 +7243,91 @@ export interface operations {
           "application/json": {
             id: string;
             verdict: string | null;
+            updatedAt: string;
+          };
+        };
+      };
+    };
+  };
+  adminResolveDispute: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          /** @enum {string} */
+          outcome: "WON" | "LOST";
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            id: string;
+            status: string;
+            updatedAt: string;
+          };
+        };
+      };
+    };
+  };
+  adminResolveReconciliationReport: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            id: string;
+            status: string;
+            updatedAt: string;
+          };
+        };
+      };
+    };
+  };
+  adminFinalizeSettlementStatement: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            id: string;
+            status: string;
             updatedAt: string;
           };
         };

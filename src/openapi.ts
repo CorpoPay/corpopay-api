@@ -4016,3 +4016,68 @@ registry.registerPath({
     },
   },
 });
+
+// ─── Admin settlement write surface (cross-tenant) ─────────────────────────────
+
+const AdminSettlementActionResult = z.object({
+  id: z.string(),
+  status: z.string(),
+  updatedAt: z.string(),
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/admin/disputes/{id}/resolve",
+  operationId: "adminResolveDispute",
+  summary: "Resolve a dispute across any tenant (WON/LOST)",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ outcome: z.enum(["WON", "LOST"]) }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: AdminSettlementActionResult } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/admin/reconciliation-reports/{id}/resolve",
+  operationId: "adminResolveReconciliationReport",
+  summary: "Close a reconciliation report across any tenant",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: AdminSettlementActionResult } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/admin/settlement-statements/{id}/finalize",
+  operationId: "adminFinalizeSettlementStatement",
+  summary: "Finalize a settlement statement across any tenant",
+  tags: ["Admin"],
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: AdminSettlementActionResult } },
+    },
+  },
+});

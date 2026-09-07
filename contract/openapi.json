@@ -10575,6 +10575,160 @@
           }
         }
       }
+    },
+    "/admin/disputes/{id}/resolve": {
+      "post": {
+        "operationId": "adminResolveDispute",
+        "summary": "Resolve a dispute across any tenant (WON/LOST)",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "type": "string",
+                    "enum": ["WON", "LOST"]
+                  }
+                },
+                "required": ["outcome"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "status", "updatedAt"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/reconciliation-reports/{id}/resolve": {
+      "post": {
+        "operationId": "adminResolveReconciliationReport",
+        "summary": "Close a reconciliation report across any tenant",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "status", "updatedAt"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/settlement-statements/{id}/finalize": {
+      "post": {
+        "operationId": "adminFinalizeSettlementStatement",
+        "summary": "Finalize a settlement statement across any tenant",
+        "tags": ["Admin"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "status", "updatedAt"]
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -11,9 +11,13 @@ import { decryptCredentials } from "../lib/encryption";
 import { madToCentimes } from "../lib/money";
 import { markPayoutPaid } from "../lib/payout-db";
 import { prisma } from "../lib/prisma";
+import { resolveReconciliation } from "../lib/reconciliation-db";
+import { resolveDispute } from "../lib/reversals-db";
+import { finalizeSettlementStatement } from "../lib/statements-db";
 import { requireAdmin, requireAuth, requireSuperAdmin } from "../middleware/auth";
 import { AppError, asyncHandler } from "../middleware/errorHandler";
 import { manualPayoutSchema, providerHealthSchema } from "../schemas/admin";
+import { resolveDisputeSchema } from "../schemas/disputes";
 
 const router = Router();
 
@@ -716,6 +720,61 @@ router.post(
       data: { riskVerdict: verdict },
     });
     res.json({ id: intent.id, verdict: intent.riskVerdict, updatedAt: intent.updatedAt });
+  }),
+);
+
+// ─── Admin settlement write surface (cross-tenant) ───────────────────────────────
+// These mirror the tenant-scoped merchant actions but operate across all tenants,
+// so a CorpoPay admin can resolve a dispute, close a reconciliation report, or
+// finalize a settlement statement for any tenant (not just their own).
+
+// POST /admin/disputes/:id/resolve — resolve to WON/LOST across any tenant.
+router.post(
+  "/disputes/:id/resolve",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { outcome } = resolveDisputeSchema.parse(req.body);
+    const dispute = await prisma.dispute.findUnique({ where: { id: req.params.id } });
+    if (!dispute) throw new AppError(404, "DISPUTE_NOT_FOUND", "Dispute not found");
+    const resolved = await resolveDispute(dispute.tenantId, dispute.id, outcome);
+    res.json({ id: resolved.id, status: resolved.status, updatedAt: resolved.updatedAt });
+  }),
+);
+
+// POST /admin/reconciliation-reports/:id/resolve — close a report across any tenant.
+router.post(
+  "/reconciliation-reports/:id/resolve",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const report = await prisma.reconciliationReport.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!report) {
+      throw new AppError(404, "RECONCILIATION_NOT_FOUND", "Reconciliation report not found");
+    }
+    await resolveReconciliation(report.tenantId, report.id);
+    const updated = await prisma.reconciliationReport.findUnique({ where: { id: report.id } });
+    res.json({ id: updated!.id, status: updated!.status, updatedAt: updated!.updatedAt });
+  }),
+);
+
+// POST /admin/settlement-statements/:id/finalize — lock a statement across any tenant.
+router.post(
+  "/settlement-statements/:id/finalize",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const statement = await prisma.settlementStatement.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!statement) {
+      throw new AppError(404, "STATEMENT_NOT_FOUND", "Settlement statement not found");
+    }
+    await finalizeSettlementStatement(statement.tenantId, statement.id);
+    const updated = await prisma.settlementStatement.findUnique({ where: { id: statement.id } });
+    res.json({ id: updated!.id, status: updated!.status, updatedAt: updated!.updatedAt });
   }),
 );
 
