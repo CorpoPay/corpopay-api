@@ -1356,6 +1356,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/finance-config": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the tenant finance capabilities */
+    get: operations["getFinanceConfig"];
+    /** Update the tenant finance capabilities */
+    put: operations["updateFinanceConfig"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/payouts": {
     parameters: {
       query?: never;
@@ -2839,6 +2857,10 @@ export interface components {
       isActive: boolean;
       createdAt: string;
       updatedAt: string;
+    };
+    FinanceConfigResponse: {
+      capabilities: string[];
+      preset: string | null;
     };
     PayoutItem: {
       id: string;
@@ -6054,6 +6076,60 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  getFinanceConfig: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FinanceConfigResponse"];
+        };
+      };
+    };
+  };
+  updateFinanceConfig: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          capabilities: (
+            | "INSTANT_CAPTURE"
+            | "PREAUTH_CAPTURE"
+            | "WALLET"
+            | "SUBSCRIPTIONS"
+            | "INSTALLMENTS"
+            | "MARKETPLACE_SPLITS"
+          )[];
+          preset?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FinanceConfigResponse"];
+        };
       };
     };
   };

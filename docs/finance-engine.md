@@ -1,6 +1,6 @@
 # CorpoPay Finance Engine — config-driven money models
 
-Status: **Design locked / Phase A in progress.**
+Status: **Phase A + B complete.**
 
 ## Goal
 
@@ -48,7 +48,9 @@ capability introduces a real conflict or prerequisite.
 
 `jabadoor` maps to `standard` (auth→capture is the `PREAUTH_CAPTURE` path).
 
-## Schema (Phase A)
+Default (no `FinanceConfig` row): **`full`** — total flexibility; gating only applies once a tenant has an explicit subset.
+
+## Schema
 
 ```prisma
 model FinanceConfig {
@@ -76,14 +78,15 @@ model FinanceConfig {
 
 ## What's new (the capability layer)
 
-1. `FinanceConfig` entity — capability toggles + `preset`.
-2. `src/lib/finance-config.ts` — pure validator + preset constants (Phase A, no migration).
-3. Presets seeding on tenant onboarding (Phase B).
-4. API/UI gating — read capabilities to show/hide features; write toggles through the validator (Phase B).
+1. `FinanceConfig` entity — capability toggles + `preset` (migration `20260907200000_add_finance_config`).
+2. `src/lib/finance-config.ts` — pure validator + preset constants (unit-tested).
+3. `src/lib/finance-config-db.ts` — `getEffectiveCapabilities` (default `full`), `upsertFinanceConfig`, `requireCapability`.
+4. `GET` / `PUT /finance-config` (owner) + `schemas/finance-config.ts`.
+5. Gating at creation: payment links (`isRecurring`→`SUBSCRIPTIONS`, `isInstallment`→`INSTALLMENTS`), wallets (`WALLET`), split rules (`MARKETPLACE_SPLITS`).
 
 ## Phases
 
-- **A** — `src/lib/finance-config.ts` validator + tests (pure, no migration).
-- **B** — `FinanceConfig` schema + migration, route/UI gating, onboarding preset.
+- **A** — `src/lib/finance-config.ts` validator + tests (pure, no migration). ✅
+- **B** — `FinanceConfig` schema + migration, route + creation gating. ✅
 - **C** — wallet commission basis (`usage` vs `load`) and any OtoParking-specific config.
 - **D** — settlement/owed surface (Tier 2), with the payout rail (`stripe_connect` vs `manual`) kept in `SettlementPolicy`, not here.

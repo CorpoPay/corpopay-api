@@ -44,6 +44,7 @@ export const TENANT_SCOPED_MODELS = [
   "ReconciliationReport",
   "SettlementStatement",
   "MerchantOnboarding",
+  "FinanceConfig",
   "Wallet",
   "WalletTransaction",
 ] as const;

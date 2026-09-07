@@ -70,6 +70,7 @@ export function buildMockPrisma(): MockPrisma {
     settlementStatement: makeModel(),
     settlementStatementItem: makeModel(),
     merchantOnboarding: makeModel(),
+    financeConfig: makeModel(),
     providerHealth: makeModel(),
     wallet: makeModel(),
     walletTransaction: makeModel(),

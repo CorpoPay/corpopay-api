@@ -29,7 +29,7 @@ describe("isTenantScopedModel", () => {
     expect(isTenantScopedModel("ProviderTransaction")).toBe(false);
   });
 
-  it("lists exactly the twenty-four tenant-owned models", () => {
+  it("lists exactly the twenty-five tenant-owned models", () => {
     expect(TENANT_SCOPED_MODELS).toEqual([
       "User",
       "ProviderConfig",
@@ -53,6 +53,7 @@ describe("isTenantScopedModel", () => {
       "ReconciliationReport",
       "SettlementStatement",
       "MerchantOnboarding",
+      "FinanceConfig",
       "Wallet",
       "WalletTransaction",
     ]);

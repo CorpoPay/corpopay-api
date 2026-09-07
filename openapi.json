@@ -2677,6 +2677,22 @@
           "updatedAt"
         ]
       },
+      "FinanceConfigResponse": {
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "preset": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["capabilities", "preset"]
+      },
       "PayoutItem": {
         "type": "object",
         "properties": {
@@ -8356,6 +8372,84 @@
           },
           "404": {
             "description": "No active settlement policy"
+          }
+        }
+      }
+    },
+    "/finance-config": {
+      "get": {
+        "operationId": "getFinanceConfig",
+        "summary": "Get the tenant finance capabilities",
+        "tags": ["Finance Config"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateFinanceConfig",
+        "summary": "Update the tenant finance capabilities",
+        "tags": ["Finance Config"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "capabilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "INSTANT_CAPTURE",
+                        "PREAUTH_CAPTURE",
+                        "WALLET",
+                        "SUBSCRIPTIONS",
+                        "INSTALLMENTS",
+                        "MARKETPLACE_SPLITS"
+                      ]
+                    }
+                  },
+                  "preset": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 50
+                  }
+                },
+                "required": ["capabilities"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceConfigResponse"
+                }
+              }
+            }
           }
         }
       }

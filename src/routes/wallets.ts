@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Wallet, WalletTransaction } from "@/generated/prisma/client";
+import { requireCapability } from "../lib/finance-config-db";
 import { centimes, madToCentimes } from "../lib/money";
 import { WalletError } from "../lib/wallet";
 import {
@@ -76,6 +77,7 @@ router.post(
   requireOwner,
   asyncHandler(async (req, res) => {
     const input = createWalletSchema.parse(req.body);
+    await requireCapability(req.user!.tenantId, "WALLET");
     const wallet = await run(() => createWallet(req.user!.tenantId, input));
     res.status(201).json(toWalletResponse(wallet));
   }),

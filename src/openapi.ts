@@ -10,6 +10,7 @@ import {
 } from "./schemas/auth";
 import { createDisputeSchema, resolveDisputeSchema } from "./schemas/disputes";
 import { createFeeScheduleSchema } from "./schemas/fee-schedules";
+import { updateFinanceConfigSchema } from "./schemas/finance-config";
 import { planSchema } from "./schemas/installment-plans";
 import {
   rejectOnboardingSchema,
@@ -2978,6 +2979,49 @@ registry.registerPath({
   responses: {
     200: { description: "OK", content: { "application/json": { schema: SettlementPolicy } } },
     404: { description: "No active settlement policy" },
+  },
+});
+
+const FinanceConfigResponse = registry.register(
+  "FinanceConfigResponse",
+  z.object({
+    capabilities: z.array(z.string()),
+    preset: z.string().nullable(),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/finance-config",
+  operationId: "getFinanceConfig",
+  summary: "Get the tenant finance capabilities",
+  tags: ["Finance Config"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: FinanceConfigResponse } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/finance-config",
+  operationId: "updateFinanceConfig",
+  summary: "Update the tenant finance capabilities",
+  tags: ["Finance Config"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: { "application/json": { schema: updateFinanceConfigSchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: FinanceConfigResponse } },
+    },
   },
 });
 

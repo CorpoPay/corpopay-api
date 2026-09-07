@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { AuditAction, BillingInterval, type Provider } from "@/generated/prisma/client";
+import { AuditAction, type Provider } from "@/generated/prisma/client";
+import { requireCapability } from "../lib/finance-config-db";
 import { trackMetric } from "../lib/metrics";
 import { centimes, centimesToMad } from "../lib/money";
 import { prisma } from "../lib/prisma";
@@ -18,6 +19,13 @@ router.post(
   requireMerchant,
   asyncHandler(async (req, res) => {
     const data = createPaymentLinkSchema.parse(req.body);
+
+    if (data.isRecurring) {
+      await requireCapability(req.user!.tenantId, "SUBSCRIPTIONS");
+    }
+    if (data.isInstallment) {
+      await requireCapability(req.user!.tenantId, "INSTALLMENTS");
+    }
 
     // Verify tenant has provider configured
     const db = forTenant(req.user!.tenantId);

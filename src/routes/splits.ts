@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import type { Split, SplitParty, SplitRule } from "@/generated/prisma/client";
 
+import { requireCapability } from "../lib/finance-config-db";
 import { centimes, madToCentimes } from "../lib/money";
 import {
   createSplitParty,
@@ -125,6 +126,7 @@ splitRulesRouter.post(
   requireOwner,
   asyncHandler(async (req, res) => {
     const input = createSplitRuleSchema.parse(req.body);
+    await requireCapability(req.user!.tenantId, "MARKETPLACE_SPLITS");
     const rule = await createSplitRule(req.user!.tenantId, {
       name: input.name,
       trigger: input.trigger ?? undefined,
