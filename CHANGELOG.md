@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.28.0...corpopay-api-v0.29.0) (2026-09-07)
+
+
+### Features
+
+* **finance:** add wallet commission basis (usage vs load) ([768f6b1](https://github.com/CorpoPay/corpopay-api/commit/768f6b13e31b41539dec716b33e695b3d0eec0b6))
+
 ## [0.28.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.27.0...corpopay-api-v0.28.0) (2026-09-07)
 
 
