@@ -21,7 +21,7 @@ import type {
 
 import { credit, debit, posting } from "./ledger";
 import { postEntry } from "./ledger-db";
-import { type Centimes, centimesToMad, madToCentimes } from "./money";
+import { type Centimes, type Currency, fromMinor, toMinor } from "./money";
 import { prisma } from "./prisma";
 import {
   assertTransition,
@@ -117,6 +117,8 @@ export interface ExecuteSplitInput {
   sourceType: string;
   sourceId: string;
   sourceCents: Centimes;
+  /** ISO 4217 currency of the source amount (defaults to MAD). */
+  currency?: string;
   /** Use a stored rule (its trigger + shares). */
   splitRuleId?: string | null;
   /** Inline rule (when `splitRuleId` is omitted). */
@@ -172,6 +174,7 @@ export async function executeSplitInTx(
   const result = split(input.sourceCents, shares);
   const sourceAccount = sourceAccountFor(trigger);
   const held = input.held ?? false;
+  const currency: Currency = (input.currency as Currency | undefined) ?? "MAD";
   const beneficiaryAccount = held ? "RESERVE" : "AVAILABLE";
   const created: Split[] = [];
 
@@ -179,8 +182,8 @@ export async function executeSplitInTx(
     await postEntry(
       tenantId,
       posting(
-        debit(sourceAccount, allocation.amountCents, "SPLIT"),
-        credit(beneficiaryAccount, allocation.amountCents, "SPLIT", allocation.partyId),
+        debit(sourceAccount, allocation.amountCents, "SPLIT", null, currency),
+        credit(beneficiaryAccount, allocation.amountCents, "SPLIT", allocation.partyId, currency),
         { sourceType: input.sourceType, sourceId: input.sourceId },
       ),
       tx,
@@ -193,8 +196,8 @@ export async function executeSplitInTx(
           sourceType: input.sourceType,
           sourceId: input.sourceId,
           partyId: allocation.partyId,
-          amount: centimesToMad(allocation.amountCents),
-          currency: "MAD",
+          amount: fromMinor(allocation.amountCents, currency),
+          currency,
           status: held ? "PENDING" : "SETTLED",
           heldUntil: held ? (input.heldUntil ?? null) : null,
         },
@@ -208,8 +211,8 @@ export async function executeSplitInTx(
     await postEntry(
       tenantId,
       posting(
-        debit(sourceAccount, result.platformCents, "SPLIT"),
-        credit("AVAILABLE", result.platformCents, "SPLIT"),
+        debit(sourceAccount, result.platformCents, "SPLIT", null, currency),
+        credit("AVAILABLE", result.platformCents, "SPLIT", null, currency),
         { sourceType: input.sourceType, sourceId: input.sourceId },
       ),
       tx,
@@ -244,12 +247,13 @@ export async function releaseSplit(tenantId: string, id: string): Promise<Split>
     if (!existing) throw new SplitError("split not found");
     assertTransition(existing.status, "SETTLED");
 
-    const amountCents = madToCentimes(existing.amount);
+    const currency: Currency = existing.currency as Currency;
+    const amountCents = toMinor(existing.amount, currency);
     await postEntry(
       tenantId,
       posting(
-        debit("RESERVE", amountCents, "RESERVE_RELEASE", existing.partyId),
-        credit("AVAILABLE", amountCents, "RESERVE_RELEASE", existing.partyId),
+        debit("RESERVE", amountCents, "RESERVE_RELEASE", existing.partyId, currency),
+        credit("AVAILABLE", amountCents, "RESERVE_RELEASE", existing.partyId, currency),
         { sourceType: "split", sourceId: id },
       ),
       tx,

@@ -17,7 +17,7 @@ import type { Payout, PayoutItem, PayoutMethod, Provider } from "@/generated/pri
 
 import { credit, debit, posting } from "./ledger";
 import { accountBalanceCents, postEntry } from "./ledger-db";
-import { type Centimes, centimes, centimesToMad, madToCentimes } from "./money";
+import { type Centimes, type Currency, centimes, fromMinor, toMinor } from "./money";
 import { assertTransition, PayoutError } from "./payout";
 import { prisma } from "./prisma";
 
@@ -51,12 +51,20 @@ export async function createPayout(
     // so a concurrent capture/clawback can't skew the snapshot.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`;
 
+    // Payouts settle in the tenant's configured settlement currency.
+    const tenant = await tx.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settlementCurrency: true },
+    });
+    const currency: Currency = (tenant?.settlementCurrency as Currency | undefined) ?? "MAD";
+
     // Unpaid AVAILABLE credits (not yet reserved by any payout), oldest first.
     const credits = await tx.ledgerEntry.findMany({
       where: {
         tenantId,
         account: "AVAILABLE",
         direction: "CREDIT",
+        currency,
         payoutItem: { is: null },
       },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -66,12 +74,18 @@ export async function createPayout(
     // reduce what's actually owed. Payout debits are excluded — they already
     // settled a prior payout and don't reduce future eligibility.
     const debitRows = await tx.ledgerEntry.findMany({
-      where: { tenantId, account: "AVAILABLE", direction: "DEBIT", category: { not: "PAYOUT" } },
+      where: {
+        tenantId,
+        account: "AVAILABLE",
+        direction: "DEBIT",
+        currency,
+        category: { not: "PAYOUT" },
+      },
       select: { amount: true },
     });
 
-    const unpaidCredits = credits.reduce((sum, entry) => sum + madToCentimes(entry.amount), 0);
-    const otherDebits = debitRows.reduce((sum, entry) => sum + madToCentimes(entry.amount), 0);
+    const unpaidCredits = credits.reduce((sum, entry) => sum + toMinor(entry.amount, currency), 0);
+    const otherDebits = debitRows.reduce((sum, entry) => sum + toMinor(entry.amount, currency), 0);
     const payable = unpaidCredits - otherDebits;
     if (payable <= 0) throw new PayoutError("no eligible funds to pay out");
 
@@ -81,17 +95,17 @@ export async function createPayout(
     const items: { ledgerEntryId: string; amount: number }[] = [];
     for (const entry of credits) {
       if (remaining <= 0) break;
-      const creditCents = madToCentimes(entry.amount);
+      const creditCents = toMinor(entry.amount, currency);
       const alloc = Math.min(creditCents, remaining);
-      items.push({ ledgerEntryId: entry.id, amount: centimesToMad(centimes(alloc)) });
+      items.push({ ledgerEntryId: entry.id, amount: fromMinor(centimes(alloc), currency) });
       remaining -= alloc;
     }
 
     return tx.payout.create({
       data: {
         tenantId,
-        amount: centimesToMad(centimes(payable)),
-        currency: "MAD",
+        amount: fromMinor(centimes(payable), currency),
+        currency,
         status: "DRAFT",
         provider: input.provider,
         method: input.method ?? "BANK_TRANSFER",
@@ -162,11 +176,12 @@ export async function markPayoutPaid(
       throw new PayoutError(`payout is already ${payout.status}`);
     }
 
-    const amountCents: Centimes = madToCentimes(payout.amount);
+    const payoutCurrency: Currency = payout.currency as Currency;
+    const amountCents: Centimes = toMinor(payout.amount, payoutCurrency);
 
     // Re-validate: a clawback/refund after the DRAFT snapshot can reduce the
     // actual eligible balance, so never pay out more than is currently available.
-    const availableCents = await accountBalanceCents(tx, tenantId, "AVAILABLE");
+    const availableCents = await accountBalanceCents(tx, tenantId, "AVAILABLE", payoutCurrency);
     if (availableCents < amountCents) {
       throw new PayoutError("payout exceeds current eligible funds — recreate the payout");
     }
@@ -174,8 +189,8 @@ export async function markPayoutPaid(
     await postEntry(
       tenantId,
       posting(
-        debit("AVAILABLE", amountCents, "PAYOUT"),
-        credit("PAID_OUT", amountCents, "PAYOUT"),
+        debit("AVAILABLE", amountCents, "PAYOUT", null, payoutCurrency),
+        credit("PAID_OUT", amountCents, "PAYOUT", null, payoutCurrency),
         { sourceType: "payout", sourceId: id },
       ),
       tx,

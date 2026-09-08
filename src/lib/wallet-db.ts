@@ -23,7 +23,7 @@ import { resolveFeeSpec } from "./fees-db";
 import { getEffectiveWalletCommissionBasis } from "./finance-config-db";
 import { credit as creditLeg, debit as debitLeg, posting } from "./ledger";
 import { postEntry } from "./ledger-db";
-import { type Centimes, centimes, centimesToMad, madToCentimes } from "./money";
+import { type Centimes, type Currency, centimes, fromMinor, toMinor } from "./money";
 import { prisma } from "./prisma";
 import {
   debitWithFee,
@@ -134,21 +134,22 @@ async function recordMovement(
   sourceType: string,
   sourceId: string,
 ): Promise<WalletOpResult> {
+  const currency: Currency = wallet.currency as Currency;
   const transaction = await tx.walletTransaction.create({
     data: {
       walletId: wallet.id,
       tenantId,
       type,
-      amount: centimesToMad(movement.signedAmountCents),
+      amount: fromMinor(movement.signedAmountCents, currency),
       currency: wallet.currency,
-      balanceAfter: centimesToMad(movement.balanceAfterCents),
+      balanceAfter: fromMinor(movement.balanceAfterCents, currency),
       sourceType,
       sourceId,
     },
   });
   const updated = await tx.wallet.update({
     where: { id: wallet.id },
-    data: { balance: centimesToMad(movement.balanceAfterCents) },
+    data: { balance: fromMinor(movement.balanceAfterCents, currency) },
   });
   return { wallet: updated, transaction };
 }
@@ -160,6 +161,7 @@ export async function topUpWallet(
 ): Promise<WalletOpResult> {
   return prisma.$transaction(async (tx) => {
     const wallet = await loadActiveWallet(tx, tenantId, id);
+    const currency: Currency = wallet.currency as Currency;
     const basis = await getEffectiveWalletCommissionBasis(tenantId, tx);
 
     if (basis === "load") {
@@ -170,13 +172,13 @@ export async function topUpWallet(
         where: { tenantId, isActive: true },
       });
       const schedule = resolveFeeSpec(scheduleRow, policyRow?.industry ?? null);
-      const movement = topUpWithFee(madToCentimes(wallet.balance), input.amountCents, schedule);
+      const movement = topUpWithFee(toMinor(wallet.balance, currency), input.amountCents, schedule);
 
       await postEntry(
         tenantId,
         posting(
-          debitLeg("CASH", movement.grossCents, "CAPTURE"),
-          creditLeg("WALLET", movement.grossCents, "CAPTURE"),
+          debitLeg("CASH", movement.grossCents, "CAPTURE", null, currency),
+          creditLeg("WALLET", movement.grossCents, "CAPTURE", null, currency),
           { sourceType: "wallet", sourceId: wallet.id },
         ),
         tx,
@@ -185,8 +187,8 @@ export async function topUpWallet(
         await postEntry(
           tenantId,
           posting(
-            debitLeg("WALLET", movement.feeCents, "FEE"),
-            creditLeg("FEES", movement.feeCents, "FEE"),
+            debitLeg("WALLET", movement.feeCents, "FEE", null, currency),
+            creditLeg("FEES", movement.feeCents, "FEE", null, currency),
             { sourceType: "wallet", sourceId: wallet.id },
           ),
           tx,
@@ -199,13 +201,13 @@ export async function topUpWallet(
     }
 
     // usage basis (default): no commission on load.
-    const movement = walletTopUp(madToCentimes(wallet.balance), input.amountCents);
+    const movement = walletTopUp(toMinor(wallet.balance, currency), input.amountCents);
 
     await postEntry(
       tenantId,
       posting(
-        debitLeg("CASH", input.amountCents, "CAPTURE"),
-        creditLeg("WALLET", input.amountCents, "CAPTURE"),
+        debitLeg("CASH", input.amountCents, "CAPTURE", null, currency),
+        creditLeg("WALLET", input.amountCents, "CAPTURE", null, currency),
         { sourceType: "wallet", sourceId: wallet.id },
       ),
       tx,
@@ -224,16 +226,17 @@ export async function debitWallet(
 ): Promise<WalletOpResult> {
   return prisma.$transaction(async (tx) => {
     const wallet = await loadActiveWallet(tx, tenantId, id);
+    const currency: Currency = wallet.currency as Currency;
     const basis = await getEffectiveWalletCommissionBasis(tenantId, tx);
 
     if (basis === "load") {
       // Commission already taken on load: draw-down is free.
-      const movement = walletDebit(madToCentimes(wallet.balance), input.amountCents);
+      const movement = walletDebit(toMinor(wallet.balance, currency), input.amountCents);
       await postEntry(
         tenantId,
         posting(
-          debitLeg("WALLET", input.amountCents, "CAPTURE"),
-          creditLeg("AVAILABLE", input.amountCents, "CAPTURE"),
+          debitLeg("WALLET", input.amountCents, "CAPTURE", null, currency),
+          creditLeg("AVAILABLE", input.amountCents, "CAPTURE", null, currency),
           { sourceType: "wallet", sourceId: wallet.id },
         ),
         tx,
@@ -250,7 +253,7 @@ export async function debitWallet(
     // tenant's industry preset fee — never a silent 0.
     const schedule = resolveFeeSpec(scheduleRow, policyRow?.industry ?? null);
     const movement = debitWithFee(
-      madToCentimes(wallet.balance),
+      toMinor(wallet.balance, currency),
       input.amountCents,
       schedule,
       input.method ?? undefined,
@@ -260,8 +263,8 @@ export async function debitWallet(
     await postEntry(
       tenantId,
       posting(
-        debitLeg("WALLET", input.amountCents, "CAPTURE"),
-        creditLeg("AVAILABLE", input.amountCents, "CAPTURE"),
+        debitLeg("WALLET", input.amountCents, "CAPTURE", null, currency),
+        creditLeg("AVAILABLE", input.amountCents, "CAPTURE", null, currency),
         { sourceType: "wallet", sourceId: wallet.id },
       ),
       tx,
@@ -272,8 +275,8 @@ export async function debitWallet(
       await postEntry(
         tenantId,
         posting(
-          debitLeg("AVAILABLE", movement.feeCents, "FEE"),
-          creditLeg("FEES", movement.feeCents, "FEE"),
+          debitLeg("AVAILABLE", movement.feeCents, "FEE", null, currency),
+          creditLeg("FEES", movement.feeCents, "FEE", null, currency),
           { sourceType: "wallet", sourceId: wallet.id },
         ),
         tx,
@@ -291,13 +294,14 @@ export async function refundWallet(
 ): Promise<WalletOpResult> {
   return prisma.$transaction(async (tx) => {
     const wallet = await loadActiveWallet(tx, tenantId, id);
-    const movement = walletRefund(madToCentimes(wallet.balance), input.amountCents);
+    const currency: Currency = wallet.currency as Currency;
+    const movement = walletRefund(toMinor(wallet.balance, currency), input.amountCents);
 
     await postEntry(
       tenantId,
       posting(
-        debitLeg("AVAILABLE", input.amountCents, "REFUND"),
-        creditLeg("WALLET", input.amountCents, "REFUND"),
+        debitLeg("AVAILABLE", input.amountCents, "REFUND", null, currency),
+        creditLeg("WALLET", input.amountCents, "REFUND", null, currency),
         { sourceType: "wallet", sourceId: wallet.id },
       ),
       tx,
@@ -315,27 +319,36 @@ export async function adjustWallet(
   const signed = input.amountCents;
   return prisma.$transaction(async (tx) => {
     const wallet = await loadActiveWallet(tx, tenantId, id);
-    const movement = walletAdjustment(madToCentimes(wallet.balance), signed);
+    const currency: Currency = wallet.currency as Currency;
+    const movement = walletAdjustment(toMinor(wallet.balance, currency), signed);
     const abs = centimes(Math.abs(signed));
 
     if (signed > 0) {
       // Credit the wallet out of the tenant's balance sheet.
       await postEntry(
         tenantId,
-        posting(debitLeg("AVAILABLE", abs, "ADJUSTMENT"), creditLeg("WALLET", abs, "ADJUSTMENT"), {
-          sourceType: "wallet",
-          sourceId: wallet.id,
-        }),
+        posting(
+          debitLeg("AVAILABLE", abs, "ADJUSTMENT", null, currency),
+          creditLeg("WALLET", abs, "ADJUSTMENT", null, currency),
+          {
+            sourceType: "wallet",
+            sourceId: wallet.id,
+          },
+        ),
         tx,
       );
     } else if (signed < 0) {
       // Debit the wallet into the tenant's balance sheet.
       await postEntry(
         tenantId,
-        posting(debitLeg("WALLET", abs, "ADJUSTMENT"), creditLeg("AVAILABLE", abs, "ADJUSTMENT"), {
-          sourceType: "wallet",
-          sourceId: wallet.id,
-        }),
+        posting(
+          debitLeg("WALLET", abs, "ADJUSTMENT", null, currency),
+          creditLeg("AVAILABLE", abs, "ADJUSTMENT", null, currency),
+          {
+            sourceType: "wallet",
+            sourceId: wallet.id,
+          },
+        ),
         tx,
       );
     }

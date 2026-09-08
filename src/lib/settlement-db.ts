@@ -1,27 +1,7 @@
-/**
- * Capture settlement persistence — the ledger write for a successful capture.
- *
- * `settleCapture` posts the canonical capture settlement (gross into COLLECTED,
- * then fee → FEES, reserve → RESERVE, net → AVAILABLE) as a single transaction,
- * idempotently. It is the single entry point that funds a tenant's `AVAILABLE`
- * balance for **card** captures, closing the gap the wallet path (`wallet-db.ts`)
- * already covered for stored-value payments.
- *
- * Idempotency: guarded by the gross `COLLECTED` credit (sourceType
- * `payment_intent` + the intent id). A replayed webhook or a concurrent settle
- * sees that row and is a no-op — so out-of-order provider events (e.g. Stripe
- * `checkout.session.completed` + `payment_intent.succeeded` for one intent) can
- * never double-book money.
- *
- * Amounts cross this boundary as integer centimes; the DB stores MAD
- * `Decimal(12,2)` — every conversion goes through `money.ts`.
- */
-import type { Prisma } from "@/generated/prisma/client";
-
 import { resolveFeeSpec } from "./fees-db";
 import { credit, debit, posting } from "./ledger";
 import { postEntry } from "./ledger-db";
-import { centimes } from "./money";
+import { type Currency, centimes } from "./money";
 import { prisma } from "./prisma";
 import { CAPTURE_SOURCE_TYPE, planCaptureSettlement } from "./settlement";
 import { type PolicySpec, resolvePolicy } from "./settlement-policy";
@@ -49,6 +29,7 @@ export async function settleCapture(
 ): Promise<{ settled: boolean }> {
   const gross = centimes(Math.round(input.amountCents));
   if (gross <= 0) return { settled: false };
+  const currency: Currency = (input.currency as Currency | undefined) ?? "MAD";
 
   return prisma.$transaction(async (tx) => {
     const alreadySettled = await tx.ledgerEntry.findFirst({
@@ -92,7 +73,11 @@ export async function settleCapture(
     // 1. Gross into COLLECTED (money enters the pool; now a liability to the tenant).
     await postEntry(
       tenantId,
-      posting(debit("CASH", gross, "CAPTURE"), credit("COLLECTED", gross, "CAPTURE"), meta),
+      posting(
+        debit("CASH", gross, "CAPTURE", null, currency),
+        credit("COLLECTED", gross, "CAPTURE", null, currency),
+        meta,
+      ),
       tx,
     );
 
@@ -106,6 +91,7 @@ export async function settleCapture(
           sourceType: CAPTURE_SOURCE_TYPE,
           sourceId: input.intentId,
           sourceCents: gross,
+          currency,
           splitRuleId: rule.id,
         },
         "AT_CAPTURE",
@@ -118,7 +104,11 @@ export async function settleCapture(
     if (plan.feeCents > 0) {
       await postEntry(
         tenantId,
-        posting(debit(feeFrom, plan.feeCents, "FEE"), credit("FEES", plan.feeCents, "FEE"), meta),
+        posting(
+          debit(feeFrom, plan.feeCents, "FEE", null, currency),
+          credit("FEES", plan.feeCents, "FEE", null, currency),
+          meta,
+        ),
         tx,
       );
     }
@@ -128,8 +118,8 @@ export async function settleCapture(
       await postEntry(
         tenantId,
         posting(
-          debit(feeFrom, plan.reserveCents, "CAPTURE"),
-          credit("RESERVE", plan.reserveCents, "CAPTURE"),
+          debit(feeFrom, plan.reserveCents, "CAPTURE", null, currency),
+          credit("RESERVE", plan.reserveCents, "CAPTURE", null, currency),
           meta,
         ),
         tx,
@@ -142,8 +132,8 @@ export async function settleCapture(
       await postEntry(
         tenantId,
         posting(
-          debit("COLLECTED", plan.netCents, "CAPTURE"),
-          credit("AVAILABLE", plan.netCents, "CAPTURE"),
+          debit("COLLECTED", plan.netCents, "CAPTURE", null, currency),
+          credit("AVAILABLE", plan.netCents, "CAPTURE", null, currency),
           meta,
         ),
         tx,

@@ -15,7 +15,7 @@ import type { Dispute, DisputeStatus, Provider, Recovery } from "@/generated/pri
 
 import { credit, debit, posting } from "./ledger";
 import { getTenantLedger, postEntry } from "./ledger-db";
-import { type Centimes, centimesToMad, madToCentimes } from "./money";
+import { type Centimes, type Currency, fromMinor, toMinor } from "./money";
 import { getActiveSettlementPolicy } from "./policy-db";
 import { prisma } from "./prisma";
 import { assertTransition, fundReversal, ReversalError } from "./reversals";
@@ -54,8 +54,11 @@ export async function createDispute(
       provider: input.provider,
       providerDisputeId: input.providerDisputeId,
       status: "OPEN",
-      amount: centimesToMad(input.amountCents),
-      feeAmount: centimesToMad(input.feeCents ?? (0 as Centimes)),
+      amount: fromMinor(input.amountCents, (input.currency ?? "MAD") as Currency),
+      feeAmount: fromMinor(
+        input.feeCents ?? (0 as Centimes),
+        (input.currency ?? "MAD") as Currency,
+      ),
       currency: input.currency ?? "MAD",
       reason: input.reason ?? null,
       paymentIntentId: input.paymentIntentId ?? null,
@@ -110,7 +113,8 @@ export async function resolveDispute(
   if (!dispute) throw new ReversalError("dispute not found");
   assertTransition(dispute.status, "LOST");
 
-  const grossCents = madToCentimes(dispute.amount);
+  const currency: Currency = dispute.currency as Currency;
+  const grossCents = toMinor(dispute.amount, currency);
   const ledger = await getTenantLedger(tenantId);
   const policy = await getActiveSettlementPolicy(tenantId);
   const allocation = fundReversal(
@@ -119,8 +123,8 @@ export async function resolveDispute(
       allowNegative: policy?.allowNegative ?? DEFAULT_PRESET.allowNegative,
     },
     grossCents,
-    ledger.balances.AVAILABLE,
-    ledger.balances.RESERVE,
+    ledger.balancesByCurrency[currency].AVAILABLE,
+    ledger.balancesByCurrency[currency].RESERVE,
   );
 
   return prisma.$transaction(async (tx) => {
@@ -133,8 +137,8 @@ export async function resolveDispute(
       await postEntry(
         tenantId,
         posting(
-          debit("AVAILABLE", allocation.fromAvailable, "CHARGEBACK"),
-          credit("CASH", allocation.fromAvailable, "CHARGEBACK"),
+          debit("AVAILABLE", allocation.fromAvailable, "CHARGEBACK", null, currency),
+          credit("CASH", allocation.fromAvailable, "CHARGEBACK", null, currency),
           { sourceType: "dispute", sourceId: id },
         ),
         tx,
@@ -144,8 +148,8 @@ export async function resolveDispute(
       await postEntry(
         tenantId,
         posting(
-          debit("RESERVE", allocation.fromReserve, "CHARGEBACK"),
-          credit("CASH", allocation.fromReserve, "CHARGEBACK"),
+          debit("RESERVE", allocation.fromReserve, "CHARGEBACK", null, currency),
+          credit("CASH", allocation.fromReserve, "CHARGEBACK", null, currency),
           { sourceType: "dispute", sourceId: id },
         ),
         tx,
@@ -164,8 +168,8 @@ export async function resolveDispute(
           tenantId,
           disputeId: id,
           status: "PENDING",
-          amount: centimesToMad(allocation.uncovered),
-          currency: "MAD",
+          amount: fromMinor(allocation.uncovered, currency),
+          currency,
         },
       });
       return { ...disputed, recovery };

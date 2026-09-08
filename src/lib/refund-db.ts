@@ -15,7 +15,7 @@ import type { LedgerAccount } from "@/generated/prisma/client";
 import { AppError } from "../middleware/errorHandler";
 import { credit, debit, posting } from "./ledger";
 import { accountBalanceCents, postEntry } from "./ledger-db";
-import { centimes, madToCentimes } from "./money";
+import { type Currency, centimes, toMinor } from "./money";
 import { prisma } from "./prisma";
 
 /** A capture's settlement credits — a full refund reverses all three. */
@@ -57,16 +57,19 @@ export async function settleRefund(
         direction: "CREDIT",
         account: { in: REFUNDED_ACCOUNTS },
       },
-      select: { account: true, amount: true },
+      select: { account: true, amount: true, currency: true },
     });
     if (credits.length === 0) return { settled: false };
+
+    // Every credit belongs to the same capture, so they share one currency.
+    const currency: Currency = (credits[0]?.currency as Currency) ?? "MAD";
 
     // A capture's net may already have been paid out (an AVAILABLE debit). Keep
     // the AVAILABLE liability non-negative; a refund after payout needs manual
     // reconciliation instead of silently over-drawing.
-    const availableBalance = await accountBalanceCents(tx, tenantId, "AVAILABLE");
+    const availableBalance = await accountBalanceCents(tx, tenantId, "AVAILABLE", currency);
     const netCredit = credits.find((c) => c.account === "AVAILABLE");
-    const netCents = netCredit ? madToCentimes(netCredit.amount) : 0;
+    const netCents = netCredit ? toMinor(netCredit.amount, currency) : 0;
     if (netCents > availableBalance) {
       throw new AppError(
         409,
@@ -77,13 +80,13 @@ export async function settleRefund(
 
     const meta = { sourceType: "refund", sourceId: input.refundId };
     for (const row of credits) {
-      const cents = madToCentimes(row.amount);
+      const cents = toMinor(row.amount, currency);
       if (cents <= 0) continue;
       await postEntry(
         tenantId,
         posting(
-          debit(row.account, centimes(cents), "REFUND"),
-          credit("CASH", centimes(cents), "REFUND"),
+          debit(row.account, centimes(cents), "REFUND", null, currency),
+          credit("CASH", centimes(cents), "REFUND", null, currency),
           meta,
         ),
         tx,

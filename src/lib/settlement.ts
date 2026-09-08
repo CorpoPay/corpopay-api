@@ -21,7 +21,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 
 import { computeFee, type FeeScheduleSpec } from "./fees";
-import { type Centimes, centimes, madToCentimes } from "./money";
+import { type Centimes, type Currency, centimes, toMinor } from "./money";
 import { computeReserve, type PolicySpec } from "./settlement-policy";
 
 /** Ledger `sourceType` used by every capture-settlement posting. */
@@ -69,13 +69,15 @@ export interface IntentChargeSource {
  */
 export function resolveIntentCharge(intent: IntentChargeSource): {
   amountCents: number;
-  currency: string;
+  currency: Currency;
 } {
   const metadata = (intent.metadata ?? {}) as Record<string, unknown>;
+  const currency: Currency =
+    (intent.paymentLink?.currency as Currency | undefined) ??
+    (metadata.currency as Currency | undefined) ??
+    "MAD";
   const amountCents = intent.paymentLink
-    ? Number(madToCentimes(intent.paymentLink.amount))
+    ? Number(toMinor(intent.paymentLink.amount, currency))
     : Number((metadata.amount as number | undefined) ?? 0);
-  const currency =
-    intent.paymentLink?.currency ?? (metadata.currency as string | undefined) ?? "MAD";
   return { amountCents, currency };
 }

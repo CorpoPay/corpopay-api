@@ -98,4 +98,23 @@ describe("ledger persistence (real Postgres)", () => {
     expect(rows.length).toBe(2);
     for (const row of rows) expect(row.tenantId).toBe(TENANT);
   });
+
+  it("records a non-MAD posting under its own currency with per-currency balances", async () => {
+    await postEntry(
+      TENANT,
+      posting(
+        debit("CASH", centimes(1000), "CAPTURE", null, "USD"),
+        credit("COLLECTED", centimes(1000), "CAPTURE", null, "USD"),
+      ),
+    );
+
+    const view = await getTenantLedger(TENANT);
+    expect(view.balanced).toBe(true);
+    expect(view.balancesByCurrency.USD.CASH).toBe(-1000);
+    expect(view.balancesByCurrency.USD.COLLECTED).toBe(1000);
+    expect(view.balancesByCurrency.MAD.CASH).toBe(0);
+    expect(view.entries).toHaveLength(2);
+    expect(view.entries[0].currency).toBe("USD");
+    expect(view.entries[0].amountCents).toBe(1000);
+  });
 });
