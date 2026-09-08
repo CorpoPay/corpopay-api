@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.36.0...corpopay-api-v0.37.0) (2026-09-08)
+
+
+### Features
+
+* **tax:** per-tenant VAT on CorpoPay fee (ADR 0007) ([2284fec](https://github.com/CorpoPay/corpopay-api/commit/2284fec5a6cc650d6e0dcbf6cca3c6d0b3bc51a7))
+
 ## [0.36.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.35.0...corpopay-api-v0.36.0) (2026-09-08)
 
 
