@@ -14,7 +14,7 @@ providers speak integer
 
 ## 1. Ledger accounts
 
-Per tenant, `src/lib/ledger.ts` defines eight accounts. Balance convention is
+Per tenant, `src/lib/ledger.ts` defines nine accounts. Balance convention is
 `balance = Σ credits − Σ debits`, so **liability/income accounts are credit-positive**
 and **asset accounts are debit-negative**.
 
@@ -28,6 +28,7 @@ and **asset accounts are debit-negative**.
 | `FEES` | income | CorpoPay revenue | positive |
 | `PAID_OUT` | contra-liability | cumulative amount settled to the tenant | positive |
 | `WALLET` | liability | customer stored value (prepaid / OtoParking model) | positive |
+| `TAX_PAYABLE` | liability | VAT/GST on CorpoPay's fee (remitted, not revenue) | positive |
 
 > `PENDING` is currently **defined but never posted** — a placeholder for
 > "captured, awaiting provider settlement". Capture settlement uses `COLLECTED` as
@@ -43,23 +44,26 @@ and `captureIntent` manual/admin capture) and is **idempotent** — keyed on the
 intent id (`sourceType=payment_intent`), so replayed webhooks or a concurrent settle
 never double-book.
 
-For a gross capture `G`, a fee `F` (`computeFee`), and a reserve `R`
-(`computeReserve`), `settleCapture` posts up to four balanced legs:
+For a gross capture `G`, a fee `F` (`computeFee`), tax `T` (`computeTax` on the fee),
+and a reserve `R` (`computeReserve`), `settleCapture` posts up to five balanced legs:
 
 | # | Debit | Credit | Category | When |
 |---|---|---|---|---|
 | 1 | `CASH` G | `COLLECTED` G | `CAPTURE` | always |
 | 2 | `COLLECTED` F | `FEES` F | `FEE` | `F > 0` |
-| 3 | `COLLECTED` R | `RESERVE` R | `CAPTURE` | `R > 0` |
-| 4 | `COLLECTED` (G−F−R) | `AVAILABLE` (G−F−R) | `CAPTURE` | net > 0 |
+| 3 | `COLLECTED` T | `TAX_PAYABLE` T | `TAX` | `T > 0` |
+| 4 | `COLLECTED` R | `RESERVE` R | `CAPTURE` | `R > 0` |
+| 5 | `COLLECTED` (G−F−T−R) | `AVAILABLE` (G−F−T−R) | `CAPTURE` | net > 0 |
 
-Net effect: `CASH = −G`, `FEES = F`, `RESERVE = R`, `AVAILABLE = G−F−R`,
+Net effect: `CASH = −G`, `FEES = F`, `TAX_PAYABLE = T`, `RESERVE = R`, `AVAILABLE = G−F−T−R`,
 `COLLECTED = 0`. Sum of all balances is always `0`.
 
 - **Fee** = active `FeeSchedule` (overrides) else the tenant's preset fee
   (`presetForIndustry(industry).fee`, default 2.9%).
 - **Reserve** = active `SettlementPolicy` (self-contained row) else `DEFAULT_PRESET`
   (5% rolling). See `src/lib/settlement-policy.ts` for the dimension model.
+- **Tax** = the tenant's `taxRateBps`/`taxExempt` (`computeTax` on the fee — exclusive
+  pricing: tax applies to CorpoPay's commission, never the gross). See ADR 0007.
 - **Splits** = when `splittingEnabled` + an active `AT_CAPTURE` `SplitRule` exist,
   the gross is split into beneficiary shares + platform remainder first, and the
   fee + reserve are then computed on the **platform remainder** (see §3 + gap #4).
@@ -101,7 +105,7 @@ after commission, fees, reserve and reversals — is `GET /settlement/summary`:
 
 | Field | Meaning |
 |---|---|
-| `availableCents` | **net owed** — the `AVAILABLE` balance (gross − fee − reserve − already paid out) |
+| `availableCents` | **net owed** — the `AVAILABLE` balance (gross − fee − tax − reserve − already paid out) |
 | `scheduledCents` | funds already reserved by open (`DRAFT`/`SCHEDULED`/`PENDING`/`PROCESSING`) payouts |
 | `eligibleCents` | `available − scheduled`, floored at 0 — what can be paid right now |
 | `feesCents` | CorpoPay revenue to date (`FEES`) |
@@ -159,7 +163,7 @@ These are the next money-path hardening items (audited, not yet fixed here):
 ## 5. Where it's validated
 
 - **Pure math** — `src/lib/settlement.test.ts`, `settlement.property.test.ts`
-  (fee+reserve+net = gross; whole-centime; reserve ≤ gross).
+  (fee+tax+reserve+net = gross; whole-centime; reserve ≤ gross).
 - **Real Postgres** — `tests/db/settlement.db.test.ts` (`npm run test:db`): capture
   → fee/reserve/available correctness, idempotency, preset default, and a full
   capture → payout → dispute → wallet lifecycle that stays net-zero.
