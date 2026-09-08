@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.34.0...corpopay-api-v0.35.0) (2026-09-08)
+
+
+### Features
+
+* **ledger:** thread currency through settlement, payout, refund, splits, reversal, wallet ([153d5dc](https://github.com/CorpoPay/corpopay-api/commit/153d5dc3ff17403f53a1058bb398b904338b0591))
+
 ## [0.34.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.33.0...corpopay-api-v0.34.0) (2026-09-08)
 
 
