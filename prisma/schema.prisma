@@ -160,6 +160,7 @@ enum LedgerCategory {
   CHARGEBACK
   RESERVE_RELEASE
   ADJUSTMENT
+  FX_ADJUSTMENT
   DISBURSEMENT
 }
 
@@ -443,6 +444,9 @@ model PaymentIntent {
   riskVerdict    RiskVerdict?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
+  fxRate         Decimal?            @db.Decimal(18, 8) // locked FX rate (to-per-from) at intent creation (ADR 0006)
+  fxCurrencyPair String?             // e.g. "EUR/MAD"
+  fxExpiresAt    DateTime?           // FX quote expiry
 
   tenant                Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   paymentLink           PaymentLink?          @relation(fields: [paymentLinkId], references: [id])
@@ -788,6 +792,9 @@ model Payout {
   idempotencyKey     String
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
+  fxRate             Decimal?      @db.Decimal(18, 8) // locked FX rate (to-per-from) at payout creation (ADR 0006)
+  fxCurrencyPair     String?       // e.g. "EUR/MAD"
+  fxExpiresAt        DateTime?     // FX quote expiry
 
   tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   items  PayoutItem[]

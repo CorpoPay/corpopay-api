@@ -10,11 +10,12 @@ import { Router } from "express";
 import { Provider } from "@/generated/prisma/client";
 import { getAdapter } from "../adapters/registry";
 import { computeInstallmentAmount } from "../lib/billing";
+import { currencyPairKey, isSupportedCurrency, quoteFx } from "../lib/fx";
 import { inngest } from "../lib/inngest";
 import { captureIntent, voidIntent } from "../lib/intent-actions";
 import { maskObject } from "../lib/mask";
 import { trackMetric } from "../lib/metrics";
-import { centimes } from "../lib/money";
+import { type Currency, centimes } from "../lib/money";
 import { prisma } from "../lib/prisma";
 import { scoreRisk } from "../lib/risk-scorer";
 import { forTenant } from "../lib/tenant-db";
@@ -169,6 +170,19 @@ router.post(
       throw new AppError(402, "RISK_BLOCKED", "Payment blocked by risk policy");
     }
 
+    // ── FX lock (ADR 0006, phase 4) ──────────────────────────────────────────
+    // When the customer pays in a currency other than the tenant's settlement
+    // currency, quote a locked rate and pin it onto the intent so the tenant's
+    // expected settlement amount is fixed before they act.
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settlementCurrency: true },
+    });
+    const settlementCurrency: Currency =
+      (tenant?.settlementCurrency as Currency | undefined) ?? "MAD";
+    const needsFx = isSupportedCurrency(body.currency) && body.currency !== settlementCurrency;
+    const fx = needsFx ? await quoteFx(body.currency as Currency, settlementCurrency) : null;
+
     const intent = await prisma.paymentIntent.create({
       data: {
         tenantId: req.user!.tenantId,
@@ -177,6 +191,13 @@ router.post(
         riskVerdict: risk.verdict,
         metadata: (body.metadata as any) ?? null,
         // paymentLinkId intentionally null — direct intent
+        ...(fx
+          ? {
+              fxRate: fx.rate,
+              fxCurrencyPair: currencyPairKey(fx.from, fx.to),
+              fxExpiresAt: fx.expiresAt,
+            }
+          : {}),
       },
     });
 

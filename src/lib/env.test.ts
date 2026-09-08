@@ -13,7 +13,7 @@ const REQUIRED_VARS = [
   "WEB_BASE_URL",
 ] as const;
 
-const OPTIONAL_VARS = ["NAPS_WEBHOOK_SECRET", "VPS_WEBHOOK_SECRET"] as const;
+const OPTIONAL_VARS = ["NAPS_WEBHOOK_SECRET", "VPS_WEBHOOK_SECRET", "FX_RATE_PROVIDER"] as const;
 
 function validEnv(): Record<string, string> {
   return {

@@ -178,6 +178,7 @@ export type LedgerCategory =
   | "CHARGEBACK"
   | "RESERVE_RELEASE"
   | "ADJUSTMENT"
+  | "FX_ADJUSTMENT"
   | "DISBURSEMENT";
 export const LedgerCategoryValues = [
   "CAPTURE",
@@ -188,6 +189,7 @@ export const LedgerCategoryValues = [
   "CHARGEBACK",
   "RESERVE_RELEASE",
   "ADJUSTMENT",
+  "FX_ADJUSTMENT",
   "DISBURSEMENT",
 ] as const;
 

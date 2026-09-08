@@ -40,6 +40,10 @@ export const envSchema = z.object({
   // ── Optional ──────────────────────────────────────────────────────────────
   NAPS_WEBHOOK_SECRET: z.string().optional(),
   VPS_WEBHOOK_SECRET: z.string().optional(),
+
+  // ── FX (ADR 0006, phase 4) ────────────────────────────────────────────────
+  // "sandbox" (default) | "ecb" — the free reference-rate source for FX quotes.
+  FX_RATE_PROVIDER: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -58,6 +62,7 @@ export const ENV_DESCRIPTIONS: Record<keyof Env, string> = {
   NAPS_WEBHOOK_SECRET: "HMAC secret for NAPS webhook signature verification",
   VPS_WEBHOOK_SECRET:
     "HMAC secret for VPS webhook signature verification (legacy — credentials stored per-tenant in DB)",
+  FX_RATE_PROVIDER: 'FX reference-rate source: "sandbox" (default) or "ecb"',
 };
 
 /** Ordered list of every variable name, for boot-time validation and other consumers. */

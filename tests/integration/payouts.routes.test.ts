@@ -38,6 +38,9 @@ function payoutRow(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   prisma.tenant.findUnique.mockResolvedValue({ id: "tenant-a", status: "ACTIVE" });
+  // The payout snapshot now sweeps foreign AVAILABLE balances first (ADR 0006,
+  // phase 4); default the sweep's balance read to "no foreign balances".
+  prisma.ledgerEntry.groupBy.mockResolvedValue([]);
 });
 
 describe("POST /payouts", () => {

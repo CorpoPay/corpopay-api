@@ -15,6 +15,7 @@
  */
 import type { Payout, PayoutItem, PayoutMethod, Provider } from "@/generated/prisma/client";
 
+import { convertForeignBalancesToSettlement } from "./fx-settlement-db";
 import { credit, debit, posting } from "./ledger";
 import { accountBalanceCents, postEntry } from "./ledger-db";
 import { type Centimes, type Currency, centimes, fromMinor, toMinor } from "./money";
@@ -57,6 +58,11 @@ export async function createPayout(
       select: { settlementCurrency: true },
     });
     const currency: Currency = (tenant?.settlementCurrency as Currency | undefined) ?? "MAD";
+
+    // Sweep any foreign AVAILABLE balances into the settlement currency before
+    // snapshotting (ADR 0006, phase 4): a EUR/USD/GBP/CAD balance must be converted
+    // to the tenant's settlement currency so it becomes payout-eligible.
+    await convertForeignBalancesToSettlement(tx, tenantId, currency);
 
     // Unpaid AVAILABLE credits (not yet reserved by any payout), oldest first.
     const credits = await tx.ledgerEntry.findMany({
