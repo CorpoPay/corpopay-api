@@ -4,6 +4,7 @@ import {
   applyPosting,
   balanceOf,
   computeBalances,
+  computeBalancesByCurrency,
   credit,
   debit,
   delta,
@@ -22,6 +23,7 @@ describe("debit / credit / delta", () => {
       direction: "DEBIT",
       amountCents: 1000,
       category: "CAPTURE",
+      currency: "MAD",
     });
   });
 
@@ -31,6 +33,7 @@ describe("debit / credit / delta", () => {
       direction: "CREDIT",
       amountCents: 1000,
       category: "CAPTURE",
+      currency: "MAD",
     });
   });
 
@@ -128,5 +131,66 @@ describe("balances", () => {
     expect(before.CASH).toBe(0);
     expect(after.CASH).toBe(-1000);
     expect(after.COLLECTED).toBe(1000);
+  });
+});
+
+describe("multi-currency", () => {
+  it("rejects a cross-currency posting", () => {
+    expect(() =>
+      posting(
+        debit("CASH", centimes(1000), "CAPTURE", null, "MAD"),
+        credit("COLLECTED", centimes(1000), "CAPTURE", null, "USD"),
+      ),
+    ).toThrow("posting must use a single currency");
+  });
+
+  it("isBalanced asserts per currency (cross-currency legs are not balanced)", () => {
+    const legs = [
+      debit("CASH", centimes(1000), "CAPTURE", null, "MAD"),
+      credit("COLLECTED", centimes(1000), "CAPTURE", null, "USD"),
+    ];
+    expect(isBalanced(legs)).toBe(false);
+  });
+
+  it("computeBalancesByCurrency isolates balances per currency", () => {
+    const madCapture = posting(
+      debit("CASH", centimes(1000), "CAPTURE", null, "MAD"),
+      credit("COLLECTED", centimes(1000), "CAPTURE", null, "MAD"),
+    );
+    const usdFee = posting(
+      debit("COLLECTED", centimes(100), "FEE", null, "USD"),
+      credit("FEES", centimes(100), "FEE", null, "USD"),
+    );
+    const legs = [madCapture.debit, madCapture.credit, usdFee.debit, usdFee.credit];
+
+    const byCurrency = computeBalancesByCurrency(legs);
+    expect(byCurrency.MAD.CASH).toBe(-1000);
+    expect(byCurrency.MAD.COLLECTED).toBe(1000);
+    expect(byCurrency.USD.COLLECTED).toBe(-100);
+    expect(byCurrency.USD.FEES).toBe(100);
+    expect(byCurrency.MAD.FEES).toBe(0);
+  });
+
+  it("computeBalances defaults to the MAD projection", () => {
+    const legs = [
+      debit("CASH", centimes(1000), "CAPTURE", null, "MAD"),
+      credit("COLLECTED", centimes(1000), "CAPTURE", null, "MAD"),
+      debit("COLLECTED", centimes(100), "FEE", null, "USD"),
+      credit("FEES", centimes(100), "FEE", null, "USD"),
+    ];
+    const mad = computeBalances(legs);
+    expect(mad.CASH).toBe(-1000);
+    expect(mad.COLLECTED).toBe(1000);
+    expect(mad.FEES).toBe(0);
+  });
+
+  it("balanceOf filters by currency", () => {
+    const legs = [
+      debit("CASH", centimes(1000), "CAPTURE", null, "MAD"),
+      credit("COLLECTED", centimes(1000), "CAPTURE", null, "MAD"),
+      credit("COLLECTED", centimes(500), "CAPTURE", null, "USD"),
+    ];
+    expect(balanceOf(legs, "COLLECTED")).toBe(1000);
+    expect(balanceOf(legs, "COLLECTED", "USD")).toBe(500);
   });
 });

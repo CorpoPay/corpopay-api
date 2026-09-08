@@ -52,5 +52,20 @@ losing currency.
   (quoted rate + expiry, stored on the intent/payout) are introduced.
 - This is a **large migration**: it touches `money.ts`, the ledger core, the
   `LedgerEntry` schema, every amount-bearing route, all four adapters, and the web
-  contract. It is implemented in phases (see `payfac-money-movement.md`), not as a
-  single change.
+  contract. It is implemented in phases, not as a single change.
+
+## Implementation phases
+
+1. **Currency-aware money + ledger core** (this ADR's `Consequences` first two
+   bullets): `money.ts` gains `toMinor`/`fromMinor`/`toMinorString` (MAD helpers
+   become aliases); `ledger.ts` carries `currency` on every leg and computes
+   per-(account, currency) balances with per-currency `isBalanced`; `ledger-db.ts`
+   writes/reads real `LedgerEntry.currency` and exposes `balancesByCurrency`.
+   Non-breaking: MAD-only callers keep the existing `balances` projection.
+2. **Schema** — add `Tenant.settlementCurrency` (default `MAD`); migrate any
+   remaining hard-coded `"MAD"` writes to read the tenant's currency.
+3. **Routes + adapters** — amount-bearing routes and the four provider adapters
+   pass an explicit currency; `LedgerEntry.currency` is surfaced in responses.
+4. **FX provider** — locked-rate quote/expiry on intents and payouts, a free
+   reference-rate source with deterministic sandbox fallback, and an explicit
+   `FX_ADJUSTMENT` posting for the gain/loss.
