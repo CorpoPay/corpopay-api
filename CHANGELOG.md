@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.35.0...corpopay-api-v0.36.0) (2026-09-08)
+
+
+### Features
+
+* **fx:** locked FX quotes, settlement sweep, and FX_ADJUSTMENT posting ([257a6bd](https://github.com/CorpoPay/corpopay-api/commit/257a6bd44778863d15ce75dcd9d8160f95a5c1de))
+
 ## [0.35.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.34.0...corpopay-api-v0.35.0) (2026-09-08)
 
 
