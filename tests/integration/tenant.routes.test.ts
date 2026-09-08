@@ -189,4 +189,50 @@ describe("tenant routes", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("DISABLED");
   });
+
+  it("accepts a settlement currency on update and returns it", async () => {
+    mockUpdateTenant.mockResolvedValue({
+      id: "tenant-a",
+      name: "Tenant A",
+      slug: "tenant-a",
+      settlementCurrency: "EUR",
+      notifyWebhookUrl: null,
+      notifyEmail: null,
+    });
+    const res = await request(app)
+      .patch("/tenant")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`)
+      .send({ settlementCurrency: "EUR" });
+    expect(res.status).toBe(200);
+    expect(res.body.settlementCurrency).toBe("EUR");
+    expect(mockUpdateTenant).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ settlementCurrency: "EUR" }) }),
+    );
+  });
+
+  it("rejects an unsupported settlement currency", async () => {
+    const res = await request(app)
+      .patch("/tenant")
+      .set("Authorization", `Bearer ${OWNER_TOKEN}`)
+      .send({ settlementCurrency: "XYZ" });
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("returns the tenant's settlement currency on read", async () => {
+    mockFindUniqueTenant.mockResolvedValue({
+      id: "tenant-a",
+      name: "Tenant A",
+      slug: "tenant-a",
+      status: "ACTIVE",
+      environment: "SANDBOX",
+      settlementCurrency: "USD",
+      createdAt: new Date(),
+      notifyWebhookUrl: null,
+      notifyEmail: null,
+    });
+    const res = await request(app).get("/tenant").set("Authorization", `Bearer ${OWNER_TOKEN}`);
+    expect(res.status).toBe(200);
+    expect(res.body.settlementCurrency).toBe("USD");
+  });
 });
