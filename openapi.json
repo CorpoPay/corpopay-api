@@ -170,6 +170,15 @@
           "environment": {
             "type": "string"
           },
+          "settlementCurrency": {
+            "type": "string"
+          },
+          "taxRateBps": {
+            "type": "integer"
+          },
+          "taxExempt": {
+            "type": "boolean"
+          },
           "createdAt": {
             "type": "string"
           },
@@ -188,6 +197,9 @@
           "slug",
           "status",
           "environment",
+          "settlementCurrency",
+          "taxRateBps",
+          "taxExempt",
           "createdAt",
           "notifyWebhookUrl",
           "notifyEmail"
@@ -205,6 +217,15 @@
           "slug": {
             "type": "string"
           },
+          "settlementCurrency": {
+            "type": "string"
+          },
+          "taxRateBps": {
+            "type": "integer"
+          },
+          "taxExempt": {
+            "type": "boolean"
+          },
           "notifyWebhookUrl": {
             "type": "string",
             "nullable": true
@@ -214,7 +235,16 @@
             "nullable": true
           }
         },
-        "required": ["id", "name", "slug", "notifyWebhookUrl", "notifyEmail"]
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "settlementCurrency",
+          "taxRateBps",
+          "taxExempt",
+          "notifyWebhookUrl",
+          "notifyEmail"
+        ]
       },
       "UserListItem": {
         "type": "object",
@@ -4119,6 +4149,14 @@
                   "settlementCurrency": {
                     "type": "string",
                     "enum": ["MAD", "USD", "EUR", "GBP", "CAD"]
+                  },
+                  "taxRateBps": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "taxExempt": {
+                    "type": "boolean"
                   }
                 }
               }

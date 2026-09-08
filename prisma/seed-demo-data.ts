@@ -55,6 +55,9 @@ export function demoTenant(): Prisma.TenantUncheckedCreateInput {
     slug: DEMO_TENANT_SLUG,
     status: "ACTIVE",
     environment: Environment.SANDBOX,
+    settlementCurrency: "MAD",
+    taxRateBps: 2000, // 20% VAT on CorpoPay's fee (ADR 0007) — showcases the tax leg
+    taxExempt: false,
     notifyEmail: "billing@demo.ma",
     notifyWebhookUrl: null,
     createdAt: demoDate(0),
@@ -925,7 +928,7 @@ export function demoMerchantOnboardings(): Prisma.MerchantOnboardingUncheckedCre
 
 // ─── Ledger (double-entry) ─────────────────────────────────────────────────────
 // A balanced, deterministic money story exercising every account and the
-// settlement lifecycle end-to-end (capture → settle → fee → reserve → release →
+// settlement lifecycle end-to-end (capture → settle → fee → tax → reserve → release →
 // payout → split → refund → chargeback). `balanceAfter` is computed as the
 // running balance per account, so the audit snapshot is correct, not just
 // plausible. Amounts are centimes here and written to the MAD `Decimal(12,2)`
@@ -1007,6 +1010,25 @@ export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
         amountCents: 725,
       },
     },
+    // Tax 20% on fee = 145c (COLLECTED → TAX_PAYABLE) — ADR 0007.
+    {
+      postingId: "demo-posting-tax-a",
+      category: "TAX",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-succeeded",
+      debit: {
+        id: "demo-ledger-tax-a-dr",
+        account: "COLLECTED",
+        direction: "DEBIT",
+        amountCents: 145,
+      },
+      credit: {
+        id: "demo-ledger-tax-a-cr",
+        account: "TAX_PAYABLE",
+        direction: "CREDIT",
+        amountCents: 145,
+      },
+    },
     // Rolling reserve 5% = 1250c.
     {
       postingId: "demo-posting-reserve-a",
@@ -1026,7 +1048,7 @@ export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
         amountCents: 1250,
       },
     },
-    // Release net (25000 − 725 − 1250 = 23025) → AVAILABLE.
+    // Release net (25000 − 725 − 145 − 1250 = 22880) → AVAILABLE.
     {
       postingId: "demo-posting-release-a",
       category: "ADJUSTMENT",
@@ -1036,13 +1058,13 @@ export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
         id: "demo-ledger-collected-release-a-dr",
         account: "COLLECTED",
         direction: "DEBIT",
-        amountCents: 23025,
+        amountCents: 22880,
       },
       credit: {
         id: "demo-ledger-ava-a-cr",
         account: "AVAILABLE",
         direction: "CREDIT",
-        amountCents: 23025,
+        amountCents: 22880,
       },
     },
     // Capture #2 — 199.00 MAD (demo-intent-refunded-full).
@@ -1101,6 +1123,25 @@ export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
         amountCents: 577,
       },
     },
+    // Tax 20% on fee = 115c (COLLECTED → TAX_PAYABLE) — ADR 0007.
+    {
+      postingId: "demo-posting-tax-b",
+      category: "TAX",
+      sourceType: "payment_intent",
+      sourceId: "demo-intent-refunded-full",
+      debit: {
+        id: "demo-ledger-tax-b-dr",
+        account: "COLLECTED",
+        direction: "DEBIT",
+        amountCents: 115,
+      },
+      credit: {
+        id: "demo-ledger-tax-b-cr",
+        account: "TAX_PAYABLE",
+        direction: "CREDIT",
+        amountCents: 115,
+      },
+    },
     // Reserve 5% = 995c.
     {
       postingId: "demo-posting-reserve-b",
@@ -1120,7 +1161,7 @@ export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
         amountCents: 995,
       },
     },
-    // Release net (19900 − 577 − 995 = 18328) → AVAILABLE.
+    // Release net (19900 − 577 − 115 − 995 = 18213) → AVAILABLE.
     {
       postingId: "demo-posting-release-b",
       category: "ADJUSTMENT",
@@ -1130,16 +1171,16 @@ export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
         id: "demo-ledger-collected-release-b-dr",
         account: "COLLECTED",
         direction: "DEBIT",
-        amountCents: 18328,
+        amountCents: 18213,
       },
       credit: {
         id: "demo-ledger-ava-b-cr",
         account: "AVAILABLE",
         direction: "CREDIT",
-        amountCents: 18328,
+        amountCents: 18213,
       },
     },
-    // Payout (PAID) — drains cycle A's AVAILABLE 230.25 MAD.
+    // Payout (PAID) — drains cycle A's AVAILABLE 228.80 MAD.
     {
       postingId: "demo-posting-payout-a",
       category: "PAYOUT",
@@ -1149,13 +1190,13 @@ export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
         id: "demo-ledger-payout-a-dr",
         account: "AVAILABLE",
         direction: "DEBIT",
-        amountCents: 23025,
+        amountCents: 22880,
       },
       credit: {
         id: "demo-ledger-paidout-cr",
         account: "PAID_OUT",
         direction: "CREDIT",
-        amountCents: 23025,
+        amountCents: 22880,
       },
     },
     // Split — 50.00 MAD to the marketplace party (ON_USAGE: AVAILABLE → party AVAILABLE).
@@ -1250,15 +1291,15 @@ export function demoLedgerEntries(): Prisma.LedgerEntryUncheckedCreateInput[] {
 }
 
 // ─── Payouts + items ────────────────────────────────────────────────────────────
-// `demo-payout-paid` drained cycle A (230.25 MAD); `demo-payout-draft` snapshots
-// cycle B's AVAILABLE (183.28 MAD) but has not moved money yet.
+// `demo-payout-paid` drained cycle A (228.80 MAD); `demo-payout-draft` snapshots
+// cycle B's AVAILABLE (182.13 MAD) but has not moved money yet.
 
 export function demoPayouts(): Prisma.PayoutUncheckedCreateInput[] {
   return [
     {
       id: "demo-payout-paid",
       tenantId: DEMO_TENANT_ID,
-      amount: 230.25,
+      amount: 228.8,
       currency: "MAD",
       status: "PAID",
       provider: "VPS",
@@ -1271,7 +1312,7 @@ export function demoPayouts(): Prisma.PayoutUncheckedCreateInput[] {
     {
       id: "demo-payout-draft",
       tenantId: DEMO_TENANT_ID,
-      amount: 183.28,
+      amount: 182.13,
       currency: "MAD",
       status: "DRAFT",
       provider: "VPS",
@@ -1290,13 +1331,13 @@ export function demoPayoutItems(): Prisma.PayoutItemUncheckedCreateInput[] {
       id: "demo-payout-item-paid",
       payoutId: "demo-payout-paid",
       ledgerEntryId: "demo-ledger-ava-a-cr",
-      amount: 230.25,
+      amount: 228.8,
     },
     {
       id: "demo-payout-item-draft",
       payoutId: "demo-payout-draft",
       ledgerEntryId: "demo-ledger-ava-b-cr",
-      amount: 183.28,
+      amount: 182.13,
     },
   ];
 }
@@ -1462,8 +1503,8 @@ export function demoSettlementStatements(): Prisma.SettlementStatementUncheckedC
       status: "FINALIZED",
       openingBalance: 0,
       // AVAILABLE running balance at period end (matches `getTenantLedger`).
-      closingBalance: 128.28,
-      netAmount: 128.28,
+      closingBalance: 127.13,
+      netAmount: 127.13,
       finalizedAt: demoDate(30),
       createdAt: demoDate(30),
     },
@@ -1479,7 +1520,7 @@ export function demoSettlementStatementItems(): Prisma.SettlementStatementItemUn
       id: "demo-statement-item-adjustment",
       statementId: "demo-statement-1",
       category: "ADJUSTMENT",
-      amount: 884.98,
+      amount: 882.38,
       entryCount: 6,
       createdAt: demoDate(30),
     },
@@ -1511,7 +1552,7 @@ export function demoSettlementStatementItems(): Prisma.SettlementStatementItemUn
       id: "demo-statement-item-payout",
       statementId: "demo-statement-1",
       category: "PAYOUT",
-      amount: 230.25,
+      amount: 228.8,
       entryCount: 1,
       createdAt: demoDate(30),
     },
@@ -1529,6 +1570,14 @@ export function demoSettlementStatementItems(): Prisma.SettlementStatementItemUn
       category: "SPLIT",
       amount: 50.0,
       entryCount: 1,
+      createdAt: demoDate(30),
+    },
+    {
+      id: "demo-statement-item-tax",
+      statementId: "demo-statement-1",
+      category: "TAX",
+      amount: 2.6,
+      entryCount: 2,
       createdAt: demoDate(30),
     },
   ];

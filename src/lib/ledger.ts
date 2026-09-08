@@ -45,6 +45,7 @@ export const LEDGER_ACCOUNTS = [
   "FEES",
   "PAID_OUT",
   "WALLET",
+  "TAX_PAYABLE",
 ] as const;
 
 export const LEDGER_CATEGORIES = [
@@ -56,7 +57,9 @@ export const LEDGER_CATEGORIES = [
   "CHARGEBACK",
   "RESERVE_RELEASE",
   "ADJUSTMENT",
+  "FX_ADJUSTMENT",
   "DISBURSEMENT",
+  "TAX",
 ] as const;
 
 export interface LedgerLeg {

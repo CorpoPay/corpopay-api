@@ -25,6 +25,28 @@ describe("planCaptureSettlement", () => {
     expect(plan.netCents).toBe(9210); // 100.00 − 2.90 − 5.00
   });
 
+  it("applies tax on the fee (exclusive) and reduces net accordingly", () => {
+    const plan = planCaptureSettlement(centimes(10000), pct(290), policy, undefined, {
+      taxRateBps: 2000,
+    });
+    expect(plan.feeCents).toBe(290); // 2.9%
+    expect(plan.taxCents).toBe(58); // 20% of 2.90
+    expect(plan.reserveCents).toBe(500); // 5%
+    expect(plan.netCents).toBe(9152); // 100.00 − 2.90 − 0.58 − 5.00
+  });
+
+  it("adds no tax when the tenant is exempt or the rate is zero", () => {
+    const exempt = planCaptureSettlement(centimes(10000), pct(290), policy, undefined, {
+      taxRateBps: 2000,
+      taxExempt: true,
+    });
+    expect(exempt.taxCents).toBe(0);
+    expect(exempt.netCents).toBe(9210);
+
+    const noRate = planCaptureSettlement(centimes(10000), pct(290), policy);
+    expect(noRate.taxCents).toBe(0);
+  });
+
   it("holds back no reserve when the policy is NONE", () => {
     const none: PolicySpec = { ...policy, reserveType: "NONE", reservePercentageBps: null };
     const plan = planCaptureSettlement(centimes(10000), pct(290), none);
@@ -44,9 +66,14 @@ describe("planCaptureSettlement", () => {
     expect(plan.netCents).toBe(10000 - 290 - 10000); // -290
   });
 
-  it("fee + reserve + net always equals gross", () => {
+  it("fee + tax + reserve + net always equals gross", () => {
     const plan = planCaptureSettlement(centimes(12345), pct(350), policy);
-    expect(plan.feeCents + plan.reserveCents + plan.netCents).toBe(12345);
+    expect(plan.feeCents + plan.taxCents + plan.reserveCents + plan.netCents).toBe(12345);
+
+    const taxed = planCaptureSettlement(centimes(12345), pct(350), policy, undefined, {
+      taxRateBps: 2000,
+    });
+    expect(taxed.feeCents + taxed.taxCents + taxed.reserveCents + taxed.netCents).toBe(12345);
   });
 });
 

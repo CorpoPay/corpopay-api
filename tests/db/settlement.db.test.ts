@@ -79,6 +79,10 @@ describe("capture settlement (real Postgres)", () => {
     await prisma.split.deleteMany({ where: { tenantId: TENANT } });
     await prisma.splitRule.deleteMany({ where: { tenantId: TENANT } });
     await prisma.splitParty.deleteMany({ where: { tenantId: TENANT } });
+    await prisma.tenant.update({
+      where: { id: TENANT },
+      data: { taxRateBps: 0, taxExempt: false },
+    });
   });
 
   it("settles a capture into CASH → COLLECTED → FEES/RESERVE/AVAILABLE, net-zero", async () => {
@@ -97,6 +101,45 @@ describe("capture settlement (real Postgres)", () => {
     expect(view.balances.FEES).toBe(290); // 2.9%
     expect(view.balances.RESERVE).toBe(300); // 3%
     expect(view.balances.AVAILABLE).toBe(9410); // 100.00 − 2.90 − 3.00
+  });
+
+  it("collects tax on the fee into TAX_PAYABLE and reduces AVAILABLE", async () => {
+    await prisma.tenant.update({
+      where: { id: TENANT },
+      data: { taxRateBps: 2000, taxExempt: false }, // 20% VAT on CorpoPay's fee
+    });
+    await createFeeSchedule(TENANT, { feeType: "PERCENTAGE", percentageBps: 290 });
+    await createSettlementPolicy(TENANT, { reserveType: "NONE" });
+
+    const { settled } = await settleCapture(TENANT, {
+      intentId: "pi-tax",
+      amountCents: centimes(10000),
+    });
+    expect(settled).toBe(true);
+
+    const view = await expectBalanced();
+    expect(view.balances.FEES).toBe(290); // 2.9%
+    expect(view.balances.TAX_PAYABLE).toBe(58); // 20% of 2.90
+    expect(view.balances.AVAILABLE).toBe(9652); // 100.00 − 2.90 − 0.58
+  });
+
+  it("adds no tax when the tenant is exempt (reverse-charge)", async () => {
+    await prisma.tenant.update({
+      where: { id: TENANT },
+      data: { taxRateBps: 2000, taxExempt: true },
+    });
+    await createFeeSchedule(TENANT, { feeType: "FLAT", flatCents: 100 });
+    await createSettlementPolicy(TENANT, { reserveType: "NONE" });
+
+    const { settled } = await settleCapture(TENANT, {
+      intentId: "pi-tax-exempt",
+      amountCents: centimes(5000),
+    });
+    expect(settled).toBe(true);
+
+    const view = await expectBalanced();
+    expect(view.balances.TAX_PAYABLE).toBe(0);
+    expect(view.balances.AVAILABLE).toBe(4900); // 50.00 − 1.00 flat
   });
 
   it("is idempotent — a replay never double-books", async () => {

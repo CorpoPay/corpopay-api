@@ -154,7 +154,8 @@ export type LedgerAccount =
   | "RESERVE"
   | "FEES"
   | "PAID_OUT"
-  | "WALLET";
+  | "WALLET"
+  | "TAX_PAYABLE";
 export const LedgerAccountValues = [
   "CASH",
   "PENDING",
@@ -164,6 +165,7 @@ export const LedgerAccountValues = [
   "FEES",
   "PAID_OUT",
   "WALLET",
+  "TAX_PAYABLE",
 ] as const;
 
 export type LedgerDirection = "DEBIT" | "CREDIT";
@@ -179,7 +181,8 @@ export type LedgerCategory =
   | "RESERVE_RELEASE"
   | "ADJUSTMENT"
   | "FX_ADJUSTMENT"
-  | "DISBURSEMENT";
+  | "DISBURSEMENT"
+  | "TAX";
 export const LedgerCategoryValues = [
   "CAPTURE",
   "REFUND",
@@ -191,6 +194,7 @@ export const LedgerCategoryValues = [
   "ADJUSTMENT",
   "FX_ADJUSTMENT",
   "DISBURSEMENT",
+  "TAX",
 ] as const;
 
 export type FeeType = "FLAT" | "PERCENTAGE" | "PER_METHOD" | "TIERED";

@@ -10,4 +10,6 @@ export const updateTenantSchema = z.object({
   notifyEmail: z.string().email().nullable().optional(),
   rotateWebhookSigningSecret: z.boolean().optional(),
   settlementCurrency: settlementCurrencySchema.optional(),
+  taxRateBps: z.number().int().min(0).max(10_000).optional(),
+  taxExempt: z.boolean().optional(),
 });

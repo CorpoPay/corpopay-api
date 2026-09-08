@@ -8,6 +8,7 @@ import { type PolicySpec, resolvePolicy } from "./settlement-policy";
 import { DEFAULT_PRESET } from "./settlement-presets";
 import { type ShareSpec, split } from "./splits";
 import { executeSplitInTx } from "./splits-db";
+import type { TaxSpec } from "./tax";
 
 export interface SettleCaptureInput {
   /** The `PaymentIntent.id` — the idempotency key for the settlement. */
@@ -54,6 +55,16 @@ export async function settleCapture(
     const fee = resolveFeeSpec(feeRow, policyRow?.industry ?? null);
     const policy: PolicySpec = policyRow ?? resolvePolicy(DEFAULT_PRESET);
 
+    // Tax (ADR 0007) comes from the tenant's own config — no global rate.
+    const tenantTax = await tx.tenant.findUnique({
+      where: { id: tenantId },
+      select: { taxRateBps: true, taxExempt: true },
+    });
+    const tax: TaxSpec = {
+      taxRateBps: tenantTax?.taxRateBps ?? 0,
+      taxExempt: tenantTax?.taxExempt ?? false,
+    };
+
     // A marketplace tenant (splittingEnabled) with an active AT_CAPTURE rule splits
     // the GROSS; the platform fee + reserve are then computed on the platform
     // remainder so beneficiary shares are never reduced.
@@ -66,7 +77,7 @@ export async function settleCapture(
     const shares = rule ? (rule.shares as unknown as ShareSpec[]) : [];
     const planBase = rule ? split(gross, shares).platformCents : gross;
 
-    const plan = planCaptureSettlement(planBase, fee, policy, input.method ?? undefined);
+    const plan = planCaptureSettlement(planBase, fee, policy, input.method ?? undefined, tax);
 
     const meta = { sourceType: CAPTURE_SOURCE_TYPE, sourceId: input.intentId };
 
@@ -113,7 +124,20 @@ export async function settleCapture(
       );
     }
 
-    // 4. Per-policy reserve hold-back.
+    // 4. Tax on the fee (exclusive) — same source as the fee, a TAX_PAYABLE liability.
+    if (plan.taxCents > 0) {
+      await postEntry(
+        tenantId,
+        posting(
+          debit(feeFrom, plan.taxCents, "TAX", null, currency),
+          credit("TAX_PAYABLE", plan.taxCents, "TAX", null, currency),
+          meta,
+        ),
+        tx,
+      );
+    }
+
+    // 5. Per-policy reserve hold-back.
     if (plan.reserveCents > 0) {
       await postEntry(
         tenantId,
@@ -126,7 +150,7 @@ export async function settleCapture(
       );
     }
 
-    // 5. The payout-eligible remainder (non-split only; the split already moved the
+    // 6. The payout-eligible remainder (non-split only; the split already moved the
     //    platform remainder to AVAILABLE and fee/reserve were carved from it).
     if (!rule && plan.netCents > 0) {
       await postEntry(

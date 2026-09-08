@@ -2,16 +2,18 @@
  * Capture settlement plan (PayFac) — pure, centime-exact math.
  *
  * This is the missing "entry point" that turns a successful provider capture
- * into the tenant's settlement ledger. A card capture settles in four balanced
+ * into the tenant's settlement ledger. A card capture settles in five balanced
  * legs (each of which is a `LedgerPosting` — see `settlement-db.ts`):
  *
  *   gross   CASH (debit) → COLLECTED (credit)     money enters the pool, owed gross
  *   fee     COLLECTED → FEES                      CorpoPay's cut
+ *   tax     COLLECTED → TAX_PAYABLE               tax on the fee (remitted, not revenue)
  *   reserve COLLECTED → RESERVE                   per-policy hold-back
  *   net     COLLECTED → AVAILABLE                 the tenant's payout-eligible balance
  *
- * The fee comes from the tenant's active `FeeSchedule`; the reserve from their
- * active `SettlementPolicy`. `net = gross − fee − reserve`. Everything is integer
+ * The fee comes from the tenant's active `FeeSchedule`; tax from the tenant's
+ * `taxRateBps`/`taxExempt`; the reserve from their active `SettlementPolicy`.
+ * `net = gross − fee − tax − reserve`. Everything is integer
  * centimes so the double-entry invariant (Σ debits = Σ credits) holds after every
  * leg; the DB stores MAD `Decimal(12,2)` via `money.ts`.
  *
@@ -23,34 +25,40 @@ import type { Prisma } from "@/generated/prisma/client";
 import { computeFee, type FeeScheduleSpec } from "./fees";
 import { type Centimes, type Currency, centimes, toMinor } from "./money";
 import { computeReserve, type PolicySpec } from "./settlement-policy";
+import { computeTax, type TaxSpec } from "./tax";
 
 /** Ledger `sourceType` used by every capture-settlement posting. */
 export const CAPTURE_SOURCE_TYPE = "payment_intent";
 
 export interface CaptureSettlementPlan {
   feeCents: Centimes;
+  taxCents: Centimes;
   reserveCents: Centimes;
   netCents: Centimes;
 }
 
 /**
- * Plan the capture settlement: `fee + reserve + net = gross` (net may be negative
- * if a flat fee + reserve exceed a tiny gross — the caller's concern, mirroring
- * `netAfterFee`). `method` selects a `PER_METHOD` fee (e.g. "card"); omit for
- * percentage/flat/tiered schedules.
+ * Plan the capture settlement: `fee + tax + reserve + net = gross` (net may be
+ * negative if a flat fee + tax + reserve exceed a tiny gross — the caller's
+ * concern, mirroring `netAfterFee`). `method` selects a `PER_METHOD` fee
+ * (e.g. "card"); omit for percentage/flat/tiered schedules. `tax` is the
+ * tenant's tax config (`taxRateBps` + `taxExempt`); omit for no tax.
  */
 export function planCaptureSettlement(
   grossCents: Centimes,
   fee: FeeScheduleSpec,
   policy: PolicySpec,
   method?: string,
+  tax?: TaxSpec | null,
 ): CaptureSettlementPlan {
   const feeCents = computeFee(fee, grossCents, method);
+  const taxCents = computeTax(feeCents, tax);
   const reserveCents = computeReserve(policy, grossCents);
   return {
     feeCents,
+    taxCents,
     reserveCents,
-    netCents: centimes(grossCents - feeCents - reserveCents),
+    netCents: centimes(grossCents - feeCents - taxCents - reserveCents),
   };
 }
 

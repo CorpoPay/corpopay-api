@@ -144,6 +144,7 @@ enum LedgerAccount {
   FEES      // CorpoPay revenue (income)
   PAID_OUT  // cumulative amount settled to the tenant (contra-liability)
   WALLET    // customer stored-value owed back to the customer (liability)
+  TAX_PAYABLE // tax collected on fees, owed to the tax authority (liability)
 }
 
 enum LedgerDirection {
@@ -162,6 +163,7 @@ enum LedgerCategory {
   ADJUSTMENT
   FX_ADJUSTMENT
   DISBURSEMENT
+  TAX
 }
 
 enum FeeType {
@@ -324,6 +326,8 @@ model Tenant {
   status           TenantStatus @default(ACTIVE)
   environment      Environment  @default(SANDBOX)
   settlementCurrency String     @default("MAD") // ISO 4217 settlement currency (ADR 0006)
+  taxRateBps        Int        @default(0)   // basis points; tax on CorpoPay fee (ADR 0007)
+  taxExempt         Boolean    @default(false) // reverse-charge / exempt -> zero tax
   notifyEmail      String?      // optional: send payment outcome emails via configured adapter
   notifyWebhookUrl String?      // optional: outbound webhook URL for real-time payment events
   webhookSigningSecret String?  // AES-256 encrypted HMAC secret for signing outbound merchant webhooks

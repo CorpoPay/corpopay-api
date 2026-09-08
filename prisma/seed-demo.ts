@@ -67,7 +67,13 @@ export async function seedDemoData(prisma: PrismaClientType): Promise<void> {
   await prisma.tenant.upsert({
     where: { slug: tenantData.slug },
     create: tenantData,
-    update: { name: tenantData.name, environment: tenantData.environment },
+    update: {
+      name: tenantData.name,
+      environment: tenantData.environment,
+      settlementCurrency: tenantData.settlementCurrency,
+      taxRateBps: tenantData.taxRateBps,
+      taxExempt: tenantData.taxExempt,
+    },
   });
   console.log("✅ Demo tenant upserted.");
 

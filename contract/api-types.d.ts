@@ -2255,6 +2255,9 @@ export interface components {
       slug: string;
       status: string;
       environment: string;
+      settlementCurrency: string;
+      taxRateBps: number;
+      taxExempt: boolean;
       createdAt: string;
       notifyWebhookUrl: string | null;
       notifyEmail: string | null;
@@ -2263,6 +2266,9 @@ export interface components {
       id: string;
       name: string;
       slug: string;
+      settlementCurrency: string;
+      taxRateBps: number;
+      taxExempt: boolean;
       notifyWebhookUrl: string | null;
       notifyEmail: string | null;
     };
@@ -3589,6 +3595,8 @@ export interface operations {
           rotateWebhookSigningSecret?: boolean;
           /** @enum {string} */
           settlementCurrency?: "MAD" | "USD" | "EUR" | "GBP" | "CAD";
+          taxRateBps?: number;
+          taxExempt?: boolean;
         };
       };
     };
