@@ -77,7 +77,10 @@
     "vitest": "^4.1.0"
   },
   "overrides": {
-    "deepmerge-ts": "^8.0.2"
+    "deepmerge-ts": "^8.0.2",
+    "mysql2": "^3.24.4",
+    "qs": "^6.16.0",
+    "fast-uri": "^3.1.6"
   },
   "lint-staged": {
     "*.{ts,js,mjs,cjs}": [
