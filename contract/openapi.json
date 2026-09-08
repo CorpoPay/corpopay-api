@@ -4115,6 +4115,10 @@
                   },
                   "rotateWebhookSigningSecret": {
                     "type": "boolean"
+                  },
+                  "settlementCurrency": {
+                    "type": "string",
+                    "enum": ["MAD", "USD", "EUR", "GBP", "CAD"]
                   }
                 }
               }

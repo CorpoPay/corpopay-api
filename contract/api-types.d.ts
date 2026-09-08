@@ -3587,6 +3587,8 @@ export interface operations {
           /** Format: email */
           notifyEmail?: string | null;
           rotateWebhookSigningSecret?: boolean;
+          /** @enum {string} */
+          settlementCurrency?: "MAD" | "USD" | "EUR" | "GBP" | "CAD";
         };
       };
     };
