@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.33.0...corpopay-api-v0.34.0) (2026-09-08)
+
+
+### Features
+
+* **tenant:** add per-tenant settlementCurrency (ADR 0006 phase 2) ([5fb5ab0](https://github.com/CorpoPay/corpopay-api/commit/5fb5ab08f5c09e0f46575fecc0ddcc8ac696ea11))
+
 ## [0.33.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.32.0...corpopay-api-v0.33.0) (2026-09-08)
 
 
