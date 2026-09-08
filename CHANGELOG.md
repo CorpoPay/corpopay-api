@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.33.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.32.0...corpopay-api-v0.33.0) (2026-09-08)
+
+
+### Features
+
+* **ledger:** currency-aware money and double-entry core ([cba6eec](https://github.com/CorpoPay/corpopay-api/commit/cba6eec91b26092b43b91e9b988e81c5792e2fcc))
+
 ## [0.32.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.31.0...corpopay-api-v0.32.0) (2026-09-07)
 
 
