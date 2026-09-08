@@ -30,6 +30,7 @@ import {
   demoBillingEvents,
   demoDisputes,
   demoFeeSchedules,
+  demoFinanceConfig,
   demoInstallmentAgreement,
   demoInstallmentCharges,
   demoInstallmentPlans,
@@ -45,6 +46,7 @@ import {
   demoReconciliationReports,
   demoRecoveries,
   demoRefunds,
+  demoRiskDecisions,
   demoSettlementPolicies,
   demoSettlementStatementItems,
   demoSettlementStatements,
@@ -54,6 +56,8 @@ import {
   demoSubscriptions,
   demoTenant,
   demoUsers,
+  demoWallets,
+  demoWalletTransactions,
   demoWebhookEvents,
 } from "./seed-demo-data";
 
@@ -408,6 +412,54 @@ export async function seedDemoData(prisma: PrismaClientType): Promise<void> {
     });
   }
   console.log(`✅ ${demoSettlementStatementItems().length} settlement statement item(s) upserted.`);
+
+  // ── Finance config (capability layer) ─────────────────────────────────────
+  const financeConfig = demoFinanceConfig();
+  await prisma.financeConfig.upsert({
+    where: { tenantId: DEMO_TENANT_ID },
+    create: financeConfig,
+    update: {
+      capabilities: financeConfig.capabilities,
+      preset: financeConfig.preset,
+      walletCommissionBasis: financeConfig.walletCommissionBasis,
+    },
+  });
+  console.log("✅ Finance config upserted.");
+
+  // ── Wallets + transactions (stored-value / prepaid) ───────────────────────
+  for (const wallet of demoWallets()) {
+    await prisma.wallet.upsert({
+      where: {
+        tenantId_ownerType_ownerId: {
+          tenantId: DEMO_TENANT_ID,
+          ownerType: wallet.ownerType,
+          ownerId: wallet.ownerId,
+        },
+      },
+      create: wallet,
+      update: { balance: wallet.balance, status: wallet.status },
+    });
+  }
+  console.log(`✅ ${demoWallets().length} wallet(s) upserted.`);
+
+  for (const tx of demoWalletTransactions()) {
+    await prisma.walletTransaction.upsert({
+      where: { id: tx.id },
+      create: tx,
+      update: {},
+    });
+  }
+  console.log(`✅ ${demoWalletTransactions().length} wallet transaction(s) upserted.`);
+
+  // ── Risk decisions ────────────────────────────────────────────────────────
+  for (const risk of demoRiskDecisions()) {
+    await prisma.riskDecision.upsert({
+      where: { eventId: risk.eventId },
+      create: risk,
+      update: { verdict: risk.verdict, score: risk.score },
+    });
+  }
+  console.log(`✅ ${demoRiskDecisions().length} risk decision(s) upserted.`);
 
   console.log("✅ Demo seed complete.");
 }

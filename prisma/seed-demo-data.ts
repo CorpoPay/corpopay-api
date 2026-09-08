@@ -28,8 +28,12 @@ import {
   Provider,
   ProviderConfigStatus,
   RefundStatus,
+  RiskVerdict,
   SubscriptionStatus,
   UserRole,
+  WalletOwnerType,
+  WalletStatus,
+  WalletTransactionType,
 } from "../src/generated/prisma/client";
 
 // ─── Deterministic timeline ────────────────────────────────────────────────────
@@ -1579,6 +1583,173 @@ export function demoSettlementStatementItems(): Prisma.SettlementStatementItemUn
       amount: 2.6,
       entryCount: 2,
       createdAt: demoDate(30),
+    },
+  ];
+}
+
+// ─── Finance config (capability layer) ──────────────────────────────────────────
+// The demo tenant exercises every sellable capability — instant/preauth capture,
+// wallet (stored-value), subscriptions, installments, and marketplace splits — so
+// its `FinanceConfig` is the `full` preset (all six toggles). `walletCommissionBasis`
+// is `usage` (commission on each draw-down — the OtoParking pay-as-you-go model).
+
+export function demoFinanceConfig(): Prisma.FinanceConfigUncheckedCreateInput {
+  return {
+    id: "demo-finance-config",
+    tenantId: DEMO_TENANT_ID,
+    capabilities: [
+      "INSTANT_CAPTURE",
+      "PREAUTH_CAPTURE",
+      "WALLET",
+      "SUBSCRIPTIONS",
+      "INSTALLMENTS",
+      "MARKETPLACE_SPLITS",
+    ],
+    preset: "full",
+    walletCommissionBasis: "usage",
+    createdAt: demoDate(0),
+  };
+}
+
+// ─── Wallet (stored-value / prepaid) ────────────────────────────────────────────
+// Two wallets exercise both owner kinds: a customer prepaid wallet (the OtoParking
+// pay-as-you-go model) and the tenant's own float. `balance` is the cached snapshot;
+// the authoritative balance is Σ signed `WalletTransaction.amount`.
+
+export function demoWallets(): Prisma.WalletUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-wallet-customer",
+      tenantId: DEMO_TENANT_ID,
+      ownerType: WalletOwnerType.CUSTOMER,
+      ownerId: "demo-customer-prepaid",
+      balance: 950.0,
+      currency: "MAD",
+      status: WalletStatus.ACTIVE,
+      createdAt: demoDate(40),
+    },
+    {
+      id: "demo-wallet-tenant",
+      tenantId: DEMO_TENANT_ID,
+      ownerType: WalletOwnerType.TENANT,
+      ownerId: DEMO_TENANT_ID,
+      balance: 5000.0,
+      currency: "MAD",
+      status: WalletStatus.ACTIVE,
+      createdAt: demoDate(0),
+    },
+  ];
+}
+
+export function demoWalletTransactions(): Prisma.WalletTransactionUncheckedCreateInput[] {
+  return [
+    // Customer prepaid — load, spend, refund-to-wallet, support credit.
+    {
+      id: "demo-wtx-topup",
+      walletId: "demo-wallet-customer",
+      tenantId: DEMO_TENANT_ID,
+      type: WalletTransactionType.TOP_UP,
+      amount: 1000.0,
+      currency: "MAD",
+      balanceAfter: 1000.0,
+      sourceType: "payment_intent",
+      sourceId: "demo-corr-wallet-topup",
+      createdAt: demoDate(40),
+    },
+    {
+      id: "demo-wtx-debit-1",
+      walletId: "demo-wallet-customer",
+      tenantId: DEMO_TENANT_ID,
+      type: WalletTransactionType.DEBIT,
+      amount: -50.0,
+      currency: "MAD",
+      balanceAfter: 950.0,
+      sourceType: "payment_intent",
+      sourceId: "demo-corr-wallet-debit-1",
+      createdAt: demoDate(41),
+    },
+    {
+      id: "demo-wtx-debit-2",
+      walletId: "demo-wallet-customer",
+      tenantId: DEMO_TENANT_ID,
+      type: WalletTransactionType.DEBIT,
+      amount: -30.0,
+      currency: "MAD",
+      balanceAfter: 920.0,
+      sourceType: "payment_intent",
+      sourceId: "demo-corr-wallet-debit-2",
+      createdAt: demoDate(42),
+    },
+    {
+      id: "demo-wtx-refund",
+      walletId: "demo-wallet-customer",
+      tenantId: DEMO_TENANT_ID,
+      type: WalletTransactionType.REFUND,
+      amount: 20.0,
+      currency: "MAD",
+      balanceAfter: 940.0,
+      sourceType: "refund",
+      sourceId: "demo-refund-wallet",
+      createdAt: demoDate(43),
+    },
+    {
+      id: "demo-wtx-adjust",
+      walletId: "demo-wallet-customer",
+      tenantId: DEMO_TENANT_ID,
+      type: WalletTransactionType.ADJUSTMENT,
+      amount: 10.0,
+      currency: "MAD",
+      balanceAfter: 950.0,
+      sourceType: "support",
+      sourceId: "demo-adjust-wallet",
+      createdAt: demoDate(44),
+    },
+    // Tenant float — a platform-funded top-up.
+    {
+      id: "demo-wtx-tenant-float",
+      walletId: "demo-wallet-tenant",
+      tenantId: DEMO_TENANT_ID,
+      type: WalletTransactionType.TOP_UP,
+      amount: 5000.0,
+      currency: "MAD",
+      balanceAfter: 5000.0,
+      sourceType: null,
+      sourceId: null,
+      createdAt: demoDate(0),
+    },
+  ];
+}
+
+// ─── Risk decisions ─────────────────────────────────────────────────────────────
+
+export function demoRiskDecisions(): Prisma.RiskDecisionUncheckedCreateInput[] {
+  return [
+    {
+      id: "demo-risk-allow",
+      tenantId: DEMO_TENANT_ID,
+      eventId: "demo-risk-allow",
+      verdict: RiskVerdict.ALLOW,
+      score: 12,
+      reasons: { rule: "velocity_ok", note: "low risk" },
+      createdAt: demoDate(10),
+    },
+    {
+      id: "demo-risk-review",
+      tenantId: DEMO_TENANT_ID,
+      eventId: "demo-risk-review",
+      verdict: RiskVerdict.REVIEW,
+      score: 65,
+      reasons: { rule: "amount_anomaly", note: "manual review" },
+      createdAt: demoDate(12),
+    },
+    {
+      id: "demo-risk-block",
+      tenantId: DEMO_TENANT_ID,
+      eventId: "demo-risk-block",
+      verdict: RiskVerdict.BLOCK,
+      score: 95,
+      reasons: { rule: "card_blacklist", note: "blocked card" },
+      createdAt: demoDate(14),
     },
   ];
 }
