@@ -15,7 +15,7 @@ that blocks combinations that cannot work.
 2. **Presets are shortcuts** — a preset seeds the toggles; the tenant can then flip any toggle.
 3. **Smartness = validation** — a pure validator rejects invalid combos (unknown keys, duplicates, unmet prerequisites).
 4. **Settlement is separate** — money *flow* (this engine) vs. money *payout* (`SettlementPolicy` + payout rail) stay decoupled.
-5. **Money invariant** — DB `MAD Decimal(12,2)`; API/providers integer centimes via `src/lib/money.ts`. This layer never touches amounts.
+5. **Money invariant** — DB per-currency `Decimal(12,2)` (MAD, USD, EUR, GBP, CAD); API/providers integer centimes via `src/lib/money.ts`. This layer never touches amounts.
 
 ## Capabilities (sellable features)
 
@@ -84,7 +84,7 @@ model FinanceConfig {
 
 ## What already exists (do not rebuild)
 
-- `Wallet` + `WalletTransaction` — stored value; refund-to-wallet = `REFUND`, support credit = `ADJUSTMENT` (signed MAD).
+- `Wallet` + `WalletTransaction` — stored value; refund-to-wallet = `REFUND`, support credit = `ADJUSTMENT` (signed minor units).
 - `FeeSchedule` (`FLAT` / `PERCENTAGE` / `TIERED` / `PER_METHOD`) + `resolveFeeSpec`.
 - `SettlementPolicy` — reserve, availability, payout schedule, `splittingEnabled`, `industry` (already "defaults the policy preset").
 - `SplitParty` / `SplitRule` / `Split` — marketplace Model A.

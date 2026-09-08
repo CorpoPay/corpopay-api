@@ -4,9 +4,10 @@ Status: **current** (source of truth: `src/lib/*`; this doc mirrors the code).
 
 CorpoPay is a **PayFac** (payment facilitator): it collects customer funds on behalf
 of its tenants, takes a commission, optionally holds a reserve, and settles the
-remainder. Every dirham that moves is recorded as a balanced double-entry posting —
-the invariant **Σ debits = Σ credits** must hold after every write, and the DB
-stores **MAD `Decimal(12,2)`** while the API and providers speak integer
+remainder. Every unit of currency that moves is recorded as a balanced double-entry
+posting — the invariant **Σ debits = Σ credits** must hold after every write, and the
+DB stores **per-currency `Decimal(12,2)`** (MAD, USD, EUR, GBP, CAD) while the API and
+providers speak integer
 **centimes** (all conversion through `src/lib/money.ts`).
 
 ---
