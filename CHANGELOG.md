@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.37.0...corpopay-api-v0.38.0) (2026-09-08)
+
+
+### Features
+
+* **seed:** showcase wallet, finance config, and risk decisions in demo tenant ([78fb254](https://github.com/CorpoPay/corpopay-api/commit/78fb2545ebc9f674404a193e99eb396ec9811228))
+
 ## [0.37.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.36.0...corpopay-api-v0.37.0) (2026-09-08)
 
 
