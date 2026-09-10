@@ -4,6 +4,14 @@
   "private": true,
   "type": "module",
   "description": "CorpoPay backend API – Express + Prisma + TypeScript",
+  "homepage": "https://corpopay.site",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CorpoPay/corpopay-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CorpoPay/corpopay-api/issues"
+  },
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
     "start": "tsx src/server.ts",

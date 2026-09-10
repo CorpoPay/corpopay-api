@@ -4,6 +4,7 @@
 [![CodeQL](https://github.com/CorpoPay/corpopay-api/actions/workflows/codeql.yml/badge.svg)](https://github.com/CorpoPay/corpopay-api/actions/workflows/codeql.yml)
 [![release](https://github.com/CorpoPay/corpopay-api/actions/workflows/release-please.yml/badge.svg)](https://github.com/CorpoPay/corpopay-api/actions/workflows/release-please.yml)
 [![License](https://img.shields.io/github/license/CorpoPay/corpopay-api)](LICENSE)
+[![Website](https://img.shields.io/badge/website-corpopay.site-6e3ff6)](https://corpopay.site)
 [![Node 24](https://img.shields.io/badge/node-24-339933)](https://nodejs.org)
 
 **Multi-tenant payment orchestration & PayFac settlement API** — **Express + Prisma
