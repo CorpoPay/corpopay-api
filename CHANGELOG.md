@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.2](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.38.1...corpopay-api-v0.38.2) (2026-09-10)
+
+
+### Bug Fixes
+
+* **api:** clear npm audit advisories ([6dbd80c](https://github.com/CorpoPay/corpopay-api/commit/6dbd80c2f00c4a81e6806d02bbd08f1bd296ddd6))
+
 ## [0.38.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.38.0...corpopay-api-v0.38.1) (2026-09-10)
 
 
