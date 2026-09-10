@@ -7,6 +7,10 @@
 [![Website](https://img.shields.io/badge/website-corpopay.site-6e3ff6)](https://corpopay.site)
 [![Node 24](https://img.shields.io/badge/node-24-339933)](https://nodejs.org)
 
+> [!NOTE]
+> This repository is no longer actively maintained and is provided as-is for
+> reference under the MIT License.
+
 **Multi-tenant payment orchestration & PayFac settlement API** — **Express + Prisma
 + Inngest**, deployable to any Node host. Providers: **VPS/Payzone** (full),
 **Stripe** (full), and **NAPS** (skeleton), plus recurring billing (subscriptions)
