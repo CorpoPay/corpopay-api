@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.1](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.38.0...corpopay-api-v0.38.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **ci:** trigger release workflows on corpopay-api-v* tags ([a9aacb0](https://github.com/CorpoPay/corpopay-api/commit/a9aacb0ed58f3385bde146154184670e82a5256a))
+
 ## [0.38.0](https://github.com/CorpoPay/corpopay-api/compare/corpopay-api-v0.37.0...corpopay-api-v0.38.0) (2026-09-08)
 
 
