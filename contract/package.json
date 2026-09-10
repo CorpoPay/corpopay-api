@@ -5,6 +5,10 @@
   "type": "module",
   "license": "MIT",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CorpoPay/corpopay-api"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
