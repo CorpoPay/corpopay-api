@@ -2,7 +2,7 @@
 # Runs the ESM source directly via
 # tsx (Prisma 7 Rust-free client + @prisma/adapter-pg), so there is no native
 # query-engine binary to copy and no tsc→dist build step.
-FROM node:20-alpine
+FROM node:26-alpine
 
 RUN apk add --no-cache openssl
 
