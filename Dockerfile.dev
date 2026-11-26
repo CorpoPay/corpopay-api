@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:26-slim
 
 # Prisma requires OpenSSL; curl used for Docker healthcheck; node:20-slim has neither
 RUN apt-get update -y && apt-get install -y openssl curl && rm -rf /var/lib/apt/lists/*
